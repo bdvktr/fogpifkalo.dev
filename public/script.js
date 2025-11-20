@@ -115,9 +115,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       if (!data.success) {
-        cartDropdownContent.innerHTML = `<div class="text-muted small">${
-          data.message || "Nem sikerült betölteni a kosarat."
-        }</div>`;
+        cartDropdownContent.innerHTML = `<div class="text-muted small">${data.message || "Nem sikerült betölteni a kosarat."
+          }</div>`;
         updateCartBadge(0);
         return;
       }
@@ -284,185 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 3000);
   }
 
-  // oldal betöltéskor egyszer betöltjük a kosarat (ha be van jelentkezve)
-  loadCartSummary();
-});
-
-document.addEventListener("DOMContentLoaded", () => {
-  const authSection = document.getElementById("authSection");
-  const accountSection = document.getElementById("accountSection");
-  const nameSpan = document.getElementById("accountName");
-  const emailSpan = document.getElementById("accountEmail");
-  const logoutBtn = document.getElementById("logoutBtn");
-  const ordersList = document.getElementById("ordersList");
-  const profileNameInput = document.getElementById("profileName");
-  const profileEmailInput = document.getElementById("profileEmail");
-
-  async function checkAuth() {
-    try {
-      const res = await fetch("/api/me");
-      const data = await res.json();
-
-      if (data.loggedIn) {
-        if (authSection) authSection.classList.add("d-none");
-        if (accountSection) accountSection.classList.remove("d-none");
-
-        const user = data.user || {};
-        if (nameSpan) {
-          nameSpan.textContent = user.name || user.email || "Felhasználó";
-        }
-        if (emailSpan) {
-          emailSpan.textContent = user.email || "";
-        }
-        if (profileNameInput) {
-          profileNameInput.value = user.name || "";
-        }
-        if (profileEmailInput) {
-          profileEmailInput.value = user.email || "";
-        }
-
-        if (ordersList) {
-          loadOrders();
-        }
-      } else {
-        if (authSection) authSection.classList.remove("d-none");
-        if (accountSection) accountSection.classList.add("d-none");
-      }
-    } catch (err) {
-      console.error("Hiba az /api/me hívásnál:", err);
-      if (authSection) authSection.classList.remove("d-none");
-      if (accountSection) accountSection.classList.add("d-none");
-    }
-  }
-
-    async function loadOrders() {
-    if (!ordersList) return;
-
-    ordersList.textContent = "Rendelések betöltése...";
-
-    try {
-      const res = await fetch("/api/orders");
-      const data = await res.json();
-
-      console.log("API /api/orders válasz:", data); // debug
-
-      if (!data.success) {
-        ordersList.textContent =
-          data.message || "Nem sikerült betölteni a rendeléseket.";
-        return;
-      }
-
-      const orders = data.orders || [];
-
-      if (orders.length === 0) {
-        ordersList.textContent = "Még nincs leadott rendelésed.";
-        return;
-      }
-
-      // 🔹 nagyon egyszerű render – NEM használ order.items-et
-      ordersList.innerHTML = "";
-
-      orders.forEach((order) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "mb-3 p-3 border rounded";
-
-        const createdAt = new Date(order.created_at);
-        const formattedDate = createdAt.toLocaleString("hu-HU");
-
-        let statusText = "";
-        switch (order.status) {
-          case "pending":
-            statusText = "Folyamatban";
-            break;
-          case "completed":
-            statusText = "Teljesítve";
-            break;
-          case "cancelled":
-            statusText = "Törölve";
-            break;
-          default:
-            statusText = order.status;
-        }
-
-        wrapper.innerHTML = `
-          <div class="d-flex justify-content-between mb-1">
-            <div>
-              <strong>Rendelés #${order.id}</strong>
-              <div class="text-muted small">${formattedDate}</div>
-            </div>
-            <span class="badge bg-secondary align-self-start">${statusText}</span>
-          </div>
-          <div class="mt-2 pt-2 border-top d-flex justify-content-between">
-            <span class="fw-semibold">Összesen:</span>
-            <span class="fw-semibold">${formatFt(order.total_price)} Ft</span>
-          </div>
-        `;
-
-        ordersList.appendChild(wrapper);
-      });
-    } catch (err) {
-      console.error("Hiba a /api/orders hívásnál:", err);
-      ordersList.textContent = "Nem sikerült csatlakozni a szerverhez.";
-    }
-  }
-
-
-  function formatFt(value) {
-    return Math.round(Number(value)).toLocaleString("hu-HU");
-  }
-
-  // Kijelentkezés gomb
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", async () => {
-      try {
-        await fetch("/api/logout", { method: "POST" });
-      } catch (err) {
-        console.error("Hiba a logout-nál:", err);
-      }
-      // Frissítjük az oldalt, hogy visszaváltson login/reg-re
-      window.location.reload();
-    });
-  }
-
-  if (profileForm) {
-    profileForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const name = profileNameInput.value.trim();
-      const email = profileEmailInput.value.trim();
-
-      if (!name || !email) {
-        alert("A név és az e-mail megadása kötelező.");
-        return;
-      }
-
-      try {
-        const res = await fetch("/api/account", {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ name, email }),
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          alert("Profil frissítve.");
-          // frissítjük az accountName/accountEmail felületet is
-          if (nameSpan) nameSpan.textContent = name;
-          if (emailSpan) emailSpan.textContent = email;
-        } else {
-          alert(data.message || "Nem sikerült frissíteni a profilt.");
-        }
-      } catch (err) {
-        console.error("Hiba a profil frissítésekor:", err);
-        alert("Nem sikerült csatlakozni a szerverhez.");
-      }
-    });
-  }
-
-  if (passwordForm) {
+    if (passwordForm) {
     passwordForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -495,6 +316,157 @@ document.addEventListener("DOMContentLoaded", () => {
         console.error("Hiba a jelszó frissítésekor:", err);
         alert("Nem sikerült csatlakozni a szerverhez.");
       }
+    });
+  }
+
+
+  // oldal betöltéskor egyszer betöltjük a kosarat (ha be van jelentkezve)
+  loadCartSummary();
+});
+
+document.addEventListener("DOMContentLoaded", () => {
+  const authSection = document.getElementById("authSection");
+  const accountSection = document.getElementById("accountSection");
+  const nameSpan = document.getElementById("accountName");
+  const emailSpan = document.getElementById("accountEmail");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const ordersList = document.getElementById("ordersList");
+  const profileNameInput = document.getElementById("profileName");
+  const profileEmailInput = document.getElementById("profileEmail");
+
+  async function checkAuth() {
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json();
+
+      if (data.loggedIn) {
+        if (authSection) authSection.classList.add("d-none");
+        if (accountSection) accountSection.classList.remove("d-none");
+
+        const user = data.user || {};
+        if (nameSpan) {
+          nameSpan.textContent = user.name || user.email || "Felhasználó";
+        }
+        if (emailSpan) {
+          emailSpan.textContent = user.email || "";
+        }
+        if (ordersList) {
+          loadOrders();
+        }
+      } else {
+        if (authSection) authSection.classList.remove("d-none");
+        if (accountSection) accountSection.classList.add("d-none");
+      }
+    } catch (err) {
+      console.error("Hiba az /api/me hívásnál:", err);
+      if (authSection) authSection.classList.remove("d-none");
+      if (accountSection) accountSection.classList.add("d-none");
+    }
+  }
+
+  async function loadOrders() {
+    if (!ordersList) return;
+
+    ordersList.textContent = "Rendelések betöltése...";
+
+    try {
+      const res = await fetch("/api/orders");
+      const data = await res.json();
+
+      if (!data.success) {
+        ordersList.textContent =
+          data.message || "Nem sikerült betölteni a rendeléseket.";
+        return;
+      }
+
+      const orders = data.orders || [];
+
+      if (orders.length === 0) {
+        ordersList.textContent = "Még nincs leadott rendelésed.";
+        return;
+      }
+
+      // Rendelések megjelenítése
+      ordersList.innerHTML = "";
+
+      orders.forEach((order) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "mb-3 p-3 border rounded";
+
+        const createdAt = new Date(order.created_at);
+        const formattedDate = createdAt.toLocaleString("hu-HU");
+
+        let statusText = "";
+        switch (order.status) {
+          case "pending":
+            statusText = "Folyamatban";
+            break;
+          case "completed":
+            statusText = "Teljesítve";
+            break;
+          case "cancelled":
+            statusText = "Törölve";
+            break;
+          default:
+            statusText = order.status;
+        }
+
+        // tételek listája
+        let itemsHtml = "";
+        order.items.forEach((item) => {
+          const lineTotal = Number(item.unit_price) * Number(item.quantity);
+          itemsHtml += `
+          <div class="d-flex justify-content-between">
+            <div>
+              ${item.name}
+              <span class="text-muted">× ${item.quantity}</span>
+            </div>
+            <div>
+              ${formatFt(lineTotal)} Ft
+            </div>
+          </div>
+        `;
+        });
+
+        wrapper.innerHTML = `
+        <div class="d-flex justify-content-between mb-1">
+          <div>
+            <strong>Rendelés #${order.id}</strong>
+            <div class="text-muted small">${formattedDate}</div>
+          </div>
+          <span class="badge bg-secondary align-self-start">${statusText}</span>
+        </div>
+        <div class="mb-2 small">
+          ${itemsHtml}
+        </div>
+        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
+          <strong>Összesen:</strong>
+          <strong>${formatFt(order.total_price)} Ft</strong>
+        </div>
+      `;
+
+        ordersList.appendChild(wrapper);
+      });
+    } catch (err) {
+      console.error(err);
+      ordersList.textContent = "Nem sikerült csatlakozni a szerverhez.";
+    }
+  }
+
+  function formatFt(value) {
+    return Math.round(Number(value)).toLocaleString("hu-HU");
+  }
+
+  // Kijelentkezés gomb
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", async () => {
+      try {
+        await fetch("/api/logout", { method: "POST" });
+      } catch (err) {
+        console.error("Hiba a logout-nál:", err);
+      }
+      // Frissítjük az oldalt, hogy visszaváltson login/reg-re
+      window.location.reload();
     });
   }
 
