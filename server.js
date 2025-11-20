@@ -987,6 +987,23 @@ app.get("/api/products", (req, res) => {
   });
 });
 
+// 🔹 Kilépés
+app.post("/api/logout", (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error("Session törlés hiba:", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Nem sikerült kilépni." });
+    }
+
+    // opcionálisan: törölhetjük a cookie-t is
+    res.clearCookie("connect.sid"); // express-session default cookie neve
+
+    return res.json({ success: true, message: "Sikeres kilépés." });
+  });
+});
+
 // 🔹 Szerver indítása
 const PORT = 3000;
 app.listen(PORT, () => {
