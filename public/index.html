@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fogpifkáló - A város legjobb burgerje</title>
+    <!-- Bootstrap 5 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", system-ui, -apple-system, Roboto, "Helvetica Neue",
+          Arial;
+      }
+      .hero {
+        background-image: url("https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1600&auto=format&fit=crop&ixlib=rb-4.0.3&s=");
+        background-size: cover;
+        background-position: center;
+        min-height: 64vh;
+        display: flex;
+        align-items: center;
+      }
+      .hero-overlay {
+        background: rgba(0, 0, 0, 0.45);
+        padding: 4rem 0;
+        width: 100%;
+      }
+      .menu-card img {
+        height: 180px;
+        object-fit: cover;
+      }
+      .badge-special {
+        background: #ff6b35;
+      }
+      .footer {
+        background: #111;
+        color: #ddd;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+          <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
+          <span class="fw-bold">Fogpifkáló</span>
+        </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navMenu"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link active" href="#">Főoldal</a>
+            </li>
+            <li class="nav-item"><a class="nav-link" href="#menu">Menü</a></li>
+            <li class="nav-item">
+              <a class="nav-link" href="#rolunk">Rólunk</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="#kapcsolat">Kapcsolat</a>
+            </li>
+          </ul>
+
+          <!-- Kosár ikon + dropdown -->
+          <div class="dropdown ms-lg-3">
+            <button
+              class="btn btn-outline-light position-relative d-flex align-items-center"
+              type="button"
+              id="cartDropdownBtn"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+            >
+              <i class="bi bi-bag me-1"></i>
+              <span class="d-none d-lg-inline">Kosár</span>
+              <span
+                class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
+                id="cartCountBadge"
+                style="font-size: 0.7rem; display: none"
+              >
+                0
+              </span>
+            </button>
+            <div
+              class="dropdown-menu dropdown-menu-end p-3"
+              aria-labelledby="cartDropdownBtn"
+              style="min-width: 280px"
+            >
+              <div id="cartDropdownContent">
+                <div class="text-muted small">A kosarad jelenleg üres.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Fiók ikon -->
+          <a
+            class="btn btn-outline-light ms-2 d-flex align-items-center"
+            href="fiok.html"
+            id="accountLink"
+          >
+            <i class="bi bi-person-circle me-1"></i>
+            <span class="d-none d-lg-inline">Fiókom</span>
+          </a>
+
+          <!-- Foglalás gomb -->
+          <a class="btn btn-warning ms-2" href="#foglalas">Foglalás</a>
+        </div>
+      </div>
+    </nav>
+
+    <!-- HERO -->
+    <header class="hero">
+      <div class="hero-overlay text-white">
+        <div class="container">
+          <div class="row align-items-center">
+            <div class="col-lg-7">
+              <h1 class="display-5 fw-bold">
+                Frissen sült, kézzel formázott burger — minden harapás egy
+                élmény
+              </h1>
+              <p class="lead">
+                Helyi alapanyagok, saját szószok és a tökéletes, ropogós briós.
+                Gyere el, vagy rendelj házhoz!
+              </p>
+              <div class="mt-3">
+                <a href="#menu" class="btn btn-lg btn-light me-2"
+                  >Menü megtekintése</a
+                >
+                <a href="#foglalas" class="btn btn-lg btn-outline-light"
+                  >Foglalás</a
+                >
+              </div>
+            </div>
+            <div class="col-lg-5 d-none d-lg-block text-end">
+              <img
+                src="https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s="
+                alt="burger"
+                class="img-fluid rounded shadow-lg"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- HIGHLIGHTS -->
+    <section class="py-5">
+      <div class="container">
+        <div class="row text-center g-4">
+          <div class="col-md-4">
+            <div class="card border-0 h-100 shadow-sm">
+              <div class="card-body">
+                <i class="bi bi-clock-history fs-1 text-warning"></i>
+                <h5 class="card-title mt-3">Gyors kiszolgálás</h5>
+                <p class="card-text">
+                  Átlagos várakozás 10 perc alatt — mert tudjuk, hogy éhes vagy.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 h-100 shadow-sm">
+              <div class="card-body">
+                <i class="bi bi-leaf fs-1 text-success"></i>
+                <h5 class="card-title mt-3">Friss alapanyagok</h5>
+                <p class="card-text">
+                  Helyi farmokból származó hús és zöldségek — semmi műanyag íz.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card border-0 h-100 shadow-sm">
+              <div class="card-body">
+                <i class="bi bi-star-fill fs-1 text-danger"></i>
+                <h5 class="card-title mt-3">Különleges szószok</h5>
+                <p class="card-text">
+                  3 házi szósz, amiket csak nálunk találsz — próbáld ki mindet!
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MENU GRID -->
+    <section id="menu" class="py-5 bg-light">
+      <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="h3 mb-0">Népszerű burgerjeink</h2>
+          <a href="#" class="btn btn-sm btn-outline-secondary"
+            >Teljes menü megtekintése</a
+          >
+        </div>
+
+        <div id="menuItems" class="row g-4">
+          <div class="col-12 text-muted" id="menuLoading">
+            Menü betöltése...
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="rolunk" class="py-5">
+      <div class="container">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-6">
+            <h3>Rólunk</h3>
+            <p class="lead">
+              A Fogpifkáló 2018 óta szolgálja a várost: egyszerű, nagyszerű
+              ízek, barátságos hangulat és remek ár-érték arány.
+            </p>
+            <p>
+              Hiszünk a kézműves minőségben: minden pogácsát naponta készítünk,
+              a zsemlék frissen érkeznek a pékünktől, és minden köretet házon
+              belül készítünk.
+            </p>
+            <a href="#" class="btn btn-outline-primary">Tovább rólunk</a>
+          </div>
+          <div class="col-lg-6">
+            <div class="ratio ratio-16x9 rounded shadow-sm">
+              <iframe
+                src="https://www.youtube.com/watch?v=25LT2WNJmO4&t=40s"
+                title="Bemutatkozó"
+                allowfullscreen
+              ></iframe>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RESERVATION CTA -->
+    <section id="foglalas" class="py-5 bg-dark text-white text-center">
+      <div class="container">
+        <h3 class="mb-3">Foglalj asztalt most</h3>
+        <p class="mb-4">
+          Garantáltan jó helyed lesz egy hétvégi esti burger-partira.
+        </p>
+        <a href="#kapcsolat" class="btn btn-warning btn-lg">Foglalás</a>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="kapcsolat" class="py-5">
+      <div class="container">
+        <div class="row g-4">
+          <div class="col-md-6">
+            <h4>Kapcsolat</h4>
+            <p class="mb-1">
+              <i class="bi bi-geo-alt-fill me-2"></i>Mohács, Sétáló utca
+            </p>
+            <p class="mb-1">
+              <i class="bi bi-telephone-fill me-2"></i>+36 30 123 4567
+            </p>
+            <p class="mb-3">
+              <i class="bi bi-envelope-fill me-2"></i>info@Fogpifkáló.hu
+            </p>
+            <p>Nyitvatartás:</p>
+            <ul>
+              <li>H–P: 11:00 — 22:00</li>
+              <li>Szo–V: 12:00 — 23:00</li>
+            </ul>
+          </div>
+          <div class="col-md-6">
+            <h4>Üzenet küldése</h4>
+            <form>
+              <div class="mb-3">
+                <label class="form-label">Név</label>
+                <input class="form-control" placeholder="Név" required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">E-mail</label>
+                <input
+                  type="email"
+                  class="form-control"
+                  placeholder="email@pelda.hu"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Üzenet</label>
+                <textarea
+                  class="form-control"
+                  rows="4"
+                  placeholder="Miben segíthetünk?"
+                ></textarea>
+              </div>
+              <button class="btn btn-primary" type="submit">Küldés</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="footer py-4">
+      <div
+        class="container d-flex flex-column flex-md-row justify-content-between align-items-center"
+      >
+        <div>
+          <strong>Fogpifkáló</strong> &copy; 2025 · Minden jog fenntartva
+        </div>
+        <div class="mt-2 mt-md-0">
+          <a href="#" class="text-decoration-none text-muted me-3"
+            >Adatvédelem</a
+          >
+          <a href="#" class="text-decoration-none text-muted">Impresszum</a>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="script.js"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", () => {
+        const menuContainer = document.getElementById("menuItems");
+        const menuLoading = document.getElementById("menuLoading");
+
+        if (!menuContainer) return;
+
+        function formatFt(value) {
+          return Math.round(Number(value)).toLocaleString("hu-HU");
+        }
+
+        async function loadMenu() {
+          if (menuLoading) {
+            menuLoading.textContent = "Menü betöltése...";
+          }
+
+          try {
+            const res = await fetch("/api/products");
+            const data = await res.json();
+
+            if (!data.success) {
+              if (menuLoading) {
+                menuLoading.textContent =
+                  data.message || "Nem sikerült betölteni a menüt.";
+              }
+              return;
+            }
+
+            const products = data.products || [];
+
+            if (products.length === 0) {
+              if (menuLoading) {
+                menuLoading.textContent = "Jelenleg nincs elérhető termék.";
+              }
+              return;
+            }
+
+            // Konténer ürítése
+            menuContainer.innerHTML = "";
+
+            products.forEach((p) => {
+              const col = document.createElement("div");
+              col.className = "col-md-6 col-lg-4";
+
+              const imgUrl =
+                p.image_url && p.image_url.trim()
+                  ? p.image_url
+                  : "https://via.placeholder.com/400x250?text=Burger";
+
+              col.innerHTML = `
+          <div class="card menu-card h-100 shadow-sm">
+            <img src="${imgUrl}" class="card-img-top" alt="${p.name}">
+            <div class="card-body d-flex flex-column">
+              <h5 class="card-title">${p.name}</h5>
+              <p class="card-text">${p.description || ""}</p>
+              <div class="mt-auto d-flex justify-content-between align-items-center">
+                <strong>${formatFt(p.price)} Ft</strong>
+                <button 
+                  class="btn btn-sm btn-primary order-btn" 
+                  data-product-id="${p.id}"
+                  type="button"
+                >
+                  Rendelés
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+
+              menuContainer.appendChild(col);
+            });
+
+            // ⚠️ FONTOS: ha a kosár logika a .order-btn gombokra event listenerrel működik,
+            // és azt korábban DOMContentLoaded-kor raktad rá, akkor lehet, hogy
+            // külön kell egy függvény, ami újra ráakasztja az eseményeket az új gombokra is.
+            // Ha már van ilyen, itt hívd meg, pl:
+            // initOrderButtons();
+          } catch (err) {
+            console.error("Hiba a /api/products hívásnál:", err);
+            if (menuLoading) {
+              menuLoading.textContent =
+                "Nem sikerült csatlakozni a szerverhez.";
+            }
+          }
+        }
+
+        loadMenu();
+      });
+    </script>
+  </body>
+</html>

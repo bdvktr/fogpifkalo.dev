@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="hu">
+  <head>
+    <meta charset="UTF-8" />
+    <title>BurgerBázis – Admin</title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="bg-light">
+    <nav class="navbar navbar-dark bg-dark mb-4">
+      <div class="container">
+        <span class="navbar-brand">BurgerBázis – Admin</span>
+        <a href="fiok.html" class="btn btn-outline-light btn-sm"
+          >Vissza a fiókhoz</a
+        >
+      </div>
+    </nav>
+
+    <main class="container pb-5">
+      <div id="adminError" class="alert alert-danger d-none"></div>
+
+      <div id="adminContent" class="d-none">
+        <h1 class="h4 mb-4">Admin felület</h1>
+
+        <div class="row g-4">
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-body">
+                <h2 class="h6 mb-3">Termékek</h2>
+                <div id="productsList" class="small"></div>
+                <hr />
+                <h3 class="h6">Új termék hozzáadása</h3>
+                <form id="newProductForm" class="small">
+                  <div class="mb-2">
+                    <label class="form-label">Név</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      name="name"
+                      required
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Leírás</label>
+                    <textarea
+                      class="form-control form-control-sm"
+                      name="description"
+                      rows="2"
+                    ></textarea>
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Ár (Ft)</label>
+                    <input
+                      type="number"
+                      class="form-control form-control-sm"
+                      name="price"
+                      required
+                    />
+                  </div>
+                  <div class="mb-2">
+                    <label class="form-label">Kép URL</label>
+                    <input
+                      type="text"
+                      class="form-control form-control-sm"
+                      name="image_url"
+                    />
+                  </div>
+                  <button type="submit" class="btn btn-sm btn-primary mt-2">
+                    Hozzáadás
+                  </button>
+                </form>
+              </div>
+            </div>
+          </div>
+
+          <div class="col-lg-6">
+            <div class="card">
+              <div class="card-body">
+                <h2 class="h6 mb-3">Rendelések</h2>
+                <div id="ordersAdminList" class="small"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- TERMÉK SZERKESZTŐ MODAL -->
+    <div
+      class="modal fade"
+      id="editProductModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Termék szerkesztése</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Bezárás"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <form id="editProductForm" class="small">
+              <input type="hidden" name="id" id="editProductId" />
+
+              <div class="mb-2">
+                <label class="form-label">Név</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  name="name"
+                  id="editProductName"
+                  required
+                />
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label">Leírás</label>
+                <textarea
+                  class="form-control form-control-sm"
+                  name="description"
+                  id="editProductDescription"
+                  rows="2"
+                ></textarea>
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label">Ár (Ft)</label>
+                <input
+                  type="number"
+                  class="form-control form-control-sm"
+                  name="price"
+                  id="editProductPrice"
+                  required
+                />
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label">Kép URL</label>
+                <input
+                  type="text"
+                  class="form-control form-control-sm"
+                  name="image_url"
+                  id="editProductImageUrl"
+                />
+              </div>
+
+              <button type="submit" class="btn btn-sm btn-primary mt-2">
+                Mentés
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+      <!-- RENDELÉS RÉSZLETEI MODAL -->
+  <div class="modal fade" id="orderDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="orderDetailsTitle">Rendelés részletei</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Bezárás"></button>
+        </div>
+        <div class="modal-body" id="orderDetailsBody">
+          <!-- Ide töltjük be JS-ből a részleteket -->
+          <div class="text-muted small">Betöltés...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="admin.js"></script>
+  </body>
+</html>
