@@ -283,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }, 3000);
   }
 
-    if (passwordForm) {
+  if (passwordForm) {
     passwordForm.addEventListener("submit", async (e) => {
       e.preventDefault();
 
@@ -333,6 +333,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const ordersList = document.getElementById("ordersList");
   const profileNameInput = document.getElementById("profileName");
   const profileEmailInput = document.getElementById("profileEmail");
+  const loginForm = document.getElementById("loginForm");
+  const loginError = document.getElementById("loginError");
+  const registerForm = document.getElementById("registerForm");
+  const registerError = document.getElementById("registerError");
+
+
 
   async function checkAuth() {
     try {
@@ -456,6 +462,144 @@ document.addEventListener("DOMContentLoaded", () => {
   function formatFt(value) {
     return Math.round(Number(value)).toLocaleString("hu-HU");
   }
+
+  // Belépés kezelése fetch-csel (ne JSON oldalra dobjon)
+  if (loginForm) {
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      if (loginError) {
+        loginError.textContent = "";
+        loginError.classList.add("d-none");
+      }
+
+      const formData = new FormData(loginForm);
+      const email = formData.get("email");
+      const password = formData.get("password");
+
+      if (!email || !password) {
+        if (loginError) {
+          loginError.textContent = "Kérlek töltsd ki az emailt és a jelszót.";
+          loginError.classList.remove("d-none");
+        } else {
+          alert("Kérlek töltsd ki az emailt és a jelszót.");
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          // sikeres login → átirányítás a fiókra
+          window.location.href = "fiok.html";
+        } else {
+          const msg = data.message || "Hibás email vagy jelszó.";
+          if (loginError) {
+            loginError.textContent = msg;
+            loginError.classList.remove("d-none");
+          } else {
+            alert(msg);
+          }
+        }
+      } catch (err) {
+        console.error("Hiba a login során:", err);
+        if (loginError) {
+          loginError.textContent = "Nem sikerült csatlakozni a szerverhez.";
+          loginError.classList.remove("d-none");
+        } else {
+          alert("Nem sikerült csatlakozni a szerverhez.");
+        }
+      }
+    });
+  }
+
+  // Regisztráció kezelése fetch-csel
+  if (registerForm) {
+    registerForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      if (registerError) {
+        registerError.textContent = "";
+        registerError.classList.add("d-none");
+      }
+
+      const formData = new FormData(registerForm);
+      const name = formData.get("name");
+      const email = formData.get("email");
+      const password = formData.get("password");
+      const passwordConfirm = formData.get("passwordConfirm");
+
+      if (!name || !email || !password || !passwordConfirm) {
+        if (registerError) {
+          registerError.textContent = "Minden mező kitöltése kötelező.";
+          registerError.classList.remove("d-none");
+        } else {
+          alert("Minden mező kitöltése kötelező.");
+        }
+        return;
+      }
+
+      if (password !== passwordConfirm) {
+        if (registerError) {
+          registerError.textContent = "A két jelszó nem egyezik.";
+          registerError.classList.remove("d-none");
+        } else {
+          alert("A két jelszó nem egyezik.");
+        }
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/register", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            password,
+            passwordConfirm,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          // ✔ backend már beléptet → mehetünk a fiókra
+          window.location.href = "fiok.html";
+        } else {
+          const msg = data.message || "Nem sikerült regisztrálni.";
+          if (registerError) {
+            registerError.textContent = msg;
+            registerError.classList.remove("d-none");
+          } else {
+            alert(msg);
+          }
+        }
+      } catch (err) {
+        console.error("Hiba a regisztrációnál:", err);
+        if (registerError) {
+          registerError.textContent = "Nem sikerült csatlakozni a szerverhez.";
+          registerError.classList.remove("d-none");
+        } else {
+          alert("Nem sikerült csatlakozni a szerverhez.");
+        }
+      }
+    });
+  }
+
+
+
 
   // Kijelentkezés gomb
   if (logoutBtn) {

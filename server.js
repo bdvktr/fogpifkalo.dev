@@ -83,20 +83,21 @@ app.get("/api/db-test", (req, res) => {
 });
 
 // 🔹 Regisztráció endpoint
-app.post("/api/register", (req, res) => {
+app.post("/api/register", async (req, res) => {
   const { name, email, password, passwordConfirm } = req.body;
 
-  // 1) Alap validációk
   if (!name || !email || !password || !passwordConfirm) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Minden mező kitöltése kötelező." });
+    return res.status(400).json({
+      success: false,
+      message: "Minden mező kitöltése kötelező.",
+    });
   }
 
   if (password !== passwordConfirm) {
-    return res
-      .status(400)
-      .json({ success: false, message: "A két jelszó nem egyezik." });
+    return res.status(400).json({
+      success: false,
+      message: "A két jelszó nem egyezik.",
+    });
   }
 
   if (password.length < 8) {
@@ -106,15 +107,15 @@ app.post("/api/register", (req, res) => {
     });
   }
 
-  // 2) Megnézzük, foglalt-e már az e-mail
-  const checkEmailSql = "SELECT id FROM users WHERE email = ? LIMIT 1";
-
-  db.query(checkEmailSql, [email], (err, rows) => {
+  // Ellenőrizzük, hogy van-e már ilyen email
+  const checkSql = "SELECT id FROM users WHERE email = ? LIMIT 1";
+  db.query(checkSql, [email], async (err, rows) => {
     if (err) {
       console.error("DB hiba (email ellenőrzés):", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Szerver hiba (email ellenőrzés)." });
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (email ellenőrzése).",
+      });
     }
 
     if (rows.length > 0) {
@@ -124,33 +125,40 @@ app.post("/api/register", (req, res) => {
       });
     }
 
-    // 3) Jelszó hash-elése
-    _hash(password, SALT_ROUNDS, (err, hash) => {
-      if (err) {
-        console.error("Jelszó hash hiba:", err);
-        return res
-          .status(500)
-          .json({ success: false, message: "Szerver hiba (hashelés)." });
+    // Jelszó hash-elése
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const insertSql =
+      "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, 0)";
+
+    db.query(insertSql, [name, email, passwordHash], (err2, result) => {
+      if (err2) {
+        console.error("DB hiba (regisztráció):", err2);
+        return res.status(500).json({
+          success: false,
+          message: "Szerver hiba (regisztráció).",
+        });
       }
 
-      // 4) Új user beszúrása
-      const insertSql =
-        "INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)";
+      const newUserId = result.insertId;
 
-      db.query(insertSql, [name, email, hash], (err, result) => {
-        if (err) {
-          console.error("DB hiba (insert user):", err);
-          return res
-            .status(500)
-            .json({ success: false, message: "Szerver hiba (mentés)." });
-        }
+      // 🔹 KÖZVETLEN BELÉPTETÉS – session beállítása
+      req.session.user = {
+        id: newUserId,
+        name,
+        email,
+        isAdmin: false,
+      };
 
-        // 5) Sikeres regisztráció
-        return res.status(201).json({
-          success: true,
-          message: "Sikeres regisztráció.",
-          userId: result.insertId,
-        });
+      return res.json({
+        success: true,
+        message: "Sikeres regisztráció.",
+        user: {
+          id: newUserId,
+          name,
+          email,
+          isAdmin: false,
+        },
       });
     });
   });
