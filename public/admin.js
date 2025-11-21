@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", () => {
       products.forEach((p) => {
         const isActive = Number(p.is_active) === 1;
 
-        const wrapper = document.createElement("div");
+        const wrapper = document.createElement("div");  
         wrapper.className =
           "d-flex justify-content-between align-items-center border rounded p-2 mb-2";
 
