@@ -16,6 +16,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "editProductImageUrl"
   );
 
+  const editProductCategorySelect = document.getElementById(
+    "editProductCategory"
+  );
+
   let editProductModal;
   if (editProductModalEl) {
     editProductModal = new bootstrap.Modal(editProductModalEl);
@@ -29,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     orderDetailsModal = new bootstrap.Modal(orderDetailsModalEl);
   }
 
-  // Kis helper az Ft formázáshoz
+  // Kis helper az Ft formázáshoz 
   function formatFt(value) {
     return Math.round(Number(value)).toLocaleString("hu-HU");
   }
@@ -114,13 +118,12 @@ document.addEventListener("DOMContentLoaded", () => {
             class="btn btn-sm btn-outline-secondary me-1 admin-edit-product-btn"
             data-product-id="${p.id}"
             data-name="${p.name ? String(p.name).replace(/"/g, "&quot;") : ""}"
-            data-description="${
-              p.description ? String(p.description).replace(/"/g, "&quot;") : ""
-            }"
+            data-description="${p.description ? String(p.description).replace(/"/g, "&quot;") : ""
+          }"
             data-price="${p.price}"
-            data-image-url="${
-              p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
-            }"
+            data-image-url="${p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
+          }"
+            data-category="${p.category || "burger"}"
             title="Szerkesztés"
           >
             <i class="bi bi-pencil"></i>
@@ -155,6 +158,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const description = formData.get("description");
       const price = formData.get("price");
       const image_url = formData.get("image_url");
+      const category = formData.get("category") || "burger";
 
       if (!name || !price) {
         alert("A név és az ár megadása kötelező.");
@@ -172,6 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
             description,
             price: Number(price),
             image_url,
+            category,
           }),
         });
 
@@ -231,12 +236,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const description = editBtn.dataset.description || "";
         const price = editBtn.dataset.price || "";
         const imageUrl = editBtn.dataset.imageUrl || "";
+         const category = editBtn.dataset.category || "burger";
 
         editProductIdInput.value = productId;
         editProductNameInput.value = name;
         editProductDescriptionInput.value = description;
         editProductPriceInput.value = price;
         editProductImageUrlInput.value = imageUrl;
+
+        if (editProductCategorySelect) {
+          editProductCategorySelect.value = category;
+        }
 
         editProductModal.show();
       }
@@ -253,6 +263,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const description = editProductDescriptionInput.value.trim();
       const price = editProductPriceInput.value;
       const image_url = editProductImageUrlInput.value.trim();
+      const category = editProductCategorySelect
+        ? editProductCategorySelect.value
+        : "burger";
+
 
       if (!id || !name || !price) {
         alert("A név és az ár megadása kötelező.");
@@ -270,6 +284,7 @@ document.addEventListener("DOMContentLoaded", () => {
             description,
             price: Number(price),
             image_url,
+            category,
           }),
         });
 
@@ -373,15 +388,12 @@ document.addEventListener("DOMContentLoaded", () => {
                   class="form-select form-select-sm admin-order-status mb-1"
                   data-order-id="${o.id}"
                 >
-                  <option value="pending"   ${
-                    o.status === "pending" ? "selected" : ""
-                  }>Folyamatban</option>
-                  <option value="completed" ${
-                    o.status === "completed" ? "selected" : ""
-                  }>Teljesítve</option>
-                  <option value="cancelled" ${
-                    o.status === "cancelled" ? "selected" : ""
-                  }>Törölve</option>
+                  <option value="pending"   ${o.status === "pending" ? "selected" : ""
+              }>Folyamatban</option>
+                  <option value="completed" ${o.status === "completed" ? "selected" : ""
+              }>Teljesítve</option>
+                  <option value="cancelled" ${o.status === "cancelled" ? "selected" : ""
+              }>Törölve</option>
                 </select>
                 <div class="d-flex justify-content-between align-items-center mt-1">
                   <span class="fw-semibold">${formatFt(o.total_price)} Ft</span>
@@ -510,9 +522,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <div><strong>Rendelés azonosító:</strong> #${order.id}</div>
           <div><strong>Dátum:</strong> ${formattedDate}</div>
           <div><strong>Státusz:</strong> ${statusText}</div>
-          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${
-          order.user.email
-        }&gt;</div>
+          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${order.user.email
+          }&gt;</div>
         </div>
       `;
 

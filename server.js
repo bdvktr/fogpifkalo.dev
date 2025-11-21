@@ -719,119 +719,78 @@ app.get("/api/orders", requireLogin, (req, res) => {
 
 // 🔹 Admin – termékek listázása
 app.get("/api/admin/products", requireAdmin, (req, res) => {
-  const sql =
-    "SELECT id, name, description, price, image_url FROM products ORDER BY id ASC";
+  const sql = `
+    SELECT id, name, description, price, is_active, category, image_url
+    FROM products
+    ORDER BY category, name
+  `;
 
   db.query(sql, (err, rows) => {
     if (err) {
-      console.error("DB hiba (admin products select):", err);
+      console.error("DB hiba (/api/admin/products):", err);
       return res.status(500).json({
         success: false,
-        message: "Szerver hiba (termékek lekérdezése).",
+        message: "Szerver hiba a termékek lekérdezésekor.",
       });
     }
 
-    return res.json({
+    res.json({
       success: true,
       products: rows,
     });
   });
 });
 
+
 // 🔹 Admin – új termék létrehozása
 app.post("/api/admin/products", requireAdmin, (req, res) => {
-  const { name, description, price, image_url } = req.body;
+  const { name, description, price, is_active, category, } = req.body;
 
   if (!name || !price) {
     return res.status(400).json({
       success: false,
-      message: "A név és az ár megadása kötelező.",
+      message: "A név és az ár kötelező.",
     });
   }
 
+  const safeCategory =
+    category === "burger" ||
+      category === "side" ||
+      category === "drink" ||
+      category === "sauce"
+      ? category
+      : "burger";
+
   const sql = `
-    INSERT INTO products (name, description, price, image_url)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO products (name, description, price, is_active, category, image_url)
+    VALUES (?, ?, ?, ?, ?)
   `;
 
   db.query(
     sql,
-    [name, description || "", price, image_url || ""],
+    [name, description || null, price, is_active ? 1 : 0, safeCategory],
     (err, result) => {
       if (err) {
-        console.error("DB hiba (admin products insert):", err);
+        console.error("DB hiba (product insert):", err);
         return res.status(500).json({
           success: false,
-          message: "Szerver hiba (termék létrehozása).",
+          message: "Szerver hiba a termék mentésekor.",
         });
       }
 
-      return res.json({
+      res.json({
         success: true,
-        message: "Termék létrehozva.",
         productId: result.insertId,
       });
     }
   );
 });
 
-// 🔹 Admin – termék módosítása
-app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
-  const productId = req.params.id;
-  const { name, description, price, image_url } = req.body;
-
-  const sql = `
-    UPDATE products
-    SET name = ?, description = ?, price = ?, image_url = ?
-    WHERE id = ?
-  `;
-
-  db.query(
-    sql,
-    [name, description || "", price, image_url || "", productId],
-    (err, result) => {
-      if (err) {
-        console.error("DB hiba (admin products update):", err);
-        return res.status(500).json({
-          success: false,
-          message: "Szerver hiba (termék módosítása).",
-        });
-      }
-
-      return res.json({
-        success: true,
-        message: "Termék frissítve.",
-      });
-    }
-  );
-});
-
-// 🔹 Admin – termék törlése
-app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
-  const productId = req.params.id;
-
-  const sql = "DELETE FROM products WHERE id = ?";
-
-  db.query(sql, [productId], (err, result) => {
-    if (err) {
-      console.error("DB hiba (admin products delete):", err);
-      return res.status(500).json({
-        success: false,
-        message: "Szerver hiba (termék törlése).",
-      });
-    }
-
-    return res.json({
-      success: true,
-      message: "Termék törölve.",
-    });
-  });
-});
 
 // 🔹 Admin – termék módosítása
 app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
   const productId = req.params.id;
-  const { name, description, price, image_url } = req.body;
+  const { name, description, price, image_url, category, is_active } = req.body;
 
   if (!name || !price) {
     return res.status(400).json({
@@ -840,15 +799,48 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
     });
   }
 
+  // kategória normalizálás (ha hülyeség jön, legyen burger)
+  const safeCategory =
+    category === "burger" ||
+      category === "side" ||
+      category === "drink" ||
+      category === "sauce"
+      ? category
+      : "burger";
+
+  // is_active normalizálás (boolean / 0 / 1 → 0 vagy 1)
+  let activeFlag = 1;
+  if (typeof is_active !== "undefined") {
+    if (is_active === true || is_active === 1 || is_active === "1") {
+      activeFlag = 1;
+    } else {
+      activeFlag = 0;
+    }
+  }
+
   const sql = `
     UPDATE products
-    SET name = ?, description = ?, price = ?, image_url = ?
+    SET 
+      name = ?, 
+      description = ?, 
+      price = ?, 
+      image_url = ?, 
+      is_active = ?, 
+      category = ?
     WHERE id = ?
   `;
 
   db.query(
     sql,
-    [name, description || "", price, image_url || "", productId],
+    [
+      name,
+      description || null,
+      price,
+      image_url || "",
+      activeFlag,
+      safeCategory,
+      productId,
+    ],
     (err, result) => {
       if (err) {
         console.error("DB hiba (admin products update):", err);
@@ -871,6 +863,29 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
       });
     }
   );
+});
+
+
+// 🔹 Admin – termék törlése
+app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
+  const productId = req.params.id;
+
+  const sql = "UPDATE products SET is_active = 0 WHERE id = ?";
+
+  db.query(sql, [productId], (err, result) => {
+    if (err) {
+      console.error("DB hiba (admin products soft delete):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (termék inaktiválása).",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Termék törölve. (inaktiválva)",
+    });
+  });
 });
 
 // 🔹 Admin – rendelések listázása
@@ -1017,8 +1032,12 @@ app.put("/api/admin/orders/:id/status", requireAdmin, (req, res) => {
 
 // 🔹 Publikus – termékek listázása a menühöz
 app.get("/api/products", (req, res) => {
-  const sql =
-    "SELECT id, name, description, price, image_url FROM products ORDER BY id ASC";
+  const sql = `
+    SELECT id, name, description, price, image_url 
+    FROM products
+    WHERE is_active = 1
+    ORDER BY id ASC
+  `;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -1035,6 +1054,32 @@ app.get("/api/products", (req, res) => {
     });
   });
 });
+
+// Teljes menü lekérése kategória szerint
+app.get("/api/menu", (req, res) => {
+  const sql = `
+    SELECT id, name, description, price, category
+    FROM products
+    WHERE is_active = 1
+    ORDER BY category, name
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("DB hiba (/api/menu):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a menü lekérdezésekor.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      products: rows,
+    });
+  });
+});
+
 
 // 🔹 Kilépés
 app.post("/api/logout", (req, res) => {
