@@ -866,7 +866,7 @@ app.put("/api/admin/products/:id", requireAdmin, (req, res) => {
 });
 
 
-// 🔹 Admin – termék törlése
+// 🔹 Admin – termék inaktiválása
 app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
   const productId = req.params.id;
 
@@ -887,6 +887,36 @@ app.delete("/api/admin/products/:id", requireAdmin, (req, res) => {
     });
   });
 });
+
+// 🔹 Admin – termék újraaktiválása
+app.put("/api/admin/products/:id/activate", requireAdmin, (req, res) => {
+  const productId = req.params.id;
+
+  const sql = "UPDATE products SET is_active = 1 WHERE id = ?";
+
+  db.query(sql, [productId], (err, result) => {
+    if (err) {
+      console.error("DB hiba (admin product activate):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (termék aktiválása).",
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "A termék nem található.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Termék újraaktiválva.",
+    });
+  });
+});
+
 
 // 🔹 Admin – rendelések listázása
 app.get("/api/admin/orders", requireAdmin, (req, res) => {

@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
     orderDetailsModal = new bootstrap.Modal(orderDetailsModalEl);
   }
 
-  // Kis helper az Ft formázáshoz 
+  // Kis helper az Ft formázáshoz
   function formatFt(value) {
     return Math.round(Number(value)).toLocaleString("hu-HU");
   }
@@ -103,6 +103,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       productsList.innerHTML = "";
       products.forEach((p) => {
+        const isActive = Number(p.is_active) === 1;
+
         const wrapper = document.createElement("div");
         wrapper.className =
           "d-flex justify-content-between align-items-center border rounded p-2 mb-2";
@@ -112,30 +114,49 @@ document.addEventListener("DOMContentLoaded", () => {
           <strong>${p.name}</strong>
           <div class="text-muted small">${p.description || ""}</div>
           <div class="small fw-semibold">${formatFt(p.price)} Ft</div>
+          ${
+            !isActive
+              ? '<div class="badge bg-secondary mt-1">Inaktív</div>'
+              : ""
+          }
         </div>
         <div class="text-end">
           <button 
             class="btn btn-sm btn-outline-secondary me-1 admin-edit-product-btn"
             data-product-id="${p.id}"
             data-name="${p.name ? String(p.name).replace(/"/g, "&quot;") : ""}"
-            data-description="${p.description ? String(p.description).replace(/"/g, "&quot;") : ""
-          }"
+            data-description="${
+              p.description ? String(p.description).replace(/"/g, "&quot;") : ""
+            }"
             data-price="${p.price}"
-            data-image-url="${p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
-          }"
+            data-image-url="${
+              p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
+            }"
             data-category="${p.category || "burger"}"
             title="Szerkesztés"
           >
             <i class="bi bi-pencil"></i>
           </button>
 
-          <button 
-            class="btn btn-sm btn-outline-danger admin-delete-product-btn"
-            data-product-id="${p.id}"
-            title="Törlés"
-          >
-            <i class="bi bi-trash"></i>
-          </button>
+          ${
+            isActive
+              ? `
+            <button 
+              class="btn btn-sm btn-outline-danger admin-delete-product-btn"
+              data-product-id="${p.id}"
+              title="Törlés"
+            >
+              <i class="bi bi-trash"></i>
+            </button>`
+              : `
+            <button 
+              class="btn btn-sm btn-outline-success admin-activate-product-btn"
+              data-product-id="${p.id}"
+              title="Újraaktiválás"
+            >
+              <i class="bi bi-arrow-counterclockwise"></i>
+            </button>`
+          }
         </div>
       `;
 
@@ -200,14 +221,15 @@ document.addEventListener("DOMContentLoaded", () => {
   if (productsList) {
     productsList.addEventListener("click", async (e) => {
       const deleteBtn = e.target.closest(".admin-delete-product-btn");
+      const activateBtn = e.target.closest(".admin-activate-product-btn");
       const editBtn = e.target.closest(".admin-edit-product-btn");
 
-      // 🔹 Törlés
+      // 🔹 Inaktiválás (soft delete)
       if (deleteBtn) {
         const productId = deleteBtn.dataset.productId;
         if (!productId) return;
 
-        if (!confirm("Biztosan törlöd ezt a terméket?")) return;
+        if (!confirm("Biztosan inaktiválod ezt a terméket?")) return;
 
         try {
           const res = await fetch(`/api/admin/products/${productId}`, {
@@ -216,17 +238,42 @@ document.addEventListener("DOMContentLoaded", () => {
           const data = await res.json();
 
           if (data.success) {
-            alert("Termék törölve.");
+            alert("Termék inaktiválva.");
             await loadProducts();
           } else {
-            alert(data.message || "Nem sikerült törölni a terméket.");
+            alert(data.message || "Nem sikerült inaktiválni a terméket.");
           }
         } catch (err) {
           console.error("Hiba a termék törlésekor:", err);
           alert("Nem sikerült csatlakozni a szerverhez.");
         }
 
-        return; // ne fusson tovább
+        return;
+      }
+
+      // 🔹 Újraaktiválás
+      if (activateBtn) {
+        const productId = activateBtn.dataset.productId;
+        if (!productId) return;
+
+        try {
+          const res = await fetch(`/api/admin/products/${productId}/activate`, {
+            method: "PUT",
+          });
+          const data = await res.json();
+
+          if (data.success) {
+            alert("Termék újraaktiválva.");
+            await loadProducts();
+          } else {
+            alert(data.message || "Nem sikerült aktiválni a terméket.");
+          }
+        } catch (err) {
+          console.error("Hiba a termék aktiválásakor:", err);
+          alert("Nem sikerült csatlakozni a szerverhez.");
+        }
+
+        return;
       }
 
       // 🔹 Szerkesztés
@@ -236,7 +283,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const description = editBtn.dataset.description || "";
         const price = editBtn.dataset.price || "";
         const imageUrl = editBtn.dataset.imageUrl || "";
-         const category = editBtn.dataset.category || "burger";
+        const category = editBtn.dataset.category || "burger";
 
         editProductIdInput.value = productId;
         editProductNameInput.value = name;
@@ -266,7 +313,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const category = editProductCategorySelect
         ? editProductCategorySelect.value
         : "burger";
-
 
       if (!id || !name || !price) {
         alert("A név és az ár megadása kötelező.");
@@ -388,12 +434,15 @@ document.addEventListener("DOMContentLoaded", () => {
                   class="form-select form-select-sm admin-order-status mb-1"
                   data-order-id="${o.id}"
                 >
-                  <option value="pending"   ${o.status === "pending" ? "selected" : ""
-              }>Folyamatban</option>
-                  <option value="completed" ${o.status === "completed" ? "selected" : ""
-              }>Teljesítve</option>
-                  <option value="cancelled" ${o.status === "cancelled" ? "selected" : ""
-              }>Törölve</option>
+                  <option value="pending"   ${
+                    o.status === "pending" ? "selected" : ""
+                  }>Folyamatban</option>
+                  <option value="completed" ${
+                    o.status === "completed" ? "selected" : ""
+                  }>Teljesítve</option>
+                  <option value="cancelled" ${
+                    o.status === "cancelled" ? "selected" : ""
+                  }>Törölve</option>
                 </select>
                 <div class="d-flex justify-content-between align-items-center mt-1">
                   <span class="fw-semibold">${formatFt(o.total_price)} Ft</span>
@@ -522,8 +571,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <div><strong>Rendelés azonosító:</strong> #${order.id}</div>
           <div><strong>Dátum:</strong> ${formattedDate}</div>
           <div><strong>Státusz:</strong> ${statusText}</div>
-          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${order.user.email
-          }&gt;</div>
+          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${
+          order.user.email
+        }&gt;</div>
         </div>
       `;
 
