@@ -240,32 +240,12 @@ document.addEventListener("DOMContentLoaded", () => {
         return; // ne fusson tovább, ha ez volt
       }
 
-      // Checkout (rendelés véglegesítése)
+      // Checkout (rendelés véglegesítése) → átirányítás a checkout oldalra
       const checkoutBtn = e.target.closest(".cart-checkout-btn");
       if (checkoutBtn) {
-        if (!confirm("Biztosan véglegesíted a rendelést?")) return;
-
-        try {
-          const res = await fetch("/api/checkout", {
-            method: "POST",
-          });
-
-          const data = await res.json();
-
-          if (data.success) {
-            showAlert("success", data.message || "Sikeres rendelés!");
-            await loadCartSummary(); // kosár kiürül
-          } else {
-            showAlert(
-              "danger",
-              data.message || "Nem sikerült leadni a rendelést."
-            );
-          }
-        } catch (err) {
-          console.error(err);
-          showAlert("danger", "Nem sikerült csatlakozni a szerverhez.");
-        }
+        window.location.href = "checkout.html";
       }
+      
     });
   }
 
@@ -597,9 +577,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
   }
-
-
-
 
   // Kijelentkezés gomb
   if (logoutBtn) {

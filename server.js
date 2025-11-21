@@ -508,104 +508,145 @@ app.post("/api/cart/remove", requireLogin, (req, res) => {
   });
 });
 
-// 🔹 Rendelés véglegesítése (checkout)
+// Rendelés véglegesítése (checkout)
 app.post("/api/checkout", requireLogin, (req, res) => {
   const userId = req.session.user.id;
 
-  // 1) Lekérdezzük a user kosarát termékárakkal együtt
+  const {
+    shippingName,
+    shippingPhone,
+    shippingAddress,
+    paymentMethod,
+    note,
+  } = req.body || {};
+
+  // 1) Szállítási adatok ellenőrzése
+  if (!shippingName || !shippingPhone || !shippingAddress) {
+    return res.status(400).json({
+      success: false,
+      message: "A szállítási név, telefonszám és cím megadása kötelező.",
+    });
+  }
+
+  const safePayment =
+    paymentMethod === "card" || paymentMethod === "cash"
+      ? paymentMethod
+      : "cash";
+
+  // 2) Kosár lekérése
   const cartSql = `
     SELECT 
       ci.product_id,
       ci.quantity,
+      p.name,
       p.price
     FROM cart_items ci
-    JOIN products p ON ci.product_id = p.id
+    JOIN products p ON p.id = ci.product_id
     WHERE ci.user_id = ?
   `;
 
   db.query(cartSql, [userId], (err, cartRows) => {
     if (err) {
-      console.error("DB hiba (checkout - cart select):", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Szerver hiba (kosár lekérdezés)." });
-    }
-
-    if (cartRows.length === 0) {
-      return res.status(400).json({
+      console.error("DB hiba (cart lekérdezés):", err);
+      return res.status(500).json({
         success: false,
-        message: "A kosarad üres, nincs mit megrendelni.",
+        message: "Szerver hiba a kosár lekérdezésekor.",
       });
     }
 
-    // 2) Összár kiszámolása
+    if (!cartRows || cartRows.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "A kosarad üres, nem lehet rendelést leadni.",
+      });
+    }
+
+    // 3) Összeg számítása
     let totalPrice = 0;
     cartRows.forEach((row) => {
-      totalPrice += Number(row.price) * Number(row.quantity);
+      const lineTotal = Number(row.price) * Number(row.quantity);
+      totalPrice += lineTotal;
     });
 
-    // 3) Új rendelés létrehozása az orders táblában
-    const insertOrderSql = `
-      INSERT INTO orders (user_id, status, total_price)
-      VALUES (?, 'pending', ?)
+    // 4) Rendelés rögzítése az orders táblába
+    const orderInsertSql = `
+      INSERT INTO orders 
+        (user_id, total_price, status, shipping_name, shipping_phone, shipping_address, payment_method, note)
+      VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
     `;
 
-    db.query(insertOrderSql, [userId, totalPrice], (err, orderResult) => {
-      if (err) {
-        console.error("DB hiba (checkout - insert order):", err);
-        return res.status(500).json({
-          success: false,
-          message: "Szerver hiba (rendelés mentése).",
-        });
-      }
-
-      const orderId = orderResult.insertId;
-
-      // 4) Rendelés tételek mentése az order_items táblába
-      const orderItemsValues = cartRows.map((row) => [
-        orderId,
-        row.product_id,
-        row.quantity,
-        row.price,
-      ]);
-
-      const insertItemsSql = `
-        INSERT INTO order_items (order_id, product_id, quantity, unit_price)
-        VALUES ?
-      `;
-
-      db.query(insertItemsSql, [orderItemsValues], (err, itemsResult) => {
-        if (err) {
-          console.error("DB hiba (checkout - insert order_items):", err);
+    db.query(
+      orderInsertSql,
+      [
+        userId,
+        totalPrice,
+        shippingName,
+        shippingPhone,
+        shippingAddress,
+        safePayment,
+        note || null,
+      ],
+      (err2, result) => {
+        if (err2) {
+          console.error("DB hiba (order insert):", err2);
           return res.status(500).json({
             success: false,
-            message: "Szerver hiba (rendelés tételek mentése).",
+            message: "Szerver hiba a rendelés mentésekor.",
           });
         }
 
-        // 5) Kosár ürítése
-        const clearCartSql = "DELETE FROM cart_items WHERE user_id = ?";
+        const orderId = result.insertId;
 
-        db.query(clearCartSql, [userId], (err, clearResult) => {
-          if (err) {
-            console.error("DB hiba (checkout - clear cart):", err);
+        // 5) Rendelés tételeinek rögzítése az order_items táblába
+        const orderItemsValues = cartRows.map((row) => [
+          orderId,
+          row.product_id,
+          row.quantity,
+          row.price,
+        ]);
+
+        const orderItemsSql = `
+          INSERT INTO order_items (order_id, product_id, quantity, unit_price)
+          VALUES ?
+        `;
+
+        db.query(orderItemsSql, [orderItemsValues], (err3) => {
+          if (err3) {
+            console.error("DB hiba (order_items insert):", err3);
             return res.status(500).json({
               success: false,
-              message: "Szerver hiba (kosár ürítése).",
+              message: "Szerver hiba a rendelés tételeinek mentésekor.",
             });
           }
 
-          // 6) Sikeres rendelés
-          return res.json({
-            success: true,
-            message: "Sikeres rendelés! Köszönjük a vásárlást.",
-            orderId: orderId,
+          // 6) Kosár kiürítése
+          const clearCartSql = "DELETE FROM cart_items WHERE user_id = ?";
+
+          db.query(clearCartSql, [userId], (err4) => {
+            if (err4) {
+              console.error("DB hiba (kosár törlése):", err4);
+              // a rendelés már létrejött, szóval itt nem 500-at dobunk, csak jelezzük
+              return res.status(200).json({
+                success: true,
+                message:
+                  "Rendelésedet fogadtuk, de nem sikerült a kosarat kiüríteni. Kérlek frissítsd az oldalt.",
+                orderId,
+              });
+            }
+
+            // 7) Sikeres checkout válasz
+            return res.json({
+              success: true,
+              message: "Rendelésedet fogadtuk, köszönjük!",
+              orderId,
+            });
           });
         });
-      });
-    });
+      }
+    );
   });
 });
+
 
 // 🔹 Rendelések lekérdezése a bejelentkezett felhasználónak
 app.get("/api/orders", requireLogin, (req, res) => {
