@@ -18,16 +18,35 @@ document.addEventListener("DOMContentLoaded", () => {
     e.preventDefault();
 
     const formData = new FormData(form);
+
     const name = formData.get("name")?.toString().trim();
     const phone = formData.get("phone")?.toString().trim();
     const date = formData.get("date")?.toString();
-    const time = formData.get("time")?.toString();
+
+    const timeFrom = formData.get("timeFrom")?.toString(); // ÚJ!
+    const timeTo = formData.get("timeTo")?.toString();     // ÚJ!
+
     const tableNumber = formData.get("tableNumber")?.toString();
     const peopleCount = formData.get("peopleCount")?.toString();
     const note = formData.get("note")?.toString().trim() || null;
 
-    if (!name || !phone || !date || !time || !tableNumber || !peopleCount) {
+    // Kötelező mezők ellenőrzése
+    if (
+      !name ||
+      !phone ||
+      !date ||
+      !timeFrom ||
+      !timeTo ||
+      !tableNumber ||
+      !peopleCount
+    ) {
       showMessage("Kérlek tölts ki minden kötelező mezőt.", "error");
+      return;
+    }
+
+    // Mettől < Meddig ellenőrzés
+    if (timeFrom >= timeTo) {
+      showMessage("A foglalás vége legyen később, mint a kezdete.", "error");
       return;
     }
 
@@ -41,7 +60,8 @@ document.addEventListener("DOMContentLoaded", () => {
           name,
           phone,
           date,
-          time,
+          timeFrom,   // ⬅️ MÁR EZ MEGY A BACKENDNEK
+          timeTo,     // ⬅️ ÉS EZ IS
           tableNumber: Number(tableNumber),
           peopleCount: Number(peopleCount),
           note,
@@ -59,9 +79,11 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       showMessage(
-        data.message || "Foglalásod rögzítettük, hamarosan visszaigazoljuk. 🙂",
+        data.message ||
+          "Foglalásod rögzítettük, hamarosan visszaigazoljuk. 🙂",
         "success"
       );
+
       form.reset();
     } catch (err) {
       console.error("Hiba a foglalás elküldésekor:", err);

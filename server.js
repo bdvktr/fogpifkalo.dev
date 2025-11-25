@@ -1050,6 +1050,81 @@ app.put("/api/admin/orders/:id/status", requireAdmin, (req, res) => {
   });
 });
 
+// 🔹 Admin – asztalfoglalások listázása
+app.get("/api/admin/reservations", requireAdmin, (req, res) => {
+  const sql = `
+    SELECT
+      id,
+      table_number,
+      reservation_date,
+      reservation_time,
+      end_time,
+      name,
+      phone,
+      people_count,
+      note,
+      status,
+      created_at
+    FROM reservations
+    ORDER BY reservation_date DESC, reservation_time DESC, id DESC
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("DB hiba (admin reservations select):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a foglalások lekérdezésekor.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      reservations: rows,
+    });
+  });
+});
+
+// 🔹 Admin – foglalás státuszának módosítása
+app.put("/api/admin/reservations/:id/status", requireAdmin, (req, res) => {
+  const reservationId = req.params.id;
+  const { status } = req.body || {};
+
+  const allowedStatuses = ["pending", "confirmed", "cancelled"];
+
+  if (!allowedStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: "Érvénytelen státusz.",
+      details: status,
+    });
+  }
+
+  const sql = "UPDATE reservations SET status = ? WHERE id = ?";
+
+  db.query(sql, [status, reservationId], (err, result) => {
+    if (err) {
+      console.error("DB hiba (admin update reservation status):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a foglalás státusz módosításakor.",
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "A foglalás nem található.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Foglalás státusza frissítve.",
+    });
+  });
+});
+
 // 🔹 Publikus – termékek listázása a menühöz
 app.get("/api/products", (req, res) => {
   const sql = `
@@ -1100,95 +1175,259 @@ app.get("/api/menu", (req, res) => {
   });
 });
 
-// 🔹 Asztalfoglalás létrehozása (vendégeknek is elérhető)
+// 🔹 Asztalfoglalás (vendég) – tetszőleges idősáv: mettől–meddig
 app.post("/api/reservations", (req, res) => {
   const {
     tableNumber,
     date, // "YYYY-MM-DD"
-    time, // "HH:MM"
+    timeFrom, // "HH:MM"
+    timeTo, // "HH:MM"
     name,
     phone,
     peopleCount,
     note,
   } = req.body || {};
 
-  // 1) Alap validálás
-  if (!tableNumber || !date || !time || !name || !phone || !peopleCount) {
+  // 1) Alap ellenőrzés – kötelező mezők
+  if (
+    !tableNumber ||
+    !date ||
+    !timeFrom ||
+    !timeTo ||
+    !name ||
+    !phone ||
+    !peopleCount
+  ) {
     return res.status(400).json({
       success: false,
-      message: "Minden kötelező mezőt ki kell tölteni.",
+      message:
+        "Minden mező kitöltése kötelező (asztal, dátum, mettől, meddig, név, telefon, létszám).",
     });
   }
 
   const tableNum = Number(tableNumber);
-  const peopleNum = Number(peopleCount);
+  const ppl = Number(peopleCount);
 
   if (!Number.isInteger(tableNum) || tableNum < 1 || tableNum > 6) {
     return res.status(400).json({
       success: false,
-      message: "Az asztal száma 1 és 6 között lehet.",
+      message: "Érvénytelen asztalszám. 1 és 6 között választható.",
     });
   }
 
-  if (!Number.isInteger(peopleNum) || peopleNum <= 0) {
+  if (!Number.isInteger(ppl) || ppl <= 0 || ppl > 12) {
     return res.status(400).json({
       success: false,
-      message: "A létszámnak 1-nél nagyobbnak kell lennie.",
+      message: "Érvénytelen létszám. 1 és 12 fő között foglalhatsz.",
     });
   }
 
-  // Egyszerű formátum ellenőrzés (nem tökéletes, de kiszűri a nagyon hibásakat)
-  const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // pl. 2025-11-21
-  const timeRegex = /^\d{2}:\d{2}$/; // pl. 18:30
+  // 2) Formátum ellenőrzés
+  const dateRegex = /^\d{4}-\d{2}-\d{2}$/; // YYYY-MM-DD
+  const timeRegex = /^\d{2}:\d{2}$/; // HH:MM
 
   if (!dateRegex.test(date)) {
     return res.status(400).json({
       success: false,
       message:
-        "A dátum formátuma hibás. Használd: ÉÉÉÉ-HH-NN (pl. 2025-11-21).",
+        "Érvénytelen dátum formátum. Használd: ÉÉÉÉ-HH-NN (pl. 2025-11-21).",
     });
   }
 
-  if (!timeRegex.test(time)) {
+  if (!timeRegex.test(timeFrom) || !timeRegex.test(timeTo)) {
     return res.status(400).json({
       success: false,
-      message: "Az időpont formátuma hibás. Használd: ÓÓ:PP (pl. 18:30).",
+      message: "Érvénytelen időpont formátum. Használd: ÓÓ:PP (pl. 18:30).",
     });
   }
 
-  // 2) INSERT a DB-be
-  const sql = `
-    INSERT INTO reservations 
-      (table_number, reservation_date, reservation_time, name, phone, people_count, note, user_id, status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  const [yearStr, monthStr, dayStr] = date.split("-");
+  const [fromHourStr, fromMinStr] = timeFrom.split(":");
+  const [toHourStr, toMinStr] = timeTo.split(":");
+
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+
+  const fromHour = Number(fromHourStr);
+  const fromMin = Number(fromMinStr);
+  const toHour = Number(toHourStr);
+  const toMin = Number(toMinStr);
+
+  const startDt = new Date(year, month - 1, day, fromHour, fromMin, 0, 0);
+  const endDt = new Date(year, month - 1, day, toHour, toMin, 0, 0);
+
+  const isValidStart =
+    startDt.getFullYear() === year &&
+    startDt.getMonth() === month - 1 &&
+    startDt.getDate() === day &&
+    startDt.getHours() === fromHour &&
+    startDt.getMinutes() === fromMin;
+
+  const isValidEnd =
+    endDt.getFullYear() === year &&
+    endDt.getMonth() === month - 1 &&
+    endDt.getDate() === day &&
+    endDt.getHours() === toHour &&
+    endDt.getMinutes() === toMin;
+
+  if (
+    !isValidStart ||
+    !isValidEnd ||
+    isNaN(startDt.getTime()) ||
+    isNaN(endDt.getTime())
+  ) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Érvénytelen dátum vagy időpont. Kérlek ellenőrizd a megadott értékeket.",
+    });
+  }
+
+  // meddig > mettől
+  if (endDt.getTime() <= startDt.getTime()) {
+    return res.status(400).json({
+      success: false,
+      message: "A foglalás vége legyen később, mint a kezdete.",
+    });
+  }
+
+  const now = new Date();
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const reservationDay = new Date(year, month - 1, day);
+
+  // múltbeli nap tiltása
+  if (reservationDay < today) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Már elmúlt napra nem tudsz foglalni. Kérlek válassz egy későbbi dátumot.",
+    });
+  }
+
+  // ha ma van → a kezdés legyen jövőbeni
+  const isToday =
+    reservationDay.getFullYear() === today.getFullYear() &&
+    reservationDay.getMonth() === today.getMonth() &&
+    reservationDay.getDate() === today.getDate();
+
+  if (isToday && startDt.getTime() <= now.getTime()) {
+    return res.status(400).json({
+      success: false,
+      message:
+        "Erre az időpontra már nem tudsz foglalni. Válassz későbbi időpontot a mai napra.",
+    });
+  }
+
+  const mysqlStart = `${timeFrom}:00`; // "HH:MM:SS"
+  const mysqlEnd = `${timeTo}:00`;
+
+  const newStartMs = startDt.getTime();
+  const newEndMs = endDt.getTime();
+
+  // 3) Ütközésvizsgálat: ugyanazon a napon, ugyanazon az asztalon lévő sávokkal
+  const conflictSql = `
+    SELECT id, reservation_date, reservation_time, end_time
+    FROM reservations
+    WHERE table_number = ?
+      AND reservation_date = ?
+      AND status IN ('pending', 'confirmed')
   `;
 
-  const params = [
-    tableNum,
-    date,
-    time + ":00", // TIME mezőnek "HH:MM:SS" kell → "18:30:00"
-    name,
-    phone,
-    peopleNum,
-    note || null,
-    null, // user_id – vendég foglal, nincs fiókhoz kötve
-    "pending", // alapértelmezett státusz
-  ];
-
-  db.query(sql, params, (err, result) => {
-    if (err) {
-      console.error("DB hiba (reservation insert):", err);
+  db.query(conflictSql, [tableNum, date], (conflictErr, conflictRows) => {
+    if (conflictErr) {
+      console.error("DB hiba (reservation conflict check):", conflictErr);
       return res.status(500).json({
         success: false,
-        message: "Szerver hiba a foglalás mentésekor.",
+        message: "Szerver hiba a foglalás ellenőrzésekor.",
       });
     }
 
-    return res.json({
-      success: true,
-      message: "Foglalásod rögzítettük, hamarosan visszaigazoljuk.",
-      reservationId: result.insertId,
+    const hasOverlap = conflictRows.some((r) => {
+      let datePart = "";
+      let timePartFrom = "";
+      let timePartTo = "";
+
+      if (typeof r.reservation_date === "string") {
+        datePart = r.reservation_date.split("T")[0];
+      } else if (r.reservation_date instanceof Date) {
+        datePart = r.reservation_date.toISOString().split("T")[0];
+      }
+
+      if (typeof r.reservation_time === "string") {
+        timePartFrom = r.reservation_time.slice(0, 5);
+      } else if (r.reservation_time instanceof Date) {
+        timePartFrom = r.reservation_time.toTimeString().slice(0, 5);
+      }
+
+      if (r.end_time) {
+        if (typeof r.end_time === "string") {
+          timePartTo = r.end_time.slice(0, 5);
+        } else if (r.end_time instanceof Date) {
+          timePartTo = r.end_time.toTimeString().slice(0, 5);
+        }
+      } else {
+        // régi foglalások: ha nincs end_time, vegyük 2 órásnak
+        const tmpStart = new Date(`${datePart}T${timePartFrom}:00`);
+        const tmpEndMs = tmpStart.getTime() + 120 * 60 * 1000;
+        const tmpEnd = new Date(tmpEndMs);
+        timePartTo = tmpEnd.toTimeString().slice(0, 5);
+      }
+
+      const existingStart = new Date(`${datePart}T${timePartFrom}:00`);
+      const existingEnd = new Date(`${datePart}T${timePartTo}:00`);
+
+      if (isNaN(existingStart.getTime()) || isNaN(existingEnd.getTime())) {
+        return false;
+      }
+
+      const existingStartMs = existingStart.getTime();
+      const existingEndMs = existingEnd.getTime();
+
+      // nincs ütközés, ha egyik teljesen a másik előtt/után:
+      // existingEnd <= newStart  VAGY  existingStart >= newEnd
+      const noOverlap =
+        existingEndMs <= newStartMs || existingStartMs >= newEndMs;
+
+      return !noOverlap;
     });
+
+    if (hasOverlap) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Erre az idősávra ezen az asztalon már van foglalás. Kérlek válassz másik időpontot vagy asztalt.",
+      });
+    }
+
+    // 4) Nincs ütközés → beszúrjuk a foglalást
+    const insertSql = `
+      INSERT INTO reservations
+        (table_number, reservation_date, reservation_time, end_time, name, phone, people_count, note, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+    `;
+
+    db.query(
+      insertSql,
+      [tableNum, date, mysqlStart, mysqlEnd, name, phone, ppl, note || null],
+      (err2, result) => {
+        if (err2) {
+          console.error("DB hiba (reservation insert):", err2);
+          return res.status(500).json({
+            success: false,
+            message: "Szerver hiba a foglalás mentésekor.",
+          });
+        }
+
+        return res.json({
+          success: true,
+          message:
+            "Foglalásod rögzítettük, hamarosan visszaigazoljuk. Köszönjük!",
+          reservationId: result.insertId,
+        });
+      }
+    );
   });
 });
 

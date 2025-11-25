@@ -20,6 +20,10 @@ document.addEventListener("DOMContentLoaded", () => {
     "editProductCategory"
   );
 
+  const reservationsAdminList = document.getElementById(
+    "reservationsAdminList"
+  );
+
   let editProductModal;
   if (editProductModalEl) {
     editProductModal = new bootstrap.Modal(editProductModalEl);
@@ -72,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (adminContent) adminContent.classList.remove("d-none");
 
       // Betöltjük a termékeket + rendeléseket
-      await Promise.all([loadProducts(), loadOrders()]);
+      await Promise.all([loadProducts(), loadOrders(), loadReservations()]);
     } catch (err) {
       console.error("Hiba az /api/me ellenőrzésnél:", err);
       showError("Nem sikerült csatlakozni a szerverhez.");
@@ -105,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
       products.forEach((p) => {
         const isActive = Number(p.is_active) === 1;
 
-        const wrapper = document.createElement("div");  
+        const wrapper = document.createElement("div");
         wrapper.className =
           "d-flex justify-content-between align-items-center border rounded p-2 mb-2";
 
@@ -482,6 +486,271 @@ document.addEventListener("DOMContentLoaded", () => {
       ordersAdminList.textContent =
         "Nem sikerült csatlakozni a szerverhez (rendelések).";
     }
+  }
+
+  // 🔹 6. Asztalfoglalások betöltése
+  async function loadReservations() {
+    if (!reservationsAdminList) return;
+
+    reservationsAdminList.textContent = "Foglalások betöltése...";
+
+    try {
+      const res = await fetch("/api/admin/reservations");
+      const data = await res.json();
+
+      if (!data.success) {
+        reservationsAdminList.textContent =
+          data.message || "Nem sikerült betölteni a foglalásokat.";
+        return;
+      }
+
+      const reservations = data.reservations || [];
+
+      if (reservations.length === 0) {
+        reservationsAdminList.textContent = "Még nincsenek foglalások.";
+        return;
+      }
+
+      const pending = reservations.filter((r) => r.status === "pending");
+      const confirmed = reservations.filter((r) => r.status === "confirmed");
+      const cancelled = reservations.filter((r) => r.status === "cancelled");
+
+      reservationsAdminList.innerHTML = "";
+
+      function formatDateAndTimeRange(r) {
+        let datePart = "";
+        let timeFrom = "";
+        let timeTo = "";
+
+        // Dátum normalizálás (lehet string "YYYY-MM-DD" vagy Date)
+        if (typeof r.reservation_date === "string") {
+          datePart = r.reservation_date.split("T")[0]; // "YYYY-MM-DD"
+        } else if (r.reservation_date instanceof Date) {
+          datePart = r.reservation_date.toISOString().split("T")[0];
+        }
+
+        // Kezdő idő (reservation_time)
+        if (typeof r.reservation_time === "string") {
+          timeFrom = r.reservation_time.slice(0, 5); // "HH:MM"
+        } else if (r.reservation_time instanceof Date) {
+          timeFrom = r.reservation_time.toTimeString().slice(0, 5);
+        }
+
+        // Vég idő (end_time) – ha nincs, fallback: +2 óra
+        if (r.end_time) {
+          if (typeof r.end_time === "string") {
+            timeTo = r.end_time.slice(0, 5);
+          } else if (r.end_time instanceof Date) {
+            timeTo = r.end_time.toTimeString().slice(0, 5);
+          }
+        } else {
+          // régi foglalás – számoljunk +2 órát
+          const tmpStart = new Date(`${datePart}T${timeFrom}:00`);
+          if (!isNaN(tmpStart.getTime())) {
+            const tmpEndMs = tmpStart.getTime() + 120 * 60 * 1000;
+            const tmpEnd = new Date(tmpEndMs);
+            timeTo = tmpEnd.toTimeString().slice(0, 5);
+          }
+        }
+
+        let dateLabel = "";
+        try {
+          const d = new Date(`${datePart}T00:00:00`);
+          if (!isNaN(d.getTime())) {
+            dateLabel = d.toLocaleDateString("hu-HU", {
+              year: "numeric",
+              month: "short",
+              day: "2-digit",
+            });
+          } else {
+            dateLabel = datePart;
+          }
+        } catch (e) {
+          dateLabel = datePart;
+        }
+
+        const timeRange =
+          timeFrom && timeTo ? `${timeFrom}–${timeTo}` : timeFrom || "";
+
+        return {
+          dateLabel,
+          timeRange,
+        };
+      }
+
+      function renderSection(title, list, emptyText) {
+        const section = document.createElement("div");
+        section.className = "mb-4";
+
+        const heading = document.createElement("h3");
+        heading.className = "h6 mb-2";
+        heading.textContent = title;
+        section.appendChild(heading);
+
+        const container = document.createElement("div");
+        container.className = "small";
+        section.appendChild(container);
+
+        if (!list || list.length === 0) {
+          container.textContent = emptyText;
+        } else {
+          list.forEach((r) => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "border rounded p-2 mb-2";
+
+            const { dateLabel, timeRange } = formatDateAndTimeRange(r);
+
+            wrapper.innerHTML = `
+            <div class="d-flex justify-content-between align-items-start">
+              <div>
+                <div><strong>${dateLabel}${
+              timeRange ? " • " + timeRange : ""
+            }</strong></div>
+                <div>Asztal: <strong>${r.table_number}.</strong> • ${
+              r.people_count
+            } fő</div>
+                <div>${r.name} – ${r.phone}</div>
+                ${
+                  r.note
+                    ? `<div class="text-muted small mt-1">Megjegyzés: ${r.note}</div>`
+                    : ""
+                }
+              </div>
+              <div class="text-end">
+                <div class="mb-1">
+                  ${
+                    r.status === "pending"
+                      ? '<span class="badge bg-warning text-dark">Függőben</span>'
+                      : r.status === "confirmed"
+                      ? '<span class="badge bg-success">Megerősítve</span>'
+                      : '<span class="badge bg-secondary">Lemondva</span>'
+                  }
+                </div>
+                <div>
+                  ${
+                    r.status === "pending"
+                      ? `
+                    <button 
+                      class="btn btn-sm btn-outline-success me-1 admin-reservation-confirm-btn"
+                      data-reservation-id="${r.id}"
+                    >
+                      Jóváhagyás
+                    </button>
+                    <button 
+                      class="btn btn-sm btn-outline-danger admin-reservation-cancel-btn"
+                      data-reservation-id="${r.id}"
+                    >
+                      Lemondás
+                    </button>
+                  `
+                      : ""
+                  }
+                </div>
+              </div>
+            </div>
+          `;
+
+            container.appendChild(wrapper);
+          });
+        }
+
+        reservationsAdminList.appendChild(section);
+      }
+
+      renderSection(
+        "Függőben lévő foglalások",
+        pending,
+        "Nincs függőben lévő foglalás."
+      );
+      renderSection(
+        "Megerősített foglalások",
+        confirmed,
+        "Nincs megerősített foglalás."
+      );
+      renderSection(
+        "Lemondott foglalások",
+        cancelled,
+        "Nincs lemondott foglalás."
+      );
+    } catch (err) {
+      console.error("Hiba a /api/admin/reservations hívásnál:", err);
+      reservationsAdminList.textContent =
+        "Nem sikerült csatlakozni a szerverhez (foglalások).";
+    }
+  }
+
+  // 🔹 Foglalások státuszának módosítása (Jóváhagyás / Lemondás)
+  if (reservationsAdminList) {
+    reservationsAdminList.addEventListener("click", async (e) => {
+      const confirmBtn = e.target.closest(".admin-reservation-confirm-btn");
+      const cancelBtn = e.target.closest(".admin-reservation-cancel-btn");
+
+      if (confirmBtn) {
+        const id = confirmBtn.dataset.reservationId;
+        if (!id) return;
+
+        if (!confirm("Biztosan jóváhagyod ezt a foglalást?")) return;
+
+        try {
+          const res = await fetch(`/api/admin/reservations/${id}/status`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: "confirmed" }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            alert("Foglalás jóváhagyva.");
+            await loadReservations();
+          } else {
+            alert(
+              data.message || "Nem sikerült módosítani a foglalás státuszát."
+            );
+          }
+        } catch (err) {
+          console.error("Hiba a foglalás jóváhagyásakor:", err);
+          alert("Nem sikerült csatlakozni a szerverhez.");
+        }
+
+        return;
+      }
+
+      if (cancelBtn) {
+        const id = cancelBtn.dataset.reservationId;
+        if (!id) return;
+
+        if (!confirm("Biztosan lemondod ezt a foglalást?")) return;
+
+        try {
+          const res = await fetch(`/api/admin/reservations/${id}/status`, {
+            method: "PUT",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ status: "cancelled" }),
+          });
+
+          const data = await res.json();
+
+          if (data.success) {
+            alert("Foglalás lemondva.");
+            await loadReservations();
+          } else {
+            alert(
+              data.message || "Nem sikerült módosítani a foglalás státuszát."
+            );
+          }
+        } catch (err) {
+          console.error("Hiba a foglalás lemondásakor:", err);
+          alert("Nem sikerült csatlakozni a szerverhez.");
+        }
+
+        return;
+      }
+    });
   }
 
   // 🔹 Rendelés státusz váltása (event delegation)
