@@ -1,10 +1,11 @@
 import express, { json, urlencoded } from "express";
 import { createPool } from "mysql2";
 import { hash as _hash, compare } from "bcrypt";
-import session from "express-session";
 import path from "path";
 import { fileURLToPath } from "url";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import cookieParser from "cookie-parser";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -22,23 +23,36 @@ app.use(json());
 // HTML <form> POST-ok fogadása (application/x-www-form-urlencoded)
 app.use(urlencoded({ extended: true }));
 
-// 🔹 Session beállítás
-app.use(
-  session({
-    secret: "nagyon-titkos-jelszo-csereld-ki", // fejlesztéshez jó, élesben legyen erősebb, .env-ből
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true,
-      // secure: true, // csak HTTPS-en – fejlesztésnél HTTP-n vagyunk, ezért most ne használd
-      maxAge: 1000 * 60 * 60 * 24, // 1 nap
-    },
-  })
-);
+// 🔹 JWT beállítás (session helyett)
+const JWT_SECRET =
+  process.env.JWT_SECRET || "nagyon-titkos-jwt-jelszo-csereld-ki";
+const JWT_COOKIE_NAME = "auth_token";
+
+// Cookie-k beolvasása
+app.use(cookieParser());
+
+// JWT alapú auth middleware - minden kérés előtt fut
+app.use((req, res, next) => {
+  const token = req.cookies && req.cookies[JWT_COOKIE_NAME];
+
+  if (token) {
+    try {
+      const decoded = jwt.verify(token, JWT_SECRET);
+      req.user = decoded;
+    } catch (err) {
+      console.error("JWT verify error:", err.message);
+      req.user = null;
+    }
+  } else {
+    req.user = null;
+  }
+
+  next();
+});
 
 // 🔹 Middleware: csak bejelentkezett usernek engedünk tovább
 function requireLogin(req, res, next) {
-  if (!req.session.user) {
+  if (!req.user) {
     return res.status(401).json({
       success: false,
       message: "Ehhez a művelethez be kell jelentkezni.",
@@ -48,7 +62,7 @@ function requireLogin(req, res, next) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.session.user || !req.session.user.isAdmin) {
+  if (!req.user || !req.user.isAdmin) {
     return res.status(403).json({
       success: false,
       message: "Nincs jogosultság (admin szükséges).",
@@ -142,23 +156,26 @@ app.post("/api/register", async (req, res) => {
 
       const newUserId = result.insertId;
 
-      // 🔹 KÖZVETLEN BELÉPTETÉS – session beállítása
-      req.session.user = {
+      const user = {
         id: newUserId,
         name,
         email,
         isAdmin: false,
       };
 
+      const token = jwt.sign(user, JWT_SECRET, { expiresIn: "7d" });
+
+      res.cookie(JWT_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
       return res.json({
         success: true,
         message: "Sikeres regisztráció.",
-        user: {
-          id: newUserId,
-          name,
-          email,
-          isAdmin: false,
-        },
+        user,
       });
     });
   });
@@ -211,18 +228,27 @@ app.post("/api/login", (req, res) => {
           .json({ success: false, message: "Hibás e-mail vagy jelszó." });
       }
 
-      // 4) Sikeres bejelentkezés → user elmentése a sessionbe
-      req.session.user = {
+      // 4) Sikeres bejelentkezés → JWT generálása + cookie
+      const userData = {
         id: user.id,
         name: user.name,
         email: user.email,
         isAdmin: !!user.is_admin,
       };
 
+      const token = jwt.sign(userData, JWT_SECRET, { expiresIn: "7d" });
+
+      res.cookie(JWT_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
+
       return res.json({
         success: true,
         message: "Sikeres bejelentkezés.",
-        user: req.session.user,
+        user: userData,
       });
     });
   });
@@ -230,24 +256,24 @@ app.post("/api/login", (req, res) => {
 
 // 🔹 Jelenlegi bejelentkezett felhasználó lekérdezése
 app.get("/api/me", (req, res) => {
-  if (!req.session || !req.session.user) {
+  if (!req.user) {
     return res.json({ loggedIn: false, user: null });
   }
 
   return res.json({
     loggedIn: true,
     user: {
-      id: req.session.user.id,
-      name: req.session.user.name,
-      email: req.session.user.email,
-      isAdmin: !!req.session.user.isAdmin,
+      id: req.user.id,
+      name: req.user.name,
+      email: req.user.email,
+      isAdmin: !!req.user.isAdmin,
     },
   });
 });
 
 // 🔹 Profil adatainak frissítése (név, email)
 app.put("/api/account", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const { name, email } = req.body;
 
   if (!name || !email) {
@@ -287,19 +313,26 @@ app.put("/api/account", requireLogin, (req, res) => {
         });
       }
 
-      // session-ben is frissítjük
-      req.session.user.name = name;
-      req.session.user.email = email;
+      const updatedUser = {
+        id: userId,
+        name,
+        email,
+        isAdmin: (req.user && req.user.isAdmin) || false,
+      };
+
+      const token = jwt.sign(updatedUser, JWT_SECRET, { expiresIn: "7d" });
+
+      res.cookie(JWT_COOKIE_NAME, token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
       return res.json({
         success: true,
         message: "Profil sikeresen frissítve.",
-        user: {
-          id: userId,
-          name,
-          email,
-          isAdmin: req.session.user.isAdmin || false,
-        },
+        user: updatedUser,
       });
     });
   });
@@ -307,7 +340,7 @@ app.put("/api/account", requireLogin, (req, res) => {
 
 // 🔹 Jelszó módosítása
 app.put("/api/account/password", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const { currentPassword, newPassword } = req.body;
 
   if (!currentPassword || !newPassword) {
@@ -376,7 +409,7 @@ app.put("/api/account/password", requireLogin, (req, res) => {
 
 // 🔹 Kosár lekérdezése
 app.get("/api/cart", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
 
   const sql = `
     SELECT 
@@ -412,7 +445,7 @@ app.get("/api/cart", requireLogin, (req, res) => {
 
 // 🔹 Tétel hozzáadása a kosárhoz
 app.post("/api/cart/add", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const { productId, quantity } = req.body;
 
   const qty = Number(quantity) || 1;
@@ -453,7 +486,7 @@ app.post("/api/cart/add", requireLogin, (req, res) => {
 
 // 🔹 Kosár ürítése
 app.post("/api/cart/clear", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
 
   const sql = "DELETE FROM cart_items WHERE user_id = ?";
 
@@ -474,7 +507,7 @@ app.post("/api/cart/clear", requireLogin, (req, res) => {
 
 // 🔹 Egy tétel törlése a kosárból
 app.post("/api/cart/remove", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const { productId } = req.body;
 
   if (!productId) {
@@ -510,7 +543,7 @@ app.post("/api/cart/remove", requireLogin, (req, res) => {
 
 // Rendelés véglegesítése (checkout)
 app.post("/api/checkout", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
 
   const { shippingName, shippingPhone, shippingAddress, paymentMethod, note } =
     req.body || {};
@@ -644,7 +677,7 @@ app.post("/api/checkout", requireLogin, (req, res) => {
 
 // 🔹 Rendelések lekérdezése a bejelentkezett felhasználónak
 app.get("/api/orders", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
 
   const sql = `
     SELECT 
@@ -1408,7 +1441,7 @@ app.post("/api/reservations", (req, res) => {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `;
 
-    const loggedInUserId = req.session.user ? req.session.user.id : null;
+    const loggedInUserId = req.user ? req.user.id : null;
 
     db.query(
       insertSql,
@@ -1445,7 +1478,7 @@ app.post("/api/reservations", (req, res) => {
 
 // 🔹 Saját foglalások lekérdezése bejelentkezett felhasználónak
 app.get("/api/my/reservations", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
 
   const sql = `
     SELECT 
@@ -1481,7 +1514,7 @@ app.get("/api/my/reservations", requireLogin, (req, res) => {
 
 // Saját foglalás lemondása
 app.put("/api/my/reservations/:id/cancel", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const reservationId = req.params.id;
 
   // opcionálisan: csak jövőbeli foglalást engedjünk lemondani
@@ -1514,7 +1547,7 @@ app.put("/api/my/reservations/:id/cancel", requireLogin, (req, res) => {
 
 // Saját foglalás módosítása (létszám + megjegyzés)
 app.put("/api/my/reservations/:id", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const reservationId = req.params.id;
   const { peopleCount, note } = req.body;
 
@@ -1558,7 +1591,7 @@ app.put("/api/my/reservations/:id", requireLogin, (req, res) => {
 
 // Saját foglalás idősávjának módosítása
 app.put("/api/my/reservations/:id/time", requireLogin, (req, res) => {
-  const userId = req.session.user.id;
+  const userId = req.user.id;
   const reservationId = req.params.id;
 
   const { date, timeFrom, timeTo, tableNumber } = req.body;
@@ -1722,19 +1755,8 @@ app.put("/api/my/reservations/:id/time", requireLogin, (req, res) => {
 
 // 🔹 Kilépés
 app.post("/api/logout", (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error("Session törlés hiba:", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Nem sikerült kilépni." });
-    }
-
-    // opcionálisan: törölhetjük a cookie-t is
-    res.clearCookie("connect.sid"); // express-session default cookie neve
-
-    return res.json({ success: true, message: "Sikeres kilépés." });
-  });
+  res.clearCookie(JWT_COOKIE_NAME);
+  return res.json({ success: true, message: "Sikeres kilépés." });
 });
 
 // 🔹 Szerver indítása
