@@ -523,10 +523,9 @@ document.addEventListener("DOMContentLoaded", () => {
         let timeTo = "";
 
         // Dátum normalizálás (lehet string "YYYY-MM-DD" vagy Date)
-        if (typeof r.reservation_date === "string") {
-          datePart = r.reservation_date.split("T")[0]; // "YYYY-MM-DD"
-        } else if (r.reservation_date instanceof Date) {
-          datePart = r.reservation_date.toISOString().split("T")[0];
+        if (r.reservation_date) {
+          const d = new Date(r.reservation_date);
+          datePart = d.toLocaleDateString("hu-HU");
         }
 
         // Kezdő idő (reservation_time)

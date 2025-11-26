@@ -566,6 +566,15 @@ document.addEventListener("DOMContentLoaded", () => {
             Módosítás
           </button>
           <button 
+            class="btn btn-sm btn-outline-secondary js-edit-reservation-time"
+            data-id="${r.id}"
+            data-date="${r.date}"
+            data-from="${r.timeFrom}"
+            data-to="${r.timeTo}"
+            data-table="${r.tableNumber}"
+          >
+            Időpont módosítása
+          <button 
             class="btn btn-sm btn-outline-danger js-cancel-reservation"
             data-id="${r.id}"
           >
@@ -630,6 +639,21 @@ document.addEventListener("DOMContentLoaded", () => {
         handleCancelReservation(id);
       }
 
+      if (target.classList.contains("js-edit-reservation-time")) {
+        const id = target.dataset.id;
+        const currentDate = target.dataset.date;
+        const currentFrom = target.dataset.from;
+        const currentTo = target.dataset.to;
+        const currentTable = target.dataset.table;
+        handleEditReservationTime(
+          id,
+          currentDate,
+          currentFrom,
+          currentTo,
+          currentTable
+        );
+      }
+
       if (target.classList.contains("js-edit-reservation")) {
         const id = target.dataset.id;
         const currentPeople = target.dataset.people;
@@ -637,6 +661,68 @@ document.addEventListener("DOMContentLoaded", () => {
         handleEditReservation(id, currentPeople, currentNote);
       }
     });
+  }
+
+  async function handleEditReservationTime(
+    id,
+    currentDate,
+    currentFrom,
+    currentTo,
+    currentTable
+  ) {
+    if (!id) return;
+
+    const newDate = window.prompt("Új dátum (YYYY-MM-DD):");
+    if (!newDate) return;
+
+    const newFrom = window.prompt(
+      "Új kezdési idő (HH:MM):",
+      currentFrom ? currentFrom.toString().slice(0, 5) : "18:00"
+    );
+    if (!newFrom) return;
+
+    const newTo = window.prompt(
+      "Új befejezési idő (HH:MM):",
+      currentTo ? currentTo.toString().slice(0, 5) : "20:00"
+    );
+    if (!newTo) return;
+
+    const newTableStr = window.prompt("Új asztalszám:", currentTable || "1");
+    if (!newTableStr) return;
+
+    const newTable = Number(newTableStr);
+    if (!Number.isInteger(newTable) || newTable <= 0) {
+      alert("Érvénytelen asztalszám.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/my/reservations/${id}/time`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          date: newDate,
+          timeFrom: newFrom,
+          timeTo: newTo,
+          tableNumber: newTable,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.message || "Nem sikerült módosítani a foglalás időpontját.");
+        return;
+      }
+
+      // siker, frissítjük a listát
+      await loadReservations();
+    } catch (err) {
+      console.error("Idősáv módosítási hiba:", err);
+      alert("Nem sikerült csatlakozni a szerverhez.");
+    }
   }
 
   async function handleCancelReservation(id) {
