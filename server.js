@@ -1479,6 +1479,84 @@ app.get("/api/my/reservations", requireLogin, (req, res) => {
   });
 });
 
+// Saját foglalás lemondása
+app.put("/api/my/reservations/:id/cancel", requireLogin, (req, res) => {
+  const userId = req.session.user.id;
+  const reservationId = req.params.id;
+
+  // opcionálisan: csak jövőbeli foglalást engedjünk lemondani
+  const sql = `
+    UPDATE reservations
+    SET status = 'cancelled'
+    WHERE id = ? 
+      AND user_id = ? 
+      AND status != 'cancelled'
+  `;
+
+  db.query(sql, [reservationId, userId], (err, result) => {
+    if (err) {
+      console.error("DB hiba (/api/my/reservations/:id/cancel):", err);
+      return res
+        .status(500)
+        .json({ success: false, message: "Hiba történt a lemondás közben." });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "Nem található ilyen foglalás, vagy már le lett mondva.",
+      });
+    }
+
+    return res.json({ success: true });
+  });
+});
+
+// Saját foglalás módosítása (létszám + megjegyzés)
+app.put("/api/my/reservations/:id", requireLogin, (req, res) => {
+  const userId = req.session.user.id;
+  const reservationId = req.params.id;
+  const { peopleCount, note } = req.body;
+
+  if (!peopleCount || isNaN(Number(peopleCount)) || Number(peopleCount) <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Érvénytelen létszám." });
+  }
+
+  const sql = `
+    UPDATE reservations
+    SET people_count = ?, note = ?
+    WHERE id = ? 
+      AND user_id = ? 
+      AND status != 'cancelled'
+  `;
+
+  db.query(
+    sql,
+    [Number(peopleCount), note || null, reservationId, userId],
+    (err, result) => {
+      if (err) {
+        console.error("DB hiba (/api/my/reservations/:id):", err);
+        return res
+          .status(500)
+          .json({
+            success: false,
+            message: "Hiba történt a módosítás közben.",
+          });
+      }
+
+      if (result.affectedRows === 0) {
+        return res.status(404).json({
+          success: false,
+          message: "Nem található ilyen foglalás, vagy nem módosítható.",
+        });
+      }
+
+      return res.json({ success: true });
+    }
+  );
+});
 
 // 🔹 Kilépés
 app.post("/api/logout", (req, res) => {

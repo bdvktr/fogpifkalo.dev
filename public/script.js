@@ -462,23 +462,34 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      const now = new Date();
+      const upcoming = [];
+      const past = [];
+
+      // Szétválogatjuk jövőbeli / múltbeli foglalásokra
+      for (const r of reservations) {
+        const datePart = new Date(r.date);
+        let dateTime = datePart;
+
+        if (r.timeFrom) {
+          const [h, m] = r.timeFrom.toString().split(":");
+          dateTime = new Date(datePart);
+          dateTime.setHours(Number(h), Number(m), 0, 0);
+        }
+
+        if (dateTime >= now && r.status !== "cancelled") {
+          upcoming.push(r);
+        } else {
+          past.push(r);
+        }
+      }
+
       reservationsList.innerHTML = "";
 
-      reservations.forEach((r) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "mb-3 p-3 border rounded";
-
-        const created = r.createdAt ? new Date(r.createdAt) : null;
-        const createdText = created ? created.toLocaleString("hu-HU") : "";
-
-        const dateText = formatDateOnly(r.date);
-        const timeRange = `${formatTimeOnly(r.timeFrom)}–${formatTimeOnly(
-          r.timeTo
-        )}`;
-
+      const renderStatus = (status) => {
         let statusText = "";
         let statusClass = "bg-secondary";
-        switch (r.status) {
+        switch (status) {
           case "confirmed":
             statusText = "Megerősítve";
             statusClass = "bg-success";
@@ -493,37 +504,219 @@ document.addEventListener("DOMContentLoaded", () => {
             statusClass = "bg-warning text-dark";
             break;
         }
+        return { statusText, statusClass };
+      };
 
-        const noteHtml = r.note
-          ? `<div class="small text-muted mt-1">Megjegyzés: ${r.note}</div>`
-          : "";
+      // 🔹 Közelgő foglalások
+      if (upcoming.length > 0) {
+        const title = document.createElement("h6");
+        title.textContent = "Közelgő foglalásaid";
+        title.className = "fw-bold mb-2";
+        reservationsList.appendChild(title);
 
-        wrapper.innerHTML = `
-        <div class="d-flex justify-content-between mb-1">
-          <div>
-            <strong>Asztal #${r.tableNumber}</strong>
-            <div class="text-muted small">
-              ${dateText} • ${timeRange}
+        for (const r of upcoming) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "mb-3 p-3 border rounded";
+
+          const created = r.createdAt ? new Date(r.createdAt) : null;
+          const createdText = created ? created.toLocaleString("hu-HU") : "";
+
+          const dateText = formatDateOnly(r.date);
+          const timeRange = `${formatTimeOnly(r.timeFrom)}–${formatTimeOnly(
+            r.timeTo
+          )}`;
+
+          const { statusText, statusClass } = renderStatus(r.status);
+          const noteHtml = r.note
+            ? `<div class="small text-muted mt-1">Megjegyzés: ${r.note}</div>`
+            : "";
+
+          wrapper.innerHTML = `
+          <div class="d-flex justify-content-between mb-1">
+            <div>
+              <strong>Asztal #${r.tableNumber}</strong>
+              <div class="text-muted small">
+                ${dateText} • ${timeRange}
+              </div>
+              ${
+                createdText
+                  ? `<div class="text-muted small">Foglalás időpontja: ${createdText}</div>`
+                  : ""
+              }
             </div>
-            ${
-              createdText
-                ? `<div class="text-muted small">Foglalás időpontja: ${createdText}</div>`
-                : ""
-            }
+            <span class="badge ${statusClass} align-self-start">${statusText}</span>
           </div>
-          <span class="badge ${statusClass} align-self-start">${statusText}</span>
-        </div>
-        <div class="small">
-          Létszám: <strong>${r.peopleCount} fő</strong>
-          ${noteHtml}
-        </div>
-      `;
+          <div class="small">
+            Létszám: <strong>${r.peopleCount} fő</strong>
+            ${noteHtml}
+          </div>
+        `;
 
-        reservationsList.appendChild(wrapper);
-      });
+          // 🔘 Módosítás / lemondás gombok
+          const actions = document.createElement("div");
+          actions.className = "mt-2 d-flex gap-2";
+
+          actions.innerHTML = `
+          <button 
+            class="btn btn-sm btn-outline-primary js-edit-reservation"
+            data-id="${r.id}"
+            data-people="${r.peopleCount}"
+            data-note="${r.note || ""}"
+          >
+            Módosítás
+          </button>
+          <button 
+            class="btn btn-sm btn-outline-danger js-cancel-reservation"
+            data-id="${r.id}"
+          >
+            Lemondás
+          </button>
+        `;
+
+          wrapper.appendChild(actions);
+          reservationsList.appendChild(wrapper);
+        }
+      }
+
+      // 🔹 Korábbi / lemondott foglalások
+      if (past.length > 0) {
+        const title = document.createElement("h6");
+        title.textContent = "Korábbi / lemondott foglalásaid";
+        title.className = "fw-bold mt-3 mb-2";
+        reservationsList.appendChild(title);
+
+        for (const r of past) {
+          const wrapper = document.createElement("div");
+          wrapper.className = "mb-2 p-2 border rounded small bg-light";
+
+          const dateText = formatDateOnly(r.date);
+          const timeRange = `${formatTimeOnly(r.timeFrom)}–${formatTimeOnly(
+            r.timeTo
+          )}`;
+
+          const { statusText, statusClass } = renderStatus(r.status);
+          const noteHtml = r.note
+            ? `<div class="small text-muted mt-1">Megjegyzés: ${r.note}</div>`
+            : "";
+
+          wrapper.innerHTML = `
+          <div class="d-flex justify-content-between mb-1">
+            <div>
+              <strong>Asztal #${r.tableNumber}</strong>
+              <div class="text-muted">
+                ${dateText} • ${timeRange} • ${r.peopleCount} fő
+              </div>
+              ${noteHtml}
+            </div>
+            <span class="badge ${statusClass} align-self-start">${statusText}</span>
+          </div>
+        `;
+
+          reservationsList.appendChild(wrapper);
+        }
+      }
     } catch (err) {
       console.error("Foglalások betöltési hiba:", err);
       reservationsList.textContent = "Nem sikerült csatlakozni a szerverhez.";
+    }
+  }
+
+  if (reservationsList) {
+    reservationsList.addEventListener("click", (e) => {
+      const target = e.target;
+
+      if (target.classList.contains("js-cancel-reservation")) {
+        const id = target.dataset.id;
+        handleCancelReservation(id);
+      }
+
+      if (target.classList.contains("js-edit-reservation")) {
+        const id = target.dataset.id;
+        const currentPeople = target.dataset.people;
+        const currentNote = target.dataset.note || "";
+        handleEditReservation(id, currentPeople, currentNote);
+      }
+    });
+  }
+
+  async function handleCancelReservation(id) {
+    if (!id) return;
+
+    const confirmed = window.confirm(
+      "Biztosan le szeretnéd mondani ezt a foglalást?"
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(`/api/my/reservations/${id}/cancel`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.message || "Nem sikerült lemondani a foglalást.");
+        return;
+      }
+
+      // frissítsük a listát
+      await loadReservations();
+    } catch (err) {
+      console.error("Lemondási hiba:", err);
+      alert("Nem sikerült csatlakozni a szerverhez.");
+    }
+  }
+
+  async function handleEditReservation(id, currentPeople, currentNote) {
+    if (!id) return;
+
+    const newPeopleStr = window.prompt(
+      "Új létszám (fő):",
+      currentPeople || "2"
+    );
+    if (newPeopleStr === null) return; // cancel
+
+    const newPeople = Number(newPeopleStr);
+    if (!newPeople || isNaN(newPeople) || newPeople <= 0) {
+      alert("Érvénytelen létszám.");
+      return;
+    }
+
+    const newNote = window.prompt(
+      "Megjegyzés (opcionális):",
+      currentNote || ""
+    );
+    if (newNote === null) {
+      // ha cancel, akkor ne küldjünk semmit
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/my/reservations/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          peopleCount: newPeople,
+          note: newNote,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        alert(data.message || "Nem sikerült módosítani a foglalást.");
+        return;
+      }
+
+      await loadReservations();
+    } catch (err) {
+      console.error("Módosítási hiba:", err);
+      alert("Nem sikerült csatlakozni a szerverhez.");
     }
   }
 
