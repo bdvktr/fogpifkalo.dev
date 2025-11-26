@@ -115,8 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       if (!data.success) {
-        cartDropdownContent.innerHTML = `<div class="text-muted small">${data.message || "Nem sikerült betölteni a kosarat."
-          }</div>`;
+        cartDropdownContent.innerHTML = `<div class="text-muted small">${
+          data.message || "Nem sikerült betölteni a kosarat."
+        }</div>`;
         updateCartBadge(0);
         return;
       }
@@ -245,7 +246,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (checkoutBtn) {
         window.location.href = "checkout.html";
       }
-      
     });
   }
 
@@ -299,7 +299,6 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-
   // oldal betöltéskor egyszer betöltjük a kosarat (ha be van jelentkezve)
   loadCartSummary();
 });
@@ -311,14 +310,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const emailSpan = document.getElementById("accountEmail");
   const logoutBtn = document.getElementById("logoutBtn");
   const ordersList = document.getElementById("ordersList");
+  const reservationsList = document.getElementById("reservationsList");
   const profileNameInput = document.getElementById("profileName");
   const profileEmailInput = document.getElementById("profileEmail");
   const loginForm = document.getElementById("loginForm");
   const loginError = document.getElementById("loginError");
   const registerForm = document.getElementById("registerForm");
   const registerError = document.getElementById("registerError");
-
-
 
   async function checkAuth() {
     try {
@@ -338,6 +336,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         if (ordersList) {
           loadOrders();
+        }
+        if (reservationsList) {
+          loadReservations();
         }
       } else {
         if (authSection) authSection.classList.remove("d-none");
@@ -437,6 +438,105 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error(err);
       ordersList.textContent = "Nem sikerült csatlakozni a szerverhez.";
     }
+  }
+
+  async function loadReservations() {
+    if (!reservationsList) return;
+
+    reservationsList.textContent = "Foglalások betöltése...";
+
+    try {
+      const res = await fetch("/api/my/reservations");
+      const data = await res.json();
+
+      if (!data.success) {
+        reservationsList.textContent =
+          data.message || "Nem sikerült betölteni a foglalásokat.";
+        return;
+      }
+
+      const reservations = data.reservations || [];
+
+      if (reservations.length === 0) {
+        reservationsList.textContent = "Még nincs foglalásod.";
+        return;
+      }
+
+      reservationsList.innerHTML = "";
+
+      reservations.forEach((r) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "mb-3 p-3 border rounded";
+
+        const created = r.createdAt ? new Date(r.createdAt) : null;
+        const createdText = created ? created.toLocaleString("hu-HU") : "";
+
+        const dateText = formatDateOnly(r.date);
+        const timeRange = `${formatTimeOnly(r.timeFrom)}–${formatTimeOnly(
+          r.timeTo
+        )}`;
+
+        let statusText = "";
+        let statusClass = "bg-secondary";
+        switch (r.status) {
+          case "confirmed":
+            statusText = "Megerősítve";
+            statusClass = "bg-success";
+            break;
+          case "cancelled":
+            statusText = "Lemondva";
+            statusClass = "bg-danger";
+            break;
+          case "pending":
+          default:
+            statusText = "Függőben";
+            statusClass = "bg-warning text-dark";
+            break;
+        }
+
+        const noteHtml = r.note
+          ? `<div class="small text-muted mt-1">Megjegyzés: ${r.note}</div>`
+          : "";
+
+        wrapper.innerHTML = `
+        <div class="d-flex justify-content-between mb-1">
+          <div>
+            <strong>Asztal #${r.tableNumber}</strong>
+            <div class="text-muted small">
+              ${dateText} • ${timeRange}
+            </div>
+            ${
+              createdText
+                ? `<div class="text-muted small">Foglalás időpontja: ${createdText}</div>`
+                : ""
+            }
+          </div>
+          <span class="badge ${statusClass} align-self-start">${statusText}</span>
+        </div>
+        <div class="small">
+          Létszám: <strong>${r.peopleCount} fő</strong>
+          ${noteHtml}
+        </div>
+      `;
+
+        reservationsList.appendChild(wrapper);
+      });
+    } catch (err) {
+      console.error("Foglalások betöltési hiba:", err);
+      reservationsList.textContent = "Nem sikerült csatlakozni a szerverhez.";
+    }
+  }
+
+  function formatDateOnly(value) {
+    const d = new Date(value);
+    if (Number.isNaN(d.getTime())) return value;
+    return d.toLocaleDateString("hu-HU");
+  }
+
+  function formatTimeOnly(value) {
+    if (!value) return "";
+    // "HH:MM:SS" → "HH:MM"
+    return value.toString().slice(0, 5);
   }
 
   function formatFt(value) {

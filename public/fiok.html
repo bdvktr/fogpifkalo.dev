@@ -1,265 +1,398 @@
 <!DOCTYPE html>
 <html lang="hu">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>BurgerBázis – Fiókom</title>
 
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>BurgerBázis – Fiókom</title>
+    <!-- Bootstrap 5 CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <!-- Bootstrap Icons -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Bootstrap Icons -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+    <style>
+      body {
+        font-family: "Inter", system-ui, -apple-system, Roboto, "Helvetica Neue",
+          Arial;
+      }
 
-  <style>
-    body {
-      font-family: "Inter", system-ui, -apple-system, Roboto, "Helvetica Neue",
-        Arial;
-    }
+      .account-hero {
+        background: linear-gradient(135deg, #212529, #343a40);
+        color: #fff;
+        padding: 3rem 0 2rem;
+      }
+    </style>
+  </head>
 
-    .account-hero {
-      background: linear-gradient(135deg, #212529, #343a40);
-      color: #fff;
-      padding: 3rem 0 2rem;
-    }
-  </style>
-</head>
-
-<body>
-  <!-- NAVBAR -->
-  <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container">
-      <a class="navbar-brand d-flex align-items-center" href="index.html">
-        <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
-        <span class="fw-bold">BurgerBázis</span>
-      </a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navMenu">
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link" href="index.html">Főoldal</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="menu.html">Menü</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="index.html#rolunk">Rólunk</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
-          </li>
-        </ul>
-
-        <!-- Fiókom ikon -->
-        <a class="btn btn-outline-light ms-lg-3 d-flex align-items-center active" href="fiok.html" id="accountLink">
-          <i class="bi bi-person-circle me-1"></i>
-          <span class="d-none d-lg-inline">Fiókom</span>
+  <body>
+    <!-- NAVBAR -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="index.html">
+          <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
+          <span class="fw-bold">BurgerBázis</span>
         </a>
+        <button
+          class="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#navMenu"
+        >
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navMenu">
+          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+              <a class="nav-link" href="index.html">Főoldal</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="menu.html">Menü</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="index.html#rolunk">Rólunk</a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
+            </li>
+          </ul>
 
-        <a class="btn btn-warning ms-2" href="index.html#foglalas">Foglalás</a>
-      </div>
-    </div>
-  </nav>
+          <!-- Fiókom ikon -->
+          <a
+            class="btn btn-outline-light ms-lg-3 d-flex align-items-center active"
+            href="fiok.html"
+            id="accountLink"
+          >
+            <i class="bi bi-person-circle me-1"></i>
+            <span class="d-none d-lg-inline">Fiókom</span>
+          </a>
 
-  <!-- HERO / FEJLÉC -->
-  <section class="account-hero">
-    <div class="container">
-      <h1 class="h3 mb-1">
-        <i class="bi bi-person-circle me-2"></i>Felhasználói fiók
-      </h1>
-      <p class="mb-0">
-        Jelentkezz be, vagy hozz létre egy új fiókot a gyorsabb rendeléshez és
-        rendeléstörténethez.
-      </p>
-    </div>
-  </section>
-
-  <!-- ACCOUNT CONTENT -->
-  <main class="py-5">
-    <div class="container">
-      <div class="row justify-content-center">
-        <div class="col-lg-6">
-
-          <!-- 🔹 NEM bejelentkezett állapot: Belépés / Regisztráció -->
-          <div id="authSection">
-            <!-- TABOK: BELÉPÉS / REGISZTRÁCIÓ -->
-            <ul class="nav nav-tabs mb-3" id="accountTabs" role="tablist">
-              <li class="nav-item" role="presentation">
-                <button class="nav-link active" id="login-tab" data-bs-toggle="tab" data-bs-target="#login-pane"
-                  type="button" role="tab">
-                  Belépés
-                </button>
-              </li>
-              <li class="nav-item" role="presentation">
-                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register-pane"
-                  type="button" role="tab">
-                  Regisztráció
-                </button>
-              </li>
-            </ul>
-
-            <div class="tab-content">
-              <!-- BELÉPÉS FÜL -->
-              <div class="tab-pane fade show active" id="login-pane" role="tabpanel" aria-labelledby="login-tab">
-                <div class="card shadow-sm">
-                  <div class="card-body p-4">
-                    <h2 class="h5 mb-3">Belépés a fiókba</h2>
-                    <form id="loginForm" method="POST" action="/api/login">
-                      <div class="mb-3">
-                        <label class="form-label">E-mail cím</label>
-                        <input type="email" class="form-control" name="email" placeholder="email@pelda.hu" required>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label">Jelszó</label>
-                        <input type="password" class="form-control" name="password" placeholder="Jelszó" required>
-                      </div>
-
-                      <!-- ide egy kis hibaüzenet hely -->
-                      <div id="loginError" class="text-danger small mb-2 d-none"></div>
-
-                      <div class="d-flex justify-content-between align-items-center mb-3">
-                        <div class="form-check">
-                          <input class="form-check-input" type="checkbox" id="rememberMe">
-                          <label class="form-check-label" for="rememberMe">
-                            Maradjak bejelentkezve
-                          </label>
-                        </div>
-                        <a href="#" class="small">Elfelejtett jelszó?</a>
-                      </div>
-                      <button type="submit" class="btn btn-primary w-100">Belépés</button>
-                    </form>
-
-                  </div>
-                </div>
-                <p class="mt-3 small text-muted text-center">
-                  Még nincs fiókod?
-                  <a href="#" onclick="document.getElementById('register-tab').click(); return false;">Regisztrálj
-                    itt</a>.
-                </p>
-              </div>
-
-              <!-- REGISZTRÁCIÓ FÜL -->
-              <div class="tab-pane fade" id="register-pane" role="tabpanel" aria-labelledby="register-tab">
-                <div class="card shadow-sm">
-                  <div class="card-body p-4">
-                    <h2 class="h5 mb-3">Új fiók létrehozása</h2>
-
-                    <form id="registerForm" method="POST" action="/api/register">
-                      <div class="mb-3">
-                        <label class="form-label">Név</label>
-                        <input type="text" class="form-control" name="name" placeholder="Teljes név" required>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label">E-mail cím</label>
-                        <input type="email" class="form-control" name="email" placeholder="email@pelda.hu" required>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label">Jelszó</label>
-                        <input type="password" class="form-control" name="password" placeholder="Min. 8 karakter"
-                          required>
-                      </div>
-                      <div class="mb-3">
-                        <label class="form-label">Jelszó megerősítése</label>
-                        <input type="password" class="form-control" name="passwordConfirm" placeholder="Jelszó ismét"
-                          required>
-                      </div>
-                      <div class="form-check mb-2">
-                        <input class="form-check-input" type="checkbox" id="termsCheck" required>
-                        <label class="form-check-label" for="termsCheck">
-                          Elfogadom az <a href="#">Általános Szerződési Feltételeket</a>.
-                        </label>
-                      </div>
-
-                      <!-- HIBAÜZENET HELY -->
-                      <div id="registerError" class="text-danger small mb-2 d-none"></div>
-
-                      <button type="submit" class="btn btn-success w-100">Regisztráció</button>
-                    </form>
-                  </div>
-                </div>
-                <p class="mt-3 small text-muted text-center">
-                  Már van fiókod?
-                  <a href="#" onclick="document.getElementById('login-tab').click(); return false;">Lépj be itt</a>.
-                </p>
-              </div>
-
-            </div>
-          </div>
-
-          <!-- 🔹 BEJELENTKEZETT állapot: Profil + Rendeléseim -->
-          <div id="accountSection" class="d-none">
-            <div class="card shadow-sm mb-3">
-              <div class="card-body">
-                <h2 class="h5 mb-1">
-                  Szia, <span id="accountName">Felhasználó</span>!
-                </h2>
-                <p class="text-muted small mb-2">
-                  Be vagy jelentkezve ezzel az e-mail címmel:
-                  <span id="accountEmail"></span>
-                </p>
-                <button class="btn btn-outline-secondary btn-sm" id="logoutBtn">
-                  Kijelentkezés
-                </button>
-              </div>
-            </div>
-
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h3 class="h6 mb-3">Rendeléseim</h3>
-                <div id="ordersList" class="small text-muted">
-                  Itt fognak megjelenni a rendeléseid (következő lépésben töltjük fel élettel).
-                </div>
-              </div>
-            </div>
-
-            <!-- Jelszó módosítása -->
-            <div class="card shadow-sm mb-3">
-              <div class="card-body">
-                <h3 class="h6 mb-2">Jelszó módosítása</h3>
-                <form id="passwordForm">
-                  <div class="mb-2">
-                    <label class="form-label">Jelenlegi jelszó</label>
-                    <input type="password" class="form-control form-control-sm" id="currentPassword"
-                      name="currentPassword" required>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Új jelszó</label>
-                    <input type="password" class="form-control form-control-sm" id="newPassword" name="newPassword"
-                      required>
-                  </div>
-                  <button type="submit" class="btn btn-sm btn-outline-primary mt-2">
-                    Jelszó frissítése
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-
+          <a class="btn btn-warning ms-2" href="index.html#foglalas"
+            >Foglalás</a
+          >
         </div>
       </div>
-    </div>
-  </main>
+    </nav>
 
-  <!-- FOOTER -->
-  <footer class="footer py-4 bg-dark text-white-50">
-    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
-      <div>
-        <strong>BurgerBázis</strong> &copy; 2025 · Minden jog fenntartva
+    <!-- HERO / FEJLÉC -->
+    <section class="account-hero">
+      <div class="container">
+        <h1 class="h3 mb-1">
+          <i class="bi bi-person-circle me-2"></i>Felhasználói fiók
+        </h1>
+        <p class="mb-0">
+          Jelentkezz be, vagy hozz létre egy új fiókot a gyorsabb rendeléshez és
+          rendeléstörténethez.
+        </p>
       </div>
-      <div class="mt-2 mt-md-0">
-        <a href="#" class="text-decoration-none text-muted me-3">Adatvédelem</a>
-        <a href="#" class="text-decoration-none text-muted">Impresszum</a>
+    </section>
+
+    <!-- ACCOUNT CONTENT -->
+    <main class="py-5">
+      <div class="container">
+        <div class="row justify-content-center">
+          <div class="col-lg-6">
+            <!-- 🔹 NEM bejelentkezett állapot: Belépés / Regisztráció -->
+            <div id="authSection">
+              <!-- TABOK: BELÉPÉS / REGISZTRÁCIÓ -->
+              <ul class="nav nav-tabs mb-3" id="accountTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link active"
+                    id="login-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#login-pane"
+                    type="button"
+                    role="tab"
+                  >
+                    Belépés
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button
+                    class="nav-link"
+                    id="register-tab"
+                    data-bs-toggle="tab"
+                    data-bs-target="#register-pane"
+                    type="button"
+                    role="tab"
+                  >
+                    Regisztráció
+                  </button>
+                </li>
+              </ul>
+
+              <div class="tab-content">
+                <!-- BELÉPÉS FÜL -->
+                <div
+                  class="tab-pane fade show active"
+                  id="login-pane"
+                  role="tabpanel"
+                  aria-labelledby="login-tab"
+                >
+                  <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                      <h2 class="h5 mb-3">Belépés a fiókba</h2>
+                      <form id="loginForm" method="POST" action="/api/login">
+                        <div class="mb-3">
+                          <label class="form-label">E-mail cím</label>
+                          <input
+                            type="email"
+                            class="form-control"
+                            name="email"
+                            placeholder="email@pelda.hu"
+                            required
+                          />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">Jelszó</label>
+                          <input
+                            type="password"
+                            class="form-control"
+                            name="password"
+                            placeholder="Jelszó"
+                            required
+                          />
+                        </div>
+
+                        <!-- ide egy kis hibaüzenet hely -->
+                        <div
+                          id="loginError"
+                          class="text-danger small mb-2 d-none"
+                        ></div>
+
+                        <div
+                          class="d-flex justify-content-between align-items-center mb-3"
+                        >
+                          <div class="form-check">
+                            <input
+                              class="form-check-input"
+                              type="checkbox"
+                              id="rememberMe"
+                            />
+                            <label class="form-check-label" for="rememberMe">
+                              Maradjak bejelentkezve
+                            </label>
+                          </div>
+                          <a href="#" class="small">Elfelejtett jelszó?</a>
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">
+                          Belépés
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                  <p class="mt-3 small text-muted text-center">
+                    Még nincs fiókod?
+                    <a
+                      href="#"
+                      onclick="document.getElementById('register-tab').click(); return false;"
+                      >Regisztrálj itt</a
+                    >.
+                  </p>
+                </div>
+
+                <!-- REGISZTRÁCIÓ FÜL -->
+                <div
+                  class="tab-pane fade"
+                  id="register-pane"
+                  role="tabpanel"
+                  aria-labelledby="register-tab"
+                >
+                  <div class="card shadow-sm">
+                    <div class="card-body p-4">
+                      <h2 class="h5 mb-3">Új fiók létrehozása</h2>
+
+                      <form
+                        id="registerForm"
+                        method="POST"
+                        action="/api/register"
+                      >
+                        <div class="mb-3">
+                          <label class="form-label">Név</label>
+                          <input
+                            type="text"
+                            class="form-control"
+                            name="name"
+                            placeholder="Teljes név"
+                            required
+                          />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">E-mail cím</label>
+                          <input
+                            type="email"
+                            class="form-control"
+                            name="email"
+                            placeholder="email@pelda.hu"
+                            required
+                          />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">Jelszó</label>
+                          <input
+                            type="password"
+                            class="form-control"
+                            name="password"
+                            placeholder="Min. 8 karakter"
+                            required
+                          />
+                        </div>
+                        <div class="mb-3">
+                          <label class="form-label">Jelszó megerősítése</label>
+                          <input
+                            type="password"
+                            class="form-control"
+                            name="passwordConfirm"
+                            placeholder="Jelszó ismét"
+                            required
+                          />
+                        </div>
+                        <div class="form-check mb-2">
+                          <input
+                            class="form-check-input"
+                            type="checkbox"
+                            id="termsCheck"
+                            required
+                          />
+                          <label class="form-check-label" for="termsCheck">
+                            Elfogadom az
+                            <a href="#">Általános Szerződési Feltételeket</a>.
+                          </label>
+                        </div>
+
+                        <!-- HIBAÜZENET HELY -->
+                        <div
+                          id="registerError"
+                          class="text-danger small mb-2 d-none"
+                        ></div>
+
+                        <button type="submit" class="btn btn-success w-100">
+                          Regisztráció
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                  <p class="mt-3 small text-muted text-center">
+                    Már van fiókod?
+                    <a
+                      href="#"
+                      onclick="document.getElementById('login-tab').click(); return false;"
+                      >Lépj be itt</a
+                    >.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- 🔹 BEJELENTKEZETT állapot: Profil + Rendeléseim -->
+            <div id="accountSection" class="d-none">
+              <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                  <h2 class="h5 mb-1">
+                    Szia, <span id="accountName">Felhasználó</span>!
+                  </h2>
+                  <p class="text-muted small mb-2">
+                    Be vagy jelentkezve ezzel az e-mail címmel:
+                    <span id="accountEmail"></span>
+                  </p>
+                  <button
+                    class="btn btn-outline-secondary btn-sm"
+                    id="logoutBtn"
+                  >
+                    Kijelentkezés
+                  </button>
+                </div>
+              </div>
+
+              <div class="card shadow-sm">
+                <div class="card-body">
+                  <h3 class="h6 mb-3">Rendeléseim</h3>
+                  <div id="ordersList" class="small text-muted">
+                    Itt fognak megjelenni a rendeléseid (következő lépésben
+                    töltjük fel élettel).
+                  </div>
+                </div>
+              </div>
+
+              <div class="card shadow-sm mt-3">
+                <div class="card-body">
+                  <h3 class="h6 mb-3">Saját foglalásaim</h3>
+                  <div id="reservationsList" class="small text-muted">
+                    Itt fognak megjelenni a foglalásaid.
+                  </div>
+                </div>
+              </div>
+
+              <!-- Jelszó módosítása -->
+              <div class="card shadow-sm mb-3">
+                <div class="card-body">
+                  <h3 class="h6 mb-2">Jelszó módosítása</h3>
+                  <form id="passwordForm">
+                    <div class="mb-2">
+                      <label class="form-label">Jelenlegi jelszó</label>
+                      <input
+                        type="password"
+                        class="form-control form-control-sm"
+                        id="currentPassword"
+                        name="currentPassword"
+                        required
+                      />
+                    </div>
+                    <div class="mb-2">
+                      <label class="form-label">Új jelszó</label>
+                      <input
+                        type="password"
+                        class="form-control form-control-sm"
+                        id="newPassword"
+                        name="newPassword"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      class="btn btn-sm btn-outline-primary mt-2"
+                    >
+                      Jelszó frissítése
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
-  </footer>
+    </main>
 
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Saját script -->
-  <script src="script.js"></script>
-</body>
+    <!-- FOOTER -->
+    <footer class="footer py-4 bg-dark text-white-50">
+      <div
+        class="container d-flex flex-column flex-md-row justify-content-between align-items-center"
+      >
+        <div>
+          <strong>BurgerBázis</strong> &copy; 2025 · Minden jog fenntartva
+        </div>
+        <div class="mt-2 mt-md-0">
+          <a href="#" class="text-decoration-none text-muted me-3"
+            >Adatvédelem</a
+          >
+          <a href="#" class="text-decoration-none text-muted">Impresszum</a>
+        </div>
+      </div>
+    </footer>
 
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Saját script -->
+    <script src="script.js"></script>
+  </body>
 </html>

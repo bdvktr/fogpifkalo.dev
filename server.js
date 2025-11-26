@@ -1404,13 +1404,25 @@ app.post("/api/reservations", (req, res) => {
     // 4) Nincs ütközés → beszúrjuk a foglalást
     const insertSql = `
       INSERT INTO reservations
-        (table_number, reservation_date, reservation_time, end_time, name, phone, people_count, note, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        (table_number, reservation_date, reservation_time, end_time, name, phone, people_count, note, user_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `;
+
+    const loggedInUserId = req.session.user ? req.session.user.id : null;
 
     db.query(
       insertSql,
-      [tableNum, date, mysqlStart, mysqlEnd, name, phone, ppl, note || null],
+      [
+        tableNum,
+        date,
+        mysqlStart,
+        mysqlEnd,
+        name,
+        phone,
+        ppl,
+        note || null,
+        loggedInUserId,
+      ],
       (err2, result) => {
         if (err2) {
           console.error("DB hiba (reservation insert):", err2);
@@ -1430,6 +1442,43 @@ app.post("/api/reservations", (req, res) => {
     );
   });
 });
+
+// 🔹 Saját foglalások lekérdezése bejelentkezett felhasználónak
+app.get("/api/my/reservations", requireLogin, (req, res) => {
+  const userId = req.session.user.id;
+
+  const sql = `
+    SELECT 
+      id,
+      table_number      AS tableNumber,
+      reservation_date  AS date,
+      reservation_time  AS timeFrom,
+      end_time          AS timeTo,
+      people_count      AS peopleCount,
+      status,
+      note,
+      created_at        AS createdAt
+    FROM reservations
+    WHERE user_id = ?
+    ORDER BY reservation_date DESC, reservation_time DESC
+  `;
+
+  db.query(sql, [userId], (err, rows) => {
+    if (err) {
+      console.error("DB hiba (/api/my/reservations):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Hiba történt a foglalások lekérdezésekor.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      reservations: rows,
+    });
+  });
+});
+
 
 // 🔹 Kilépés
 app.post("/api/logout", (req, res) => {
