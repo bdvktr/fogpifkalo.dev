@@ -323,6 +323,8 @@ document.addEventListener("DOMContentLoaded", () => {
       const res = await fetch("/api/me");
       const data = await res.json();
 
+      const adminPanelBtn = document.getElementById("adminPanelBtn");
+
       if (data.loggedIn) {
         if (authSection) authSection.classList.add("d-none");
         if (accountSection) accountSection.classList.remove("d-none");
@@ -340,14 +342,31 @@ document.addEventListener("DOMContentLoaded", () => {
         if (reservationsList) {
           loadReservations();
         }
+
+        // 🔹 Admin gomb megjelenítése adminoknak
+        if (adminPanelBtn) {
+          if (user.isAdmin) {
+            adminPanelBtn.style.display = "inline-block";
+          } else {
+            adminPanelBtn.style.display = "none";
+          }
+        }
       } else {
         if (authSection) authSection.classList.remove("d-none");
         if (accountSection) accountSection.classList.add("d-none");
+
+        // 🔹 Vendégként elrejtés
+        const adminPanelBtn = document.getElementById("adminPanelBtn");
+        if (adminPanelBtn) adminPanelBtn.style.display = "none";
       }
     } catch (err) {
       console.error("Hiba az /api/me hívásnál:", err);
       if (authSection) authSection.classList.remove("d-none");
       if (accountSection) accountSection.classList.add("d-none");
+
+      // Biztonság kedvéért itt is rejtsük el
+      const adminPanelBtn = document.getElementById("adminPanelBtn");
+      if (adminPanelBtn) adminPanelBtn.style.display = "none";
     }
   }
 

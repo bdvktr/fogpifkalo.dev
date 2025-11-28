@@ -23,7 +23,7 @@ app.use(json());
 // HTML <form> POST-ok fogadása (application/x-www-form-urlencoded)
 app.use(urlencoded({ extended: true }));
 
-// 🔹 JWT beállítás (session helyett)
+// 🔹 JWT beállítás
 const JWT_SECRET =
   process.env.JWT_SECRET || "nagyon-titkos-jwt-jelszo-csereld-ki";
 const JWT_COOKIE_NAME = "auth_token";
@@ -64,8 +64,15 @@ function requireLogin(req, res, next) {
 function requireAdmin(req, res, next) {
   if (!req.user || !req.user.isAdmin) {
     return res.status(403).json({
+      status: 403,
       success: false,
       message: "Nincs jogosultság (admin szükséges).",
+      user : {
+        id: req.user ? req.user.id : null,
+        name: req.user ? req.user.name : null,
+        email: req.user ? req.user.email : null,
+        isAdmin: req.user ? !!req.user.isAdmin : false,
+      }
     });
   }
   next();
@@ -74,18 +81,18 @@ function requireAdmin(req, res, next) {
 // 🔹 MySQL kapcsolat (MAMP beállításokkal)
 const db = createPool({
   host: "localhost",
-  port: 3306, // MAMP MySQL port (általában 8889)
+  port: 3306,
   user: "root",
   password: "root",
   database: "fogpifkalo",
 });
 
-// 🔹 Egyszerű teszt endpoint – ellenőrzi, hogy él-e a szerver
+// 🔹 Egyszerű teszt endpoint
 app.get("/api/ping", (req, res) => {
   res.json({ message: "BurgerBázis backend él 🚀" });
 });
 
-// 🔹 DB teszt endpoint – lefuttat egy egyszerű lekérdezést
+// 🔹 DB teszt endpoint
 app.get("/api/db-test", (req, res) => {
   db.query("SELECT 1 + 1 AS result", (err, rows) => {
     if (err) {
@@ -269,6 +276,23 @@ app.get("/api/me", (req, res) => {
       isAdmin: !!req.user.isAdmin,
     },
   });
+});
+
+app.get("/api/me/admin", requireAdmin, (req, res) => {
+  if (req.user.isAdmin) {
+    return res.status(200).json({
+      status: 200,
+      success: true,
+      loggedIn: true,
+      message: "Admin panel elérése sikeres!",
+      user : {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+        isAdmin: !!req.user.isAdmin,
+      }
+    });
+  }
 });
 
 // 🔹 Profil adatainak frissítése (név, email)
