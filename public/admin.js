@@ -58,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🔹 1. Auth + admin ellenőrzés
   async function checkAdmin() {
     try {
-      const res = await fetch("/api/me/admin");
+      const res = await fetch("api/me/admin");
       const data = await res.json();
 
       if (!data.loggedIn) {
