@@ -1,4 +1,5 @@
 import { db } from "../repositories/db.repository.js";
+import { sendReservationPendingEmail } from "./email.service.js";
 
 export function createReservation(req, res) {
   const {
@@ -7,6 +8,7 @@ export function createReservation(req, res) {
     timeFrom,
     timeTo,
     name,
+    email,
     phone,
     peopleCount,
     note,
@@ -18,6 +20,7 @@ export function createReservation(req, res) {
     !timeFrom ||
     !timeTo ||
     !name ||
+    !email ||
     !phone ||
     !peopleCount
   ) {
@@ -25,6 +28,16 @@ export function createReservation(req, res) {
       success: false,
       message:
         "Minden mező kitöltése kötelező (asztal, dátum, mettől, meddig, név, telefon, létszám).",
+    });
+  }
+
+  // Egyszerű email regex (elég jó, gyakori)
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Érvénytelen email cím formátum.",
     });
   }
 
@@ -218,8 +231,8 @@ export function createReservation(req, res) {
 
     const insertSql = `
       INSERT INTO reservations
-        (table_number, reservation_date, reservation_time, end_time, name, phone, people_count, note, user_id, status)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        (table_number, reservation_date, reservation_time, end_time, name, email, phone, people_count, note, user_id, status)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     `;
 
     const loggedInUserId = req.user ? req.user.id : null;
@@ -232,6 +245,7 @@ export function createReservation(req, res) {
         mysqlStart,
         mysqlEnd,
         name,
+        email,
         phone,
         ppl,
         note || null,
@@ -245,6 +259,19 @@ export function createReservation(req, res) {
             message: "Szerver hiba a foglalás mentésekor.",
           });
         }
+
+        // 🔔 Foglalás rögzítve → küldjünk „függőben” emailt
+        sendReservationPendingEmail({
+          email,
+          name,
+          date,
+          timeFrom,
+          timeTo,
+          tableNumber: tableNum,
+          peopleCount: ppl,
+        }).catch((emailErr) => {
+          console.error("Hiba a pending foglalás email küldésekor:", emailErr);
+        });
 
         return res.json({
           success: true,

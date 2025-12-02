@@ -20,11 +20,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const formData = new FormData(form);
 
     const name = formData.get("name")?.toString().trim();
+
     const phone = formData.get("phone")?.toString().trim();
+    const email = formData.get("email")?.toString().trim();
     const date = formData.get("date")?.toString();
 
     const timeFrom = formData.get("timeFrom")?.toString(); // ÚJ!
-    const timeTo = formData.get("timeTo")?.toString();     // ÚJ!
+    const timeTo = formData.get("timeTo")?.toString(); // ÚJ!
 
     const tableNumber = formData.get("tableNumber")?.toString();
     const peopleCount = formData.get("peopleCount")?.toString();
@@ -34,6 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (
       !name ||
       !phone ||
+      !email ||
       !date ||
       !timeFrom ||
       !timeTo ||
@@ -41,6 +44,13 @@ document.addEventListener("DOMContentLoaded", () => {
       !peopleCount
     ) {
       showMessage("Kérlek tölts ki minden kötelező mezőt.", "error");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!emailRegex.test(email)) {
+      showMessage("Érvénytelen email cím formátum.", "error");
       return;
     }
 
@@ -59,9 +69,10 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({
           name,
           phone,
+          email,
           date,
-          timeFrom,   // ⬅️ MÁR EZ MEGY A BACKENDNEK
-          timeTo,     // ⬅️ ÉS EZ IS
+          timeFrom, // ⬅️ MÁR EZ MEGY A BACKENDNEK
+          timeTo, // ⬅️ ÉS EZ IS
           tableNumber: Number(tableNumber),
           peopleCount: Number(peopleCount),
           note,
@@ -79,8 +90,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       showMessage(
-        data.message ||
-          "Foglalásod rögzítettük, hamarosan visszaigazoljuk. 🙂",
+        data.message || "Foglalásod rögzítettük, hamarosan visszaigazoljuk. 🙂",
         "success"
       );
 

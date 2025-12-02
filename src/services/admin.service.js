@@ -1,4 +1,10 @@
 import { db } from "../repositories/db.repository.js";
+import {
+  sendReservationConfirmedEmail,
+  sendReservationCancelledEmail,
+  sendOrderCompletedEmail,
+  sendOrderCancelledEmail,
+} from "./email.service.js";
 
 // Termékek
 export function getProducts(req, res) {
@@ -58,7 +64,14 @@ export function createProduct(req, res) {
 
   db.query(
     sql,
-    [name, description || null, price, image_url || "", activeFlag, safeCategory],
+    [
+      name,
+      description || null,
+      price,
+      image_url || "",
+      activeFlag,
+      safeCategory,
+    ],
     (err, result) => {
       if (err) {
         console.error("DB hiba (product insert):", err);
@@ -349,6 +362,7 @@ export function getReservations(req, res) {
       reservation_time,
       end_time,
       name,
+      email,
       phone,
       people_count,
       note,
@@ -406,9 +420,71 @@ export function updateReservationStatus(req, res) {
       });
     }
 
-    return res.json({
+    // A kliensnek azonnal válaszolunk
+    res.json({
       success: true,
       message: "Foglalás státusza frissítve.",
     });
+
+    // Ha confirmed VAGY cancelled → emailt kell küldeni
+    if (status === "confirmed" || status === "cancelled") {
+      const selectSql = `
+        SELECT 
+          id,
+          name,
+          email,
+          reservation_date,
+          reservation_time,
+          end_time,
+          table_number,
+          people_count
+        FROM reservations
+        WHERE id = ?
+      `;
+
+      db.query(selectSql, [reservationId], (selectErr, rows) => {
+        if (selectErr) {
+          console.error(
+            "DB hiba (foglalás adatainak lekérése emailhez):",
+            selectErr
+          );
+          return;
+        }
+
+        if (!rows || rows.length === 0) {
+          console.warn(
+            "Foglalás nem található email küldéshez, id:",
+            reservationId
+          );
+          return;
+        }
+
+        const reservation = rows[0];
+
+        const reservationForMail = {
+          email: reservation.email,
+          name: reservation.name,
+          date: reservation.reservation_date,
+          timeFrom: reservation.reservation_time,
+          timeTo: reservation.end_time,
+          tableNumber: reservation.table_number,
+          peopleCount: reservation.people_count,
+        };
+
+        if (status === "confirmed") {
+          sendReservationConfirmedEmail(reservationForMail).catch(
+            (emailErr) => {
+              console.error("Hiba a visszaigazoló email küldésekor:", emailErr);
+            }
+          );
+        } else if (status === "cancelled") {
+          sendReservationCancelledEmail(reservationForMail).catch(
+            (emailErr) => {
+              console.error("Hiba a törlés email küldésekor:", emailErr);
+            }
+          );
+        }
+      });
+    }
   });
 }

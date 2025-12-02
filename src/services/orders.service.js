@@ -1,4 +1,5 @@
 import { db } from "../repositories/db.repository.js";
+import { sendOrderPlacedEmail } from "./email.service.js";
 
 export function checkout(req, res) {
   const userId = req.user.id;
@@ -112,6 +113,21 @@ export function checkout(req, res) {
                 orderId,
               });
             }
+
+            // 🔔 Itt küldjük az emailt: rendelés megérkezett
+            const userEmail = req.user?.email;
+            const userName = req.user?.name;
+
+            sendOrderPlacedEmail({
+              email: userEmail,
+              name: shippingName || userName,
+              orderId,
+              totalPrice,
+              shippingAddress,
+              paymentMethod: safePayment,
+            }).catch((emailErr) => {
+              console.error("Hiba az order placed email küldésekor:", emailErr);
+            });
 
             return res.json({
               success: true,
