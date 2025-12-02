@@ -1,4 +1,8 @@
 import { db } from "../repositories/db.repository.js";
+import {
+  sendReservationUserUpdatedEmail,
+  sendReservationUserCancelledEmail,
+} from "./email.service.js";
 
 export function getMyReservations(req, res) {
   const userId = req.user.id;
@@ -62,7 +66,65 @@ export function cancelMyReservation(req, res) {
       });
     }
 
-    return res.json({ success: true });
+    // 💌 válasz a usernek
+    res.json({
+      success: true,
+      message: "Foglalásodat sikeresen lemondtad.",
+    });
+
+    // 💌 email elküldése a usernek (fire-and-forget)
+    const selectSql = `
+        SELECT
+          id,
+          name,
+          email,
+          reservation_date,
+          reservation_time,
+          end_time,
+          table_number,
+          people_count
+        FROM reservations
+        WHERE id = ? AND user_id = ?
+      `;
+
+    db.query(selectSql, [reservationId, userId], (err2, rows) => {
+      if (err2) {
+        console.error(
+          "DB hiba (user lemondás emailhez foglalás lekérdezése):",
+          err2
+        );
+        return;
+      }
+
+      if (!rows || rows.length === 0) {
+        console.warn(
+          "Foglalás nem található user lemondás emailhez, id:",
+          reservationId
+        );
+        return;
+      }
+
+      const r = rows[0];
+
+      const reservationForMail = {
+        email: r.email,
+        name: r.name,
+        date: r.reservation_date,
+        timeFrom: r.reservation_time,
+        timeTo: r.end_time,
+        tableNumber: r.table_number,
+        peopleCount: r.people_count,
+      };
+
+      sendReservationUserCancelledEmail(reservationForMail).catch(
+        (emailErr) => {
+          console.error(
+            "Hiba a user lemondás email küldésekor (cancelMyReservation):",
+            emailErr
+          );
+        }
+      );
+    });
   });
 }
 
@@ -104,7 +166,63 @@ export function updateMyReservationDetails(req, res) {
         });
       }
 
-      return res.json({ success: true });
+      // 💌 válasz a usernek
+      res.json({
+        success: true,
+        message: "Foglalásod létszámát sikeresen módosítottad.",
+      });
+
+      // 💌 email a módosításról
+      const selectSql = `
+        SELECT
+          id,
+          name,
+          email,
+          reservation_date,
+          reservation_time,
+          end_time,
+          table_number,
+          people_count
+        FROM reservations
+        WHERE id = ? AND user_id = ?
+      `;
+
+      db.query(selectSql, [reservationId, userId], (err2, rows) => {
+        if (err2) {
+          console.error(
+            "DB hiba (foglalás emailhez lekérdezés user details update):",
+            err2
+          );
+          return;
+        }
+
+        if (!rows || rows.length === 0) {
+          console.warn(
+            "Foglalás nem található email küldéshez (details), id:",
+            reservationId
+          );
+          return;
+        }
+
+        const r = rows[0];
+
+        const reservationForMail = {
+          email: r.email,
+          name: r.name,
+          date: r.reservation_date,
+          timeFrom: r.reservation_time,
+          timeTo: r.end_time,
+          tableNumber: r.table_number,
+          peopleCount: r.people_count,
+        };
+
+        sendReservationUserUpdatedEmail(reservationForMail).catch((emailErr) => {
+          console.error(
+            "Hiba a foglalás módosítva email küldésekor (details):",
+            emailErr
+          );
+        });
+      });
     }
   );
 }
@@ -258,7 +376,65 @@ export function updateMyReservationTime(req, res) {
               });
             }
 
-            return res.json({ success: true });
+            // 💌 válasz a usernek
+            res.json({
+              success: true,
+              message: "Foglalásod időpontját sikeresen módosítottad.",
+            });
+
+            // 💌 email a módosításról
+            const selectSql = `
+              SELECT
+                id,
+                name,
+                email,
+                reservation_date,
+                reservation_time,
+                end_time,
+                table_number,
+                people_count
+              FROM reservations
+              WHERE id = ? AND user_id = ?
+            `;
+
+            db.query(selectSql, [reservationId, userId], (err4, rows) => {
+              if (err4) {
+                console.error(
+                  "DB hiba (foglalás emailhez lekérdezés user time update):",
+                  err4
+                );
+                return;
+              }
+
+              if (!rows || rows.length === 0) {
+                console.warn(
+                  "Foglalás nem található email küldéshez (time), id:",
+                  reservationId
+                );
+                return;
+              }
+
+              const r = rows[0];
+
+              const reservationForMail = {
+                email: r.email,
+                name: r.name,
+                date: r.reservation_date,
+                timeFrom: r.reservation_time,
+                timeTo: r.end_time,
+                tableNumber: r.table_number,
+                peopleCount: r.people_count,
+              };
+
+              sendReservationUserUpdatedEmail(reservationForMail).catch(
+                (emailErr) => {
+                  console.error(
+                    "Hiba a foglalás módosítva email küldésekor (time):",
+                    emailErr
+                  );
+                }
+              );
+            });
           }
         );
       }

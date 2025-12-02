@@ -345,10 +345,70 @@ export function updateOrderStatus(req, res) {
       });
     }
 
-    return res.json({
+    // Kliensnek azonnal válaszolunk
+    res.json({
       success: true,
       message: "Rendelés státusza frissítve.",
     });
+
+    // Ha completed VAGY cancelled → emailt kell küldeni
+    if (status === "completed" || status === "cancelled") {
+      const selectSql = `
+        SELECT
+          o.id,
+          o.total_price,
+          o.shipping_name,
+          o.shipping_address,
+          o.payment_method,
+          u.email,
+          u.name
+        FROM orders o
+        JOIN users u ON u.id = o.user_id
+        WHERE o.id = ?
+      `;
+
+      db.query(selectSql, [orderId], (selErr, rows) => {
+        if (selErr) {
+          console.error(
+            "DB hiba (rendelés adatainak lekérése emailhez):",
+            selErr
+          );
+          return;
+        }
+
+        if (!rows || rows.length === 0) {
+          console.warn("Rendelés nem található email küldéshez, id:", orderId);
+          return;
+        }
+
+        const row = rows[0];
+
+        const orderForMail = {
+          email: row.email,
+          name: row.shipping_name || row.name,
+          orderId: row.id,
+          totalPrice: row.total_price,
+          shippingAddress: row.shipping_address,
+          paymentMethod: row.payment_method,
+        };
+
+        if (status === "completed") {
+          sendOrderCompletedEmail(orderForMail).catch((emailErr) => {
+            console.error(
+              "Hiba az order completed email küldésekor:",
+              emailErr
+            );
+          });
+        } else if (status === "cancelled") {
+          sendOrderCancelledEmail(orderForMail).catch((emailErr) => {
+            console.error(
+              "Hiba az order cancelled email küldésekor:",
+              emailErr
+            );
+          });
+        }
+      });
+    }
   });
 }
 
@@ -486,5 +546,22 @@ export function updateReservationStatus(req, res) {
         }
       });
     }
+  });
+}
+
+export function uploadProductImage(req, res) {
+  if (!req.file) {
+    return res.status(400).json({
+      success: false,
+      message: "Nem érkezett fájl.",
+    });
+  }
+
+  // A Multer a filename-t beállította, a public/uploads/products-ig az útvonal fix
+  const imageUrl = "/uploads/products/" + req.file.filename;
+
+  return res.json({
+    success: true,
+    imageUrl,
   });
 }

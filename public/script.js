@@ -318,6 +318,315 @@ document.addEventListener("DOMContentLoaded", () => {
   const registerForm = document.getElementById("registerForm");
   const registerError = document.getElementById("registerError");
 
+  // Toast + modal elemek a foglalásokhoz (csak akkor aktívak, ha az adott HTML-ben léteznek)
+  const userToastEl = document.getElementById("userToast");
+  const userToastTextEl = document.getElementById("userToastText");
+  let userToastInstance;
+  if (userToastEl && typeof bootstrap !== "undefined") {
+    userToastInstance = new bootstrap.Toast(userToastEl);
+  }
+
+  const userConfirmModalEl = document.getElementById("userConfirmModal");
+  const userConfirmMessageEl = document.getElementById("userConfirmMessage");
+  const userConfirmOkBtn = document.getElementById("userConfirmOkBtn");
+  let userConfirmModal;
+  if (userConfirmModalEl && typeof bootstrap !== "undefined") {
+    userConfirmModal = new bootstrap.Modal(userConfirmModalEl);
+  }
+
+  const editReservationModalEl = document.getElementById("editReservationModal");
+  const editReservationForm = document.getElementById("editReservationForm");
+  const editReservationPeopleInput = document.getElementById("editReservationPeople");
+  const editReservationNoteInput = document.getElementById("editReservationNote");
+  let editReservationModal;
+  if (editReservationModalEl && typeof bootstrap !== "undefined") {
+    editReservationModal = new bootstrap.Modal(editReservationModalEl);
+  }
+
+  const editReservationTimeModalEl = document.getElementById("editReservationTimeModal");
+  const editReservationTimeForm = document.getElementById("editReservationTimeForm");
+  const editReservationDateInput = document.getElementById("editReservationDate");
+  const editReservationFromInput = document.getElementById("editReservationFrom");
+  const editReservationToInput = document.getElementById("editReservationTo");
+  const editReservationTableInput = document.getElementById("editReservationTable");
+  let editReservationTimeModal;
+  if (editReservationTimeModalEl && typeof bootstrap !== "undefined") {
+    editReservationTimeModal = new bootstrap.Modal(editReservationTimeModalEl);
+  }
+
+  function showUserToast(message, type = "success") {
+    if (!userToastEl || !userToastTextEl || typeof bootstrap === "undefined") {
+      console.log("[" + type + "]", message);
+      return;
+    }
+    userToastTextEl.textContent = message;
+    userToastEl.className =
+      "toast align-items-center text-bg-" + type + " border-0";
+    if (!userToastInstance) {
+      userToastInstance = new bootstrap.Toast(userToastEl);
+    }
+    userToastInstance.show();
+  }
+
+  function showUserConfirm(message) {
+    return new Promise((resolve) => {
+      if (
+        !userConfirmModal ||
+        !userConfirmMessageEl ||
+        !userConfirmOkBtn ||
+        typeof bootstrap === "undefined"
+      ) {
+        const result = window.confirm(message);
+        resolve(result);
+        return;
+      }
+
+      userConfirmMessageEl.textContent = message;
+
+      const handleOk = () => {
+        cleanup();
+        resolve(true);
+        userConfirmModal.hide();
+      };
+
+      const handleHidden = () => {
+        cleanup();
+        resolve(false);
+      };
+
+      function cleanup() {
+        userConfirmOkBtn.removeEventListener("click", handleOk);
+        userConfirmModalEl.removeEventListener("hidden.bs.modal", handleHidden);
+      }
+
+      userConfirmOkBtn.addEventListener("click", handleOk, { once: true });
+      userConfirmModalEl.addEventListener("hidden.bs.modal", handleHidden, {
+        once: true,
+      });
+
+      userConfirmModal.show();
+    });
+  }
+
+  function toDateInputValue(value) {
+    if (!value) return "";
+    const str = value.toString();
+    if (str.length >= 10) {
+      return str.slice(0, 10);
+    }
+    return str;
+  }
+
+  function openEditReservationModal(currentPeople, currentNote) {
+    return new Promise((resolve) => {
+      if (
+        !editReservationModal ||
+        !editReservationForm ||
+        !editReservationPeopleInput ||
+        !editReservationNoteInput ||
+        typeof bootstrap === "undefined"
+      ) {
+        // Fallback: régi prompt-os megoldás
+        const newPeopleStr = window.prompt(
+          "Új létszám (fő):",
+          currentPeople || "2"
+        );
+        if (newPeopleStr === null) {
+          resolve(null);
+          return;
+        }
+        const newPeople = Number(newPeopleStr);
+        if (!newPeople || isNaN(newPeople) || newPeople <= 0) {
+          alert("Érvénytelen létszám.");
+          resolve(null);
+          return;
+        }
+        const newNote = window.prompt(
+          "Megjegyzés (opcionális):",
+          currentNote || ""
+        );
+        if (newNote === null) {
+          resolve(null);
+          return;
+        }
+        resolve({ peopleCount: newPeople, note: newNote });
+        return;
+      }
+
+      editReservationPeopleInput.value = currentPeople || "";
+      editReservationNoteInput.value = currentNote || "";
+
+      let resolved = false;
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        const newPeople = Number(editReservationPeopleInput.value);
+        const newNote = editReservationNoteInput.value.trim();
+
+        if (!newPeople || isNaN(newPeople) || newPeople <= 0) {
+          showUserToast("Érvénytelen létszám.", "warning");
+          return;
+        }
+
+        resolved = true;
+        cleanup();
+        editReservationModal.hide();
+        resolve({ peopleCount: newPeople, note: newNote });
+      };
+
+      const handleHidden = () => {
+        if (!resolved) {
+          cleanup();
+          resolve(null);
+        }
+      };
+
+      function cleanup() {
+        editReservationForm.removeEventListener("submit", handleSubmit);
+        editReservationModalEl.removeEventListener("hidden.bs.modal", handleHidden);
+      }
+
+      editReservationForm.addEventListener("submit", handleSubmit);
+      editReservationModalEl.addEventListener("hidden.bs.modal", handleHidden);
+      editReservationModal.show();
+    });
+  }
+
+  function openEditReservationTimeModal(
+    currentDate,
+    currentFrom,
+    currentTo,
+    currentTable
+  ) {
+    return new Promise((resolve) => {
+      if (
+        !editReservationTimeModal ||
+        !editReservationTimeForm ||
+        !editReservationDateInput ||
+        !editReservationFromInput ||
+        !editReservationToInput ||
+        !editReservationTableInput ||
+        typeof bootstrap === "undefined"
+      ) {
+        // Fallback: régi prompt-os megoldás
+        const newDate = window.prompt("Új dátum (YYYY-MM-DD):", "");
+        if (!newDate) {
+          resolve(null);
+          return;
+        }
+        const newFrom = window.prompt(
+          "Új kezdési idő (HH:MM):",
+          currentFrom ? currentFrom.toString().slice(0, 5) : "18:00"
+        );
+        if (!newFrom) {
+          resolve(null);
+          return;
+        }
+        const newTo = window.prompt(
+          "Új befejezési idő (HH:MM):",
+          currentTo ? currentTo.toString().slice(0, 5) : "20:00"
+        );
+        if (!newTo) {
+          resolve(null);
+          return;
+        }
+        const newTableStr = window.prompt(
+          "Új asztalszám:",
+          currentTable || "1"
+        );
+        if (!newTableStr) {
+          resolve(null);
+          return;
+        }
+        const newTable = Number(newTableStr);
+        if (!Number.isInteger(newTable) || newTable <= 0) {
+          alert("Érvénytelen asztalszám.");
+          resolve(null);
+          return;
+        }
+        resolve({
+          date: newDate,
+          timeFrom: newFrom,
+          timeTo: newTo,
+          tableNumber: newTable,
+        });
+        return;
+      }
+
+      editReservationDateInput.value = toDateInputValue(currentDate);
+      editReservationFromInput.value = currentFrom
+        ? currentFrom.toString().slice(0, 5)
+        : "";
+      editReservationToInput.value = currentTo
+        ? currentTo.toString().slice(0, 5)
+        : "";
+      editReservationTableInput.value = currentTable || "";
+
+      let resolved = false;
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+
+        const newDate = editReservationDateInput.value;
+        const newFrom = editReservationFromInput.value;
+        const newTo = editReservationToInput.value;
+        const newTableStr = editReservationTableInput.value;
+
+        if (!newDate || !newFrom || !newTo || !newTableStr) {
+          showUserToast("Minden mező kitöltése kötelező.", "warning");
+          return;
+        }
+
+        if (newFrom >= newTo) {
+          showUserToast(
+            "A befejezésnek későbbinek kell lennie, mint a kezdésnek.",
+            "warning"
+          );
+          return;
+        }
+
+        const newTable = Number(newTableStr);
+        if (!Number.isInteger(newTable) || newTable <= 0) {
+          showUserToast("Érvénytelen asztalszám.", "warning");
+          return;
+        }
+
+        resolved = true;
+        cleanup();
+        editReservationTimeModal.hide();
+        resolve({
+          date: newDate,
+          timeFrom: newFrom,
+          timeTo: newTo,
+          tableNumber: newTable,
+        });
+      };
+
+      const handleHidden = () => {
+        if (!resolved) {
+          cleanup();
+          resolve(null);
+        }
+      };
+
+      function cleanup() {
+        editReservationTimeForm.removeEventListener("submit", handleSubmit);
+        editReservationTimeModalEl.removeEventListener(
+          "hidden.bs.modal",
+          handleHidden
+        );
+      }
+
+      editReservationTimeForm.addEventListener("submit", handleSubmit);
+      editReservationTimeModalEl.addEventListener(
+        "hidden.bs.modal",
+        handleHidden
+      );
+
+      editReservationTimeModal.show();
+    });
+  }
+
   async function checkAuth() {
     try {
       const res = await fetch("/api/me");
@@ -328,6 +637,9 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.loggedIn) {
         if (authSection) authSection.classList.add("d-none");
         if (accountSection) accountSection.classList.remove("d-none");
+        
+        const hero = document.getElementById("hero");
+        if (hero) hero.classList.add("d-none");
 
         const user = data.user || {};
         if (nameSpan) {
@@ -682,6 +994,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
+  
   async function handleEditReservationTime(
     id,
     currentDate,
@@ -691,29 +1004,16 @@ document.addEventListener("DOMContentLoaded", () => {
   ) {
     if (!id) return;
 
-    const newDate = window.prompt("Új dátum (YYYY-MM-DD):");
-    if (!newDate) return;
-
-    const newFrom = window.prompt(
-      "Új kezdési idő (HH:MM):",
-      currentFrom ? currentFrom.toString().slice(0, 5) : "18:00"
+    const result = await openEditReservationTimeModal(
+      currentDate,
+      currentFrom,
+      currentTo,
+      currentTable
     );
-    if (!newFrom) return;
 
-    const newTo = window.prompt(
-      "Új befejezési idő (HH:MM):",
-      currentTo ? currentTo.toString().slice(0, 5) : "20:00"
-    );
-    if (!newTo) return;
+    if (!result) return;
 
-    const newTableStr = window.prompt("Új asztalszám:", currentTable || "1");
-    if (!newTableStr) return;
-
-    const newTable = Number(newTableStr);
-    if (!Number.isInteger(newTable) || newTable <= 0) {
-      alert("Érvénytelen asztalszám.");
-      return;
-    }
+    const { date, timeFrom, timeTo, tableNumber } = result;
 
     try {
       const res = await fetch(`/api/my/reservations/${id}/time`, {
@@ -722,32 +1022,38 @@ document.addEventListener("DOMContentLoaded", () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          date: newDate,
-          timeFrom: newFrom,
-          timeTo: newTo,
-          tableNumber: newTable,
+          date,
+          timeFrom,
+          timeTo,
+          tableNumber,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        alert(data.message || "Nem sikerült módosítani a foglalás időpontját.");
+        showUserToast(
+          data.message || "Nem sikerült módosítani a foglalás időpontját.",
+          "danger"
+        );
         return;
       }
 
-      // siker, frissítjük a listát
+      showUserToast(
+        "Foglalásod időpontját sikeresen módosítottuk.",
+        "success"
+      );
       await loadReservations();
     } catch (err) {
       console.error("Idősáv módosítási hiba:", err);
-      alert("Nem sikerült csatlakozni a szerverhez.");
+      showUserToast("Nem sikerült csatlakozni a szerverhez.", "danger");
     }
   }
 
   async function handleCancelReservation(id) {
     if (!id) return;
 
-    const confirmed = window.confirm(
+    const confirmed = await showUserConfirm(
       "Biztosan le szeretnéd mondani ezt a foglalást?"
     );
     if (!confirmed) return;
@@ -763,41 +1069,28 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        alert(data.message || "Nem sikerült lemondani a foglalást.");
+        showUserToast(
+          data.message || "Nem sikerült lemondani a foglalást.",
+          "danger"
+        );
         return;
       }
 
-      // frissítsük a listát
+      showUserToast("Foglalásodat sikeresen lemondtad.", "success");
       await loadReservations();
     } catch (err) {
       console.error("Lemondási hiba:", err);
-      alert("Nem sikerült csatlakozni a szerverhez.");
+      showUserToast("Nem sikerült csatlakozni a szerverhez.", "danger");
     }
   }
 
   async function handleEditReservation(id, currentPeople, currentNote) {
     if (!id) return;
 
-    const newPeopleStr = window.prompt(
-      "Új létszám (fő):",
-      currentPeople || "2"
-    );
-    if (newPeopleStr === null) return; // cancel
+    const result = await openEditReservationModal(currentPeople, currentNote);
+    if (!result) return;
 
-    const newPeople = Number(newPeopleStr);
-    if (!newPeople || isNaN(newPeople) || newPeople <= 0) {
-      alert("Érvénytelen létszám.");
-      return;
-    }
-
-    const newNote = window.prompt(
-      "Megjegyzés (opcionális):",
-      currentNote || ""
-    );
-    if (newNote === null) {
-      // ha cancel, akkor ne küldjünk semmit
-      return;
-    }
+    const { peopleCount, note } = result;
 
     try {
       const res = await fetch(`/api/my/reservations/${id}`, {
@@ -806,26 +1099,29 @@ document.addEventListener("DOMContentLoaded", () => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          peopleCount: newPeople,
-          note: newNote,
+          peopleCount,
+          note,
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        alert(data.message || "Nem sikerült módosítani a foglalást.");
+        showUserToast(
+          data.message || "Nem sikerült módosítani a foglalást.",
+          "danger"
+        );
         return;
       }
 
+      showUserToast("Foglalásod adatait sikeresen módosítottuk.", "success");
       await loadReservations();
     } catch (err) {
       console.error("Módosítási hiba:", err);
-      alert("Nem sikerült csatlakozni a szerverhez.");
+      showUserToast("Nem sikerült csatlakozni a szerverhez.", "danger");
     }
   }
-
-  function formatDateOnly(value) {
+function formatDateOnly(value) {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString("hu-HU");

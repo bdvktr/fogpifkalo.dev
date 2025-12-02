@@ -31,6 +31,11 @@
         color: #fff;
         padding: 3rem 0 2rem;
       }
+
+      .account-row {
+        margin-right: calc(-4 * var(--bs-gutter-x)) !important;
+        margin-left: calc(-3 * var(--bs-gutter-x)) !important;
+      }
     </style>
   </head>
 
@@ -84,7 +89,7 @@
     </nav>
 
     <!-- HERO / FEJLÉC -->
-    <section class="account-hero">
+    <section id="hero" class="account-hero">
       <div class="container">
         <h1 class="h3 mb-1">
           <i class="bi bi-person-circle me-2"></i>Felhasználói fiók
@@ -98,9 +103,9 @@
 
     <!-- ACCOUNT CONTENT -->
     <main class="py-5">
-      <div class="container">
+      <div class="container-fluid">
         <div class="row justify-content-center">
-          <div class="col-lg-6">
+          <div class="col-lg-8">
             <!-- 🔹 NEM bejelentkezett állapot: Belépés / Regisztráció -->
             <div id="authSection">
               <!-- TABOK: BELÉPÉS / REGISZTRÁCIÓ -->
@@ -294,85 +299,143 @@
               </div>
             </div>
 
-            <!-- 🔹 BEJELENTKEZETT állapot: Profil + Rendeléseim -->
+            <!-- 🔹 BEJELENTKEZETT állapot: Bal oldalt köszöntő + jelszó, jobbra tabok -->
             <div id="accountSection" class="d-none">
-              <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                  <h2 class="h5 mb-1">
-                    Szia, <span id="accountName">Felhasználó</span>!
-                  </h2>
-                  <p class="text-muted small mb-2">
-                    Be vagy jelentkezve ezzel az e-mail címmel:
-                    <span id="accountEmail"></span>
-                  </p>
-                  <button
-                    class="btn btn-outline-secondary btn-sm"
-                    id="logoutBtn"
-                  >
-                    Kijelentkezés
-                  </button>
-                  <a
-                    id="adminPanelBtn"
-                    href="/admin"
-                    class="btn btn-outline-secondary btn-sm"
-                    style="display: none"
-                  >
-                    Admin panel
-                  </a>
-                </div>
-              </div>
+              <div class="row">
+                <!-- BAL OLDAL: köszöntő + jelszó -->
+                <div class="col-lg-4 mb-3">
+                  <!-- Köszöntő kártya (meglévő stílus) -->
+                  <div class="card shadow-sm mb-3">
+                    <div class="card-body">
+                      <h2 class="h5 mb-1">
+                        Szia, <span id="accountName">Felhasználó</span>!
+                      </h2>
+                      <p class="text-muted small mb-2">
+                        Be vagy jelentkezve ezzel az e-mail címmel:
+                        <span id="accountEmail"></span>
+                      </p>
+                      <button
+                        class="btn btn-outline-secondary btn-sm"
+                        id="logoutBtn"
+                      >
+                        Kijelentkezés
+                      </button>
+                      <a
+                        id="adminPanelBtn"
+                        href="/admin"
+                        class="btn btn-outline-secondary btn-sm"
+                        style="display: none"
+                      >
+                        Admin panel
+                      </a>
+                    </div>
+                  </div>
 
-              <div class="card shadow-sm">
-                <div class="card-body">
-                  <h3 class="h6 mb-3">Rendeléseim</h3>
-                  <div id="ordersList" class="small text-muted">
-                    Itt fognak megjelenni a rendeléseid (következő lépésben
-                    töltjük fel élettel).
+                  <!-- Jelszó módosítása kártya -->
+                  <div class="card shadow-sm">
+                    <div class="card-body">
+                      <h3 class="h6 mb-2">Jelszó módosítása</h3>
+                      <form id="passwordForm">
+                        <div class="mb-2">
+                          <label class="form-label">Jelenlegi jelszó</label>
+                          <input
+                            type="password"
+                            class="form-control form-control-sm"
+                            id="currentPassword"
+                            name="currentPassword"
+                            required
+                          />
+                        </div>
+                        <div class="mb-2">
+                          <label class="form-label">Új jelszó</label>
+                          <input
+                            type="password"
+                            class="form-control form-control-sm"
+                            id="newPassword"
+                            name="newPassword"
+                            required
+                          />
+                        </div>
+                        <button
+                          type="submit"
+                          class="btn btn-sm btn-outline-primary mt-2"
+                        >
+                          Jelszó frissítése
+                        </button>
+                      </form>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div class="card shadow-sm mt-3">
-                <div class="card-body">
-                  <h3 class="h6 mb-3">Saját foglalásaim</h3>
-                  <div id="reservationsList" class="small text-muted">
-                    Itt fognak megjelenni a foglalásaid.
-                  </div>
-                </div>
-              </div>
+                <!-- JOBB OLDAL: tabok – Rendeléseim / Foglalásaim -->
+                <div class="col-lg-8">
+                  <!-- Belső tab sor -->
+                  <ul
+                    class="nav nav-tabs mb-3"
+                    id="accountInnerTabs"
+                    role="tablist"
+                  >
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link active"
+                        id="orders-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#orders-tab-pane"
+                        type="button"
+                        role="tab"
+                      >
+                        Rendeléseim
+                      </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <button
+                        class="nav-link"
+                        id="reservations-tab"
+                        data-bs-toggle="tab"
+                        data-bs-target="#reservations-tab-pane"
+                        type="button"
+                        role="tab"
+                      >
+                        Foglalásaim
+                      </button>
+                    </li>
+                  </ul>
 
-              <!-- Jelszó módosítása -->
-              <div class="card shadow-sm mb-3">
-                <div class="card-body">
-                  <h3 class="h6 mb-2">Jelszó módosítása</h3>
-                  <form id="passwordForm">
-                    <div class="mb-2">
-                      <label class="form-label">Jelenlegi jelszó</label>
-                      <input
-                        type="password"
-                        class="form-control form-control-sm"
-                        id="currentPassword"
-                        name="currentPassword"
-                        required
-                      />
-                    </div>
-                    <div class="mb-2">
-                      <label class="form-label">Új jelszó</label>
-                      <input
-                        type="password"
-                        class="form-control form-control-sm"
-                        id="newPassword"
-                        name="newPassword"
-                        required
-                      />
-                    </div>
-                    <button
-                      type="submit"
-                      class="btn btn-sm btn-outline-primary mt-2"
+                  <div class="tab-content">
+                    <!-- Rendeléseim TAB -->
+                    <div
+                      class="tab-pane fade show active"
+                      id="orders-tab-pane"
+                      role="tabpanel"
+                      aria-labelledby="orders-tab"
                     >
-                      Jelszó frissítése
-                    </button>
-                  </form>
+                      <div class="card shadow-sm">
+                        <div class="card-body">
+                          <h3 class="h6 mb-3">Rendeléseim</h3>
+                          <div id="ordersList" class="small text-muted">
+                            Itt fognak megjelenni a rendeléseid.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Foglalásaim TAB -->
+                    <div
+                      class="tab-pane fade"
+                      id="reservations-tab-pane"
+                      role="tabpanel"
+                      aria-labelledby="reservations-tab"
+                    >
+                      <div class="card shadow-sm">
+                        <div class="card-body">
+                          <h3 class="h6 mb-3">Saját foglalásaim</h3>
+                          <div id="reservationsList" class="small text-muted">
+                            Itt fognak megjelenni a foglalásaid.
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -397,6 +460,220 @@
         </div>
       </div>
     </footer>
+
+    <!-- Foglalás – Toast értesítés -->
+    <div
+      class="toast-container position-fixed bottom-0 end-0 p-3"
+      style="z-index: 1100"
+    >
+      <div
+        id="userToast"
+        class="toast align-items-center text-bg-success border-0"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div id="userToastText" class="toast-body">
+            Művelet sikeresen végrehajtva.
+          </div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            data-bs-dismiss="toast"
+            aria-label="Bezárás"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Foglalás – megerősítés modal (lemondás, módosítás előtti kérdés) -->
+    <div
+      class="modal fade"
+      id="userConfirmModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Biztos vagy benne?</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Bezárás"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p id="userConfirmMessage">
+              Biztosan el szeretnéd végezni ezt a műveletet?
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Mégse
+            </button>
+            <button type="button" class="btn btn-danger" id="userConfirmOkBtn">
+              Igen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Foglalás – létszám / megjegyzés módosítása modal -->
+    <div
+      class="modal fade"
+      id="editReservationModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="editReservationForm">
+            <div class="modal-header">
+              <h5 class="modal-title">Foglalás módosítása</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Bezárás"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="editReservationPeople" class="form-label"
+                  >Létszám (fő)</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="editReservationPeople"
+                  name="peopleCount"
+                  min="1"
+                  max="20"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="editReservationNote" class="form-label"
+                  >Megjegyzés (opcionális)</label
+                >
+                <textarea
+                  class="form-control"
+                  id="editReservationNote"
+                  name="note"
+                  rows="3"
+                ></textarea>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Mégse
+              </button>
+              <button type="submit" class="btn btn-primary">Mentés</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Foglalás – időpont / asztal módosítása modal -->
+    <div
+      class="modal fade"
+      id="editReservationTimeModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form id="editReservationTimeForm">
+            <div class="modal-header">
+              <h5 class="modal-title">Időpont módosítása</h5>
+              <button
+                type="button"
+                class="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Bezárás"
+              ></button>
+            </div>
+            <div class="modal-body">
+              <div class="mb-3">
+                <label for="editReservationDate" class="form-label"
+                  >Dátum</label
+                >
+                <input
+                  type="date"
+                  class="form-control"
+                  id="editReservationDate"
+                  name="date"
+                  required
+                />
+              </div>
+              <div class="row">
+                <div class="mb-3 col-md-6">
+                  <label for="editReservationFrom" class="form-label"
+                    >Kezdés (HH:MM)</label
+                  >
+                  <input
+                    type="time"
+                    class="form-control"
+                    id="editReservationFrom"
+                    name="timeFrom"
+                    required
+                  />
+                </div>
+                <div class="mb-3 col-md-6">
+                  <label for="editReservationTo" class="form-label"
+                    >Befejezés (HH:MM)</label
+                  >
+                  <input
+                    type="time"
+                    class="form-control"
+                    id="editReservationTo"
+                    name="timeTo"
+                    required
+                  />
+                </div>
+              </div>
+              <div class="mb-3">
+                <label for="editReservationTable" class="form-label"
+                  >Asztalszám</label
+                >
+                <input
+                  type="number"
+                  class="form-control"
+                  id="editReservationTable"
+                  name="tableNumber"
+                  min="1"
+                  max="20"
+                  required
+                />
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button
+                type="button"
+                class="btn btn-secondary"
+                data-bs-dismiss="modal"
+              >
+                Mégse
+              </button>
+              <button type="submit" class="btn btn-primary">Mentés</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

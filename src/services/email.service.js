@@ -160,14 +160,8 @@ Fogpifkáló
 
 // RENDELÉS: leadáskor
 export async function sendOrderPlacedEmail(order) {
-  const {
-    email,
-    name,
-    orderId,
-    totalPrice,
-    shippingAddress,
-    paymentMethod,
-  } = order;
+  const { email, name, orderId, totalPrice, shippingAddress, paymentMethod } =
+    order;
 
   if (!email) {
     console.warn("Nincs email cím a rendeléshez (placed), nem küldök emailt.");
@@ -209,14 +203,8 @@ Fogpifkáló
 
 // RENDELÉS: teljesítve
 export async function sendOrderCompletedEmail(order) {
-  const {
-    email,
-    name,
-    orderId,
-    totalPrice,
-    shippingAddress,
-    paymentMethod,
-  } = order;
+  const { email, name, orderId, totalPrice, shippingAddress, paymentMethod } =
+    order;
 
   if (!email) {
     console.warn(
@@ -259,14 +247,8 @@ Fogpifkáló
 
 // RENDELÉS: törölve
 export async function sendOrderCancelledEmail(order) {
-  const {
-    email,
-    name,
-    orderId,
-    totalPrice,
-    shippingAddress,
-    paymentMethod,
-  } = order;
+  const { email, name, orderId, totalPrice, shippingAddress, paymentMethod } =
+    order;
 
   if (!email) {
     console.warn(
@@ -304,5 +286,90 @@ Fogpifkáló
     console.log(`Order cancelled email elküldve: ${email}`);
   } catch (err) {
     console.error("Hiba az order cancelled email küldésekor:", err);
+  }
+}
+
+export async function sendReservationUserUpdatedEmail(reservation) {
+  const { email, name, date, timeFrom, timeTo, tableNumber, peopleCount } =
+    reservation;
+
+  if (!email) {
+    console.warn(
+      "Nincs email cím a foglalás frissítéséhez, nem küldök emailt."
+    );
+    return;
+  }
+
+  const subject = "Foglalásod módosult – Fogpifkáló";
+
+  const text = `
+Kedves ${name || "Vendég"}!
+
+Értesítünk, hogy a foglalásodat sikeresen módosítottad.
+
+Aktuális adatok:
+- Dátum: ${date}
+- Időpont: ${timeFrom} - ${timeTo}
+- Asztal: ${tableNumber}
+- Létszám: ${peopleCount} fő
+
+Ha nem te kezdeményezted a módosítást, kérlek mielőbb jelezd felénk.
+
+Üdvözlettel:
+Fogpifkáló
+`;
+
+  try {
+    await transporter.sendMail({
+      from: SMTP_FROM || SMTP_USER,
+      to: email,
+      subject,
+      text,
+    });
+
+    console.log(`Foglalás módosítva email elküldve: ${email}`);
+  } catch (err) {
+    console.error("Hiba a foglalás módosítva email küldésekor:", err);
+  }
+}
+
+export async function sendReservationUserCancelledEmail(reservation) {
+  const { email, name, date, timeFrom, timeTo, tableNumber, peopleCount } =
+    reservation;
+
+  if (!email) {
+    console.warn("Nincs email cím a user lemondáshoz, nem küldök emailt.");
+    return;
+  }
+
+  const subject = "Foglalásod lemondásra került – Fogpifkáló";
+
+  const text = `
+Kedves ${name || "Vendég"}!
+
+Megerősítjük, hogy az alábbi foglalásodat sikeresen lemondtad:
+
+- Dátum: ${date}
+- Időpont: ${timeFrom} - ${timeTo}
+- Asztal: ${tableNumber}
+- Létszám: ${peopleCount} fő
+
+Sajnáljuk, hogy most nem jössz, de reméljük, hamarosan újra találkozunk! 🙂
+
+Üdvözlettel:
+Fogpifkáló
+`;
+
+  try {
+    await transporter.sendMail({
+      from: SMTP_FROM || SMTP_USER,
+      to: email,
+      subject,
+      text,
+    });
+
+    console.log(`User lemondás email elküldve: ${email}`);
+  } catch (err) {
+    console.error("Hiba a user lemondás email küldésekor:", err);
   }
 }

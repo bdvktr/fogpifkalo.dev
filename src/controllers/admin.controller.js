@@ -12,3 +12,5 @@ export const updateOrderStatus = (req, res) => adminService.updateOrderStatus(re
 
 export const getReservations = (req, res) => adminService.getReservations(req, res);
 export const updateReservationStatus = (req, res) => adminService.updateReservationStatus(req, res);
+
+export const uploadProductImage = (req, res) => adminService.uploadProductImage(req, res);

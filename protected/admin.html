@@ -29,8 +29,61 @@
       <div id="adminContent" class="d-none">
         <h1 class="h4 mb-4">Admin felület</h1>
 
-        <div class="row g-4">
-          <div class="col-lg-6">
+        <!-- TAB FEJLÉCEK -->
+        <ul class="nav nav-tabs mb-3" id="adminTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link active"
+              id="products-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#products-pane"
+              type="button"
+              role="tab"
+              aria-controls="products-pane"
+              aria-selected="true"
+            >
+              Termékek
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="orders-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#orders-pane"
+              type="button"
+              role="tab"
+              aria-controls="orders-pane"
+              aria-selected="false"
+            >
+              Rendelések
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="reservations-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#reservations-pane"
+              type="button"
+              role="tab"
+              aria-controls="reservations-pane"
+              aria-selected="false"
+            >
+              Asztalfoglalások
+            </button>
+          </li>
+        </ul>
+
+        <!-- TAB TARTALOM -->
+        <div class="tab-content" id="adminTabsContent">
+          <!-- TERMÉKEK TAB -->
+          <div
+            class="tab-pane fade show active"
+            id="products-pane"
+            role="tabpanel"
+            aria-labelledby="products-tab"
+          >
             <div class="card">
               <div class="card-body">
                 <h2 class="h6 mb-3">Termékek</h2>
@@ -79,8 +132,44 @@
                       type="text"
                       class="form-control form-control-sm"
                       name="image_url"
+                      id="newProductImageUrl"
+                      placeholder="https://... vagy használd a feltöltést lentebb"
                     />
                   </div>
+
+                  <div class="mb-2">
+                    <label class="form-label">Kép feltöltése</label>
+                    <div
+                      id="newImageDropZone"
+                      class="border rounded py-3 px-3 text-center text-muted"
+                      style="cursor: pointer"
+                    >
+                      Húzd ide a képet vagy
+                      <span
+                        id="newImageBrowseTrigger"
+                        class="text-primary text-decoration-underline"
+                        role="button"
+                        >válaszd ki</span
+                      >
+                      <input
+                        type="file"
+                        id="newImageFileInput"
+                        accept="image/*"
+                        class="d-none"
+                      />
+                    </div>
+                    <small
+                      class="text-muted d-block mt-1"
+                      id="newImageUploadStatus"
+                    ></small>
+                    <img
+                      id="newImagePreview"
+                      class="mt-2 img-fluid d-none"
+                      alt="Előnézet"
+                      style="max-height: 200px; object-fit: contain"
+                    />
+                  </div>
+
                   <button type="submit" class="btn btn-sm btn-primary mt-2">
                     Hozzáadás
                   </button>
@@ -89,7 +178,13 @@
             </div>
           </div>
 
-          <div class="col-lg-6">
+          <!-- RENDELÉSEK TAB -->
+          <div
+            class="tab-pane fade"
+            id="orders-pane"
+            role="tabpanel"
+            aria-labelledby="orders-tab"
+          >
             <div class="card">
               <div class="card-body">
                 <h2 class="h6 mb-3">Rendelések</h2>
@@ -98,7 +193,13 @@
             </div>
           </div>
 
-          <div class="col-lg-6 mt-3">
+          <!-- FOGLALÁSOK TAB -->
+          <div
+            class="tab-pane fade"
+            id="reservations-pane"
+            role="tabpanel"
+            aria-labelledby="reservations-tab"
+          >
             <div class="card">
               <div class="card-body">
                 <h2 class="h6 mb-3">Asztalfoglalások</h2>
@@ -109,6 +210,70 @@
         </div>
       </div>
     </main>
+
+    <!-- TOAST ÉRTESÍTÉS -->
+    <div
+      class="toast-container position-fixed bottom-0 end-0 p-3"
+      style="z-index: 1100"
+    >
+      <div
+        id="adminToast"
+        class="toast align-items-center text-bg-success border-0"
+        role="alert"
+        aria-live="assertive"
+        aria-atomic="true"
+      >
+        <div class="d-flex">
+          <div id="adminToastText" class="toast-body">
+            Művelet sikeresen végrehajtva.
+          </div>
+          <button
+            type="button"
+            class="btn-close btn-close-white me-2 m-auto"
+            data-bs-dismiss="toast"
+            aria-label="Bezárás"
+          ></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- MEGERŐSÍTÉS MODAL (confirm helyett) -->
+    <div class="modal fade" id="confirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Biztos vagy benne?</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Bezárás"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <p id="confirmModalMessage">
+              Biztosan el akarod végezni ezt a műveletet?
+            </p>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Mégse
+            </button>
+            <button
+              type="button"
+              class="btn btn-danger"
+              id="confirmModalConfirmBtn"
+            >
+              Igen
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
 
     <!-- TERMÉK SZERKESZTŐ MODAL -->
     <div
@@ -185,6 +350,40 @@
                   class="form-control form-control-sm"
                   name="image_url"
                   id="editProductImageUrl"
+                  placeholder="https://... vagy használd a feltöltést lentebb"
+                />
+              </div>
+
+              <div class="mb-2">
+                <label class="form-label">Kép feltöltése</label>
+                <div
+                  id="editImageDropZone"
+                  class="border rounded py-3 px-3 text-center text-muted"
+                  style="cursor: pointer"
+                >
+                  Húzd ide a képet vagy
+                  <span
+                    id="editImageBrowseTrigger"
+                    class="text-primary text-decoration-underline"
+                    role="button"
+                    >válaszd ki</span
+                  >
+                  <input
+                    type="file"
+                    id="editImageFileInput"
+                    accept="image/*"
+                    class="d-none"
+                  />
+                </div>
+                <small
+                  class="text-muted d-block mt-1"
+                  id="editImageUploadStatus"
+                ></small>
+                <img
+                  id="editImagePreview"
+                  class="mt-2 img-fluid d-none"
+                  alt="Előnézet"
+                  style="max-height: 200px; object-fit: contain"
                 />
               </div>
 
