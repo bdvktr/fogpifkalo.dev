@@ -72,6 +72,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const orderDetailsTitle = document.getElementById("orderDetailsTitle");
   const orderDetailsBody = document.getElementById("orderDetailsBody");
 
+  const adminLogsList = document.getElementById("adminLogsList");
+
   let orderDetailsModal;
   if (orderDetailsModalEl && typeof bootstrap !== "undefined") {
     orderDetailsModal = new bootstrap.Modal(orderDetailsModalEl);
@@ -165,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!dropZone || !fileInput) {
       return {
         getSelectedFile: () => null,
-        clearSelectedFile: () => {},
+        clearSelectedFile: () => { },
       };
     }
 
@@ -260,6 +262,53 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  //Admin logok szépítése
+  function beautifyDetails(action, detailsObj) {
+    if (!detailsObj || typeof detailsObj !== "object") return "";
+
+    let result = [];
+
+    switch (action) {
+      case "product.create":
+        if (detailsObj.name) result.push(`Név: ${detailsObj.name}`);
+        if (detailsObj.price) result.push(`Ár: ${detailsObj.price} Ft`);
+        if (detailsObj.category)
+          result.push(`Kategória: ${detailsObj.category}`);
+        break;
+
+      case "product.update":
+        if (detailsObj.name) result.push(`Új név: ${detailsObj.name}`);
+        if (detailsObj.price) result.push(`Új ár: ${detailsObj.price} Ft`);
+        if (detailsObj.category)
+          result.push(`Kategória: ${detailsObj.category}`);
+        break;
+
+      case "product.softDelete":
+        result.push(`Termék inaktiválva`);
+        break;
+
+      case "product.activate":
+        result.push(`Termék újra aktiválva`);
+        break;
+
+      case "order.status.update":
+        if (detailsObj.newStatus)
+          result.push(`Új státusz: ${detailsObj.newStatus}`);
+        break;
+
+      case "reservation.status.update":
+        if (detailsObj.newStatus)
+          result.push(`Új státusz: ${detailsObj.newStatus}`);
+        break;
+
+      default:
+        // fallback – ha nincs speciális formátum, stringeljük ki szépen
+        result.push(JSON.stringify(detailsObj, null, 2));
+    }
+
+    return result.join("<br>");
+  }
+
   const newImageUpload = setupImageUpload({
     dropZone: newImageDropZone,
     fileInput: newImageFileInput,
@@ -297,7 +346,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (adminContent) adminContent.classList.remove("d-none");
 
       // Betöltjük a termékeket + rendeléseket
-      await Promise.all([loadProducts(), loadOrders(), loadReservations()]);
+      await Promise.all([
+        loadProducts(),
+        loadOrders(),
+        loadReservations(),
+        loadAdminLogs(),
+      ]);
     } catch (err) {
       console.error("Hiba az /api/me ellenőrzésnél:", err);
       showError("Nem sikerült csatlakozni a szerverhez.");
@@ -339,10 +393,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <strong>${p.name}</strong>
           <div class="text-muted small">${p.description || ""}</div>
           <div class="small fw-semibold">${formatFt(p.price)} Ft</div>
-          ${
-            !isActive
-              ? '<div class="badge bg-secondary mt-1">Inaktív</div>'
-              : ""
+          ${!isActive
+            ? '<div class="badge bg-secondary mt-1">Inaktív</div>'
+            : ""
           }
         </div>
         <div class="text-end">
@@ -350,22 +403,19 @@ document.addEventListener("DOMContentLoaded", () => {
             class="btn btn-sm btn-outline-secondary me-1 admin-edit-product-btn"
             data-product-id="${p.id}"
             data-name="${p.name ? String(p.name).replace(/"/g, "&quot;") : ""}"
-            data-description="${
-              p.description ? String(p.description).replace(/"/g, "&quot;") : ""
-            }"
+            data-description="${p.description ? String(p.description).replace(/"/g, "&quot;") : ""
+          }"
             data-price="${p.price}"
-            data-image-url="${
-              p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
-            }"
+            data-image-url="${p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
+          }"
             data-category="${p.category || "burger"}"
             title="Szerkesztés"
           >
             <i class="bi bi-pencil"></i>
           </button>
 
-          ${
-            isActive
-              ? `
+          ${isActive
+            ? `
             <button 
               class="btn btn-sm btn-outline-danger admin-delete-product-btn"
               data-product-id="${p.id}"
@@ -373,7 +423,7 @@ document.addEventListener("DOMContentLoaded", () => {
             >
               <i class="bi bi-trash"></i>
             </button>`
-              : `
+            : `
             <button 
               class="btn btn-sm btn-outline-success admin-activate-product-btn"
               data-product-id="${p.id}"
@@ -721,15 +771,12 @@ document.addEventListener("DOMContentLoaded", () => {
                   data-order-id="${o.id}"
                   data-original-status="${o.status}"
                 >
-                  <option value="pending"   ${
-                    o.status === "pending" ? "selected" : ""
-                  }>Folyamatban</option>
-                  <option value="completed" ${
-                    o.status === "completed" ? "selected" : ""
-                  }>Teljesítve</option>
-                  <option value="cancelled" ${
-                    o.status === "cancelled" ? "selected" : ""
-                  }>Törölve</option>
+                  <option value="pending"   ${o.status === "pending" ? "selected" : ""
+              }>Folyamatban</option>
+                  <option value="completed" ${o.status === "completed" ? "selected" : ""
+              }>Teljesítve</option>
+                  <option value="cancelled" ${o.status === "cancelled" ? "selected" : ""
+              }>Törölve</option>
                 </select>
 
                 <div class="d-flex justify-content-between align-items-center mt-1">
@@ -886,33 +933,28 @@ document.addEventListener("DOMContentLoaded", () => {
             wrapper.innerHTML = `
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <div><strong>${dateLabel}${
-              timeRange ? " • " + timeRange : ""
-            }</strong></div>
-                <div>Asztal: <strong>${r.table_number}.</strong> • ${
-              r.people_count
-            } fő</div>
+                <div><strong>${dateLabel}${timeRange ? " • " + timeRange : ""
+              }</strong></div>
+                <div>Asztal: <strong>${r.table_number}.</strong> • ${r.people_count
+              } fő</div>
                 <div>${r.name} – ${r.phone}</div>
-                ${
-                  r.note
-                    ? `<div class="text-muted small mt-1">Megjegyzés: ${r.note}</div>`
-                    : ""
-                }
+                ${r.note
+                ? `<div class="text-muted small mt-1">Megjegyzés: ${r.note}</div>`
+                : ""
+              }
               </div>
               <div class="text-end">
                 <div class="mb-1">
-                  ${
-                    r.status === "pending"
-                      ? '<span class="badge bg-warning text-dark">Függőben</span>'
-                      : r.status === "confirmed"
-                      ? '<span class="badge bg-success">Megerősítve</span>'
-                      : '<span class="badge bg-secondary">Lemondva</span>'
-                  }
+                  ${r.status === "pending"
+                ? '<span class="badge bg-warning text-dark">Függőben</span>'
+                : r.status === "confirmed"
+                  ? '<span class="badge bg-success">Megerősítve</span>'
+                  : '<span class="badge bg-secondary">Lemondva</span>'
+              }
                 </div>
                 <div>
-                  ${
-                    r.status === "pending"
-                      ? `
+                  ${r.status === "pending"
+                ? `
                     <button 
                       class="btn btn-sm btn-outline-success me-1 admin-reservation-confirm-btn"
                       data-reservation-id="${r.id}"
@@ -926,8 +968,8 @@ document.addEventListener("DOMContentLoaded", () => {
                       Lemondás
                     </button>
                   `
-                      : ""
-                  }
+                : ""
+              }
                 </div>
               </div>
             </div>
@@ -959,6 +1001,150 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Hiba a /api/admin/reservations hívásnál:", err);
       reservationsAdminList.textContent =
         "Nem sikerült csatlakozni a szerverhez (foglalások).";
+    }
+  }
+
+  // 🔹 7. Admin log betöltése (read-only)
+  async function loadAdminLogs() {
+    const detailLabels = {
+      name: "Név",
+      price: "Ár",
+      category: "Kategória",
+      is_active: "Aktív",
+      newStatus: "Új státusz",
+      oldStatus: "Régi státusz",
+      description: "Leírás",
+    };
+
+    const statusTranslations = {
+      completed: "teljesítve",
+      cancelled: "törölve",
+      pending: "függőben",
+      confirmed: "megerősítve",
+      preparing: "készítés alatt",
+      delivered: "kiszállítva",
+    };
+
+    const entityTranslations = {
+      product: "termék",
+      order: "rendelés",
+      reservation: "foglalás",
+    };
+
+    const statusIcons = {
+      completed: "🟢",
+      cancelled: "🔴",
+      pending: "🟡",
+      preparing: "🟠",
+      confirmed: "🔵",
+      delivered: "📦",
+    };
+
+    if (!adminLogsList) return;
+
+    adminLogsList.textContent = "Admin log betöltése...";
+
+    try {
+      const res = await fetch("/api/admin/logs");
+      const data = await res.json();
+
+      if (!data.success) {
+        adminLogsList.textContent =
+          data.message || "Nem sikerült betölteni az admin logot.";
+        return;
+      }
+
+      const logs = data.logs || [];
+
+      if (logs.length === 0) {
+        adminLogsList.textContent = "Még nincsenek log bejegyzések.";
+        return;
+      }
+
+      adminLogsList.innerHTML = "";
+
+      logs.forEach((log) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "border rounded p-2 mb-2";
+
+        const dateLabel = log.created_at
+          ? new Date(log.created_at).toLocaleString("hu-HU")
+          : "";
+
+        const adminLabel =
+          log.admin_name || log.admin_email || "Ismeretlen admin";
+
+        let detailsData = null;
+
+        if (log.details_json) {
+          try {
+            const parsed =
+              typeof log.details_json === "string"
+                ? JSON.parse(log.details_json)
+                : log.details_json;
+
+            detailsData = parsed; // ❗ OBJEKTUM marad, nem string!
+          } catch {
+            detailsData = null;
+          }
+        }
+
+        const entityLabel =
+          entityTranslations[log.entity_type] || log.entity_type || "-";
+        const entityDisplay = `${entityLabel}${log.entity_id ? " #" + log.entity_id : ""
+          }`;
+
+        wrapper.innerHTML = `
+          <div class="d-flex justify-content-between">
+            <div>
+              <div><strong>${log.action}</strong></div>
+              <div class="text-muted small">
+                Admin: ${adminLabel}
+              </div>
+              <div class="text-muted small">
+              Entitás: ${entityDisplay}
+            </div>
+            ${Object.entries(detailsData)
+              .map(([key, val]) => {
+              const label = detailLabels[key] || key;
+
+              // Státusz magyarítása
+              const translatedVal =
+                typeof val === "string" && statusTranslations[val]
+                  ? statusTranslations[val]
+                  : val;
+
+              // Státusz ikon
+              const icon =
+                typeof val === "string" && statusIcons[val] ? statusIcons[val] + " " : "";
+
+              // Ár formázása
+              if (key === "price") {
+                return `<li><strong>${label}:</strong> ${translatedVal} Ft</li>`;
+              }
+
+              // Boolean (1/0) formázás
+              if (val === 1 || val === 0) {
+                return `<li><strong>${label}:</strong> ${val === 1 ? "igen" : "nem"
+                  }</li>`;
+              }
+
+              return `<li><strong>${label}:</strong> ${icon}${translatedVal}</li>`;
+              })
+            .join("")}
+            </div>
+            <div class="text-end small text-muted">
+              ${dateLabel}
+            </div>
+          </div>
+        `;
+
+        adminLogsList.appendChild(wrapper);
+      });
+    } catch (err) {
+      console.error("Hiba az admin log betöltésekor:", err);
+      adminLogsList.textContent =
+        "Nem sikerült csatlakozni a szerverhez (admin log).";
     }
   }
 
@@ -1163,9 +1349,8 @@ document.addEventListener("DOMContentLoaded", () => {
           <div><strong>Rendelés azonosító:</strong> #${order.id}</div>
           <div><strong>Dátum:</strong> ${formattedDate}</div>
           <div><strong>Státusz:</strong> ${statusText}</div>
-          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${
-          order.user.email
-        }&gt;</div>
+          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${order.user.email
+          }&gt;</div>
         </div>
       `;
 

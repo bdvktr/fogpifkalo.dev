@@ -5,6 +5,7 @@ import {
   sendOrderCompletedEmail,
   sendOrderCancelledEmail,
 } from "./email.service.js";
+import { logAdminAction } from "./audit.service.js";
 
 // Termékek
 export function getProducts(req, res) {
@@ -81,6 +82,19 @@ export function createProduct(req, res) {
         });
       }
 
+      // 🔹 Audit log: új termék létrehozása
+      logAdminAction(req, {
+        action: "Termék létrehozása",
+        entityType: "product",
+        entityId: result.insertId,
+        details: {
+          name,
+          price,
+          category: safeCategory,
+          is_active: 1,
+        },
+      });
+
       res.json({
         success: true,
         productId: result.insertId,
@@ -156,6 +170,19 @@ export function updateProduct(req, res) {
         });
       }
 
+      // 🔹 Audit log: termék módosítás
+      logAdminAction(req, {
+        action: "Termék módosítása",
+        entityType: "product",
+        entityId: Number(productId),
+        details: {
+          name,
+          price,
+          category: safeCategory,
+          is_active: isActive,
+        },
+      });
+
       return res.json({
         success: true,
         message: "Termék frissítve.",
@@ -177,6 +204,14 @@ export function softDeleteProduct(req, res) {
         message: "Szerver hiba (termék inaktiválása).",
       });
     }
+
+    // 🔹 Audit log: termék inaktiválása
+    logAdminAction(req, {
+      action: "Termék inaktiválása",
+      entityType: "product",
+      entityId: Number(productId),
+      details: {},
+    });
 
     return res.json({
       success: true,
@@ -205,6 +240,14 @@ export function activateProduct(req, res) {
         message: "A termék nem található.",
       });
     }
+
+    // 🔹 Audit log: termék újraaktiválása
+    logAdminAction(req, {
+      action: "Termék újraaktiválása",
+      entityType: "product",
+      entityId: Number(productId),
+      details: {},
+    });
 
     return res.json({
       success: true,
@@ -345,6 +388,16 @@ export function updateOrderStatus(req, res) {
       });
     }
 
+    // 🔹 Audit log: rendelés státusz módosítás
+    logAdminAction(req, {
+      action: "Rendelés státusz módosítás",
+      entityType: "order",
+      entityId: Number(orderId),
+      details: {
+        newStatus: status,
+      },
+    });
+
     // Kliensnek azonnal válaszolunk
     res.json({
       success: true,
@@ -479,6 +532,16 @@ export function updateReservationStatus(req, res) {
         message: "A foglalás nem található.",
       });
     }
+
+    // 🔹 Audit log: foglalás státusz módosítás
+    logAdminAction(req, {
+      action: "Foglalás státusz módosítás",
+      entityType: "reservation",
+      entityId: Number(reservationId),
+      details: {
+        newStatus: status,
+      },
+    });
 
     // A kliensnek azonnal válaszolunk
     res.json({

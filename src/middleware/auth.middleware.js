@@ -1,5 +1,11 @@
 import jwt from "jsonwebtoken";
 import { JWT_SECRET, JWT_COOKIE_NAME } from "../config/auth.js";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 export function authCookieMiddleware(req, res, next) {
   const token = req.cookies && req.cookies[JWT_COOKIE_NAME];
@@ -31,8 +37,8 @@ export function requireLogin(req, res, next) {
 
 export function requireAdmin(req, res, next) {
   if (!req.user || !req.user.isAdmin) {
-    return res.status(403).json({
-      status: 403,
+    return res.status(401).json({
+      status: 401,
       success: false,
       message: "Nincs jogosultság (admin szükséges).",
       user: {
@@ -42,6 +48,16 @@ export function requireAdmin(req, res, next) {
         isAdmin: req.user ? !!req.user.isAdmin : false,
       },
     });
+  }
+  next();
+}
+
+export function requireAdminOrErrorPage(req, res, next) {
+  if (!req.user || !req.user.isAdmin) {
+    return res
+    .status(401)
+    .sendFile(
+      path.resolve(__dirname, "../../public/error401.html"));
   }
   next();
 }

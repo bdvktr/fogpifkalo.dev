@@ -2,6 +2,7 @@ import { Router } from "express";
 import * as adminController from "../controllers/admin.controller.js";
 import { requireAdmin } from "../middleware/auth.middleware.js";
 import { upload } from "../middleware/multer.middleware.js";
+import * as auditController from "../controllers/audit.controller.js";
 
 
 const router = Router();
@@ -22,5 +23,9 @@ router.get("/reservations", adminController.getReservations);
 router.put("/reservations/:id/status", adminController.updateReservationStatus);
 
 router.post("/products/upload-image", upload.single("image"), adminController.uploadProductImage);
+
+//csak olvasható
+router.get("/logs", auditController.getAdminLogs);
+
 
 export default router;

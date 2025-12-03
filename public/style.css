@@ -1,0 +1,9 @@
+.errorimg{
+    height: 90vh;
+}
+
+.error-container{
+    display: flex;
+    height: 90vh;
+    justify-content: center;
+}

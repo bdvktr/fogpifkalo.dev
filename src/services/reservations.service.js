@@ -31,7 +31,7 @@ export function createReservation(req, res) {
     });
   }
 
-  // Egyszerű email regex (elég jó, gyakori)
+  // Egyszerű email regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   if (!emailRegex.test(email)) {
@@ -155,8 +155,45 @@ export function createReservation(req, res) {
   const mysqlStart = `${timeFrom}:00`;
   const mysqlEnd = `${timeTo}:00`;
 
-  const newStartMs = startDt.getTime();
-  const newEndMs = endDt.getTime();
+  // új foglalás intervalluma percekben (napon belül)
+  const newStartMinutes = fromHour * 60 + fromMin;
+  const newEndMinutes = toHour * 60 + toMin;
+
+  // Minimum foglalási idő: 1 óra
+  if (newEndMinutes - newStartMinutes < 60) {
+    return res.status(400).json({
+      success: false,
+      message: "A foglalás időtartama legalább 1 óra kell legyen.",
+    });
+  }
+
+  // Hétvége vagy hétköznap?
+  // 0 = vasárnap, 6 = szombat
+  const dayOfWeek = reservationDay.getDay();
+  const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+
+  // Idősáv limitek percben
+  let minStartMinutes;
+  let maxEndMinutes;
+
+  if (isWeekend) {
+    // hétvége: 12:00–23:00
+    minStartMinutes = 12 * 60; // 720
+    maxEndMinutes = 23 * 60; // 1380
+  } else {
+    // hétköznap: 11:00–22:00
+    minStartMinutes = 11 * 60; // 660
+    maxEndMinutes = 22 * 60; // 1320
+  }
+
+  if (newStartMinutes < minStartMinutes || newEndMinutes > maxEndMinutes) {
+    return res.status(400).json({
+      success: false,
+      message: isWeekend
+        ? "Hétvégén 12:00 és 23:00 között tudsz foglalni."
+        : "Hétköznap 11:00 és 22:00 között tudsz foglalni.",
+    });
+  }
 
   const conflictSql = `
     SELECT id, reservation_date, reservation_time, end_time
@@ -176,22 +213,17 @@ export function createReservation(req, res) {
     }
 
     const hasOverlap = conflictRows.some((r) => {
-      let datePart = "";
       let timePartFrom = "";
       let timePartTo = "";
 
-      if (typeof r.reservation_date === "string") {
-        datePart = r.reservation_date.split("T")[0];
-      } else if (r.reservation_date instanceof Date) {
-        datePart = r.reservation_date.toISOString().split("T")[0];
-      }
-
+      // Kezdés (HH:MM)
       if (typeof r.reservation_time === "string") {
         timePartFrom = r.reservation_time.slice(0, 5);
       } else if (r.reservation_time instanceof Date) {
         timePartFrom = r.reservation_time.toTimeString().slice(0, 5);
       }
 
+      // Vége (HH:MM)
       if (r.end_time) {
         if (typeof r.end_time === "string") {
           timePartTo = r.end_time.slice(0, 5);
@@ -199,24 +231,30 @@ export function createReservation(req, res) {
           timePartTo = r.end_time.toTimeString().slice(0, 5);
         }
       } else {
-        const tmpStart = new Date(`${datePart}T${timePartFrom}:00`);
-        const tmpEndMs = tmpStart.getTime() + 120 * 60 * 1000;
-        const tmpEnd = new Date(tmpEndMs);
-        timePartTo = tmpEnd.toTimeString().slice(0, 5);
+        // ha nincs eltárolt end_time, számoljunk 120 perces intervallummal
+        if (!timePartFrom) return false;
+        const [ehStr, emStr] = timePartFrom.split(":");
+        const tmpStartMinutes = Number(ehStr) * 60 + Number(emStr);
+        const tmpEndMinutes = tmpStartMinutes + 120;
+        const tmpEndHour = Math.floor(tmpEndMinutes / 60);
+        const tmpEndMin = tmpEndMinutes % 60;
+        timePartTo = `${String(tmpEndHour).padStart(2, "0")}:${String(
+          tmpEndMin
+        ).padStart(2, "0")}`;
       }
 
-      const existingStart = new Date(`${datePart}T${timePartFrom}:00`);
-      const existingEnd = new Date(`${datePart}T${timePartTo}:00`);
+      if (!timePartFrom || !timePartTo) return false;
 
-      if (isNaN(existingStart.getTime()) || isNaN(existingEnd.getTime())) {
-        return false;
-      }
+      const [exFromH, exFromM] = timePartFrom.split(":").map(Number);
+      const [exToH, exToM] = timePartTo.split(":").map(Number);
 
-      const existingStartMs = existingStart.getTime();
-      const existingEndMs = existingEnd.getTime();
+      const existingStartMinutes = exFromH * 60 + exFromM;
+      const existingEndMinutes = exToH * 60 + exToM;
 
+      // intervallum ütközés vizsgálat: ha egyik vége <= másik eleje, akkor nincs átfedés
       const noOverlap =
-        existingEndMs <= newStartMs || existingStartMs >= newEndMs;
+        existingEndMinutes <= newStartMinutes ||
+        existingStartMinutes >= newEndMinutes;
 
       return !noOverlap;
     });

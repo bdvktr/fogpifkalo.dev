@@ -2,7 +2,7 @@
 <html lang="hu">
   <head>
     <meta charset="UTF-8" />
-    <title>BurgerBázis – Admin</title>
+    <title>Fogpifkáló – Admin</title>
     <link
       href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
       rel="stylesheet"
@@ -16,7 +16,7 @@
   <body class="bg-light">
     <nav class="navbar navbar-dark bg-dark mb-4">
       <div class="container">
-        <span class="navbar-brand">BurgerBázis – Admin</span>
+        <span class="navbar-brand">Fogpifkáló – Admin</span>
         <a href="fiok.html" class="btn btn-outline-light btn-sm"
           >Vissza a fiókhoz</a
         >
@@ -71,6 +71,20 @@
               aria-selected="false"
             >
               Asztalfoglalások
+            </button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button
+              class="nav-link"
+              id="adminlog-tab"
+              data-bs-toggle="tab"
+              data-bs-target="#adminlog-pane"
+              type="button"
+              role="tab"
+              aria-controls="adminlog-pane"
+              aria-selected="false"
+            >
+              Admin log
             </button>
           </li>
         </ul>
@@ -204,6 +218,20 @@
               <div class="card-body">
                 <h2 class="h6 mb-3">Asztalfoglalások</h2>
                 <div id="reservationsAdminList" class="small"></div>
+              </div>
+            </div>
+          </div>
+          <!-- ADMIN LOG TAB -->
+          <div
+            class="tab-pane fade"
+            id="adminlog-pane"
+            role="tabpanel"
+            aria-labelledby="adminlog-tab"
+          >
+            <div class="card">
+              <div class="card-body">
+                <h2 class="h6 mb-3">Admin napló</h2>
+                <div id="adminLogsList" class="small"></div>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { authCookieMiddleware, requireAdmin } from "./middleware/auth.middleware.js";
+import { authCookieMiddleware, requireAdmin, requireAdminOrErrorPage } from "./middleware/auth.middleware.js";
 import healthRoutes from "./routes/health.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import accountRoutes from "./routes/account.routes.js";
@@ -28,7 +28,7 @@ app.use(cookieParser());
 app.use(authCookieMiddleware);
 
 // Admin HTML oldal
-app.get("/admin", requireAdmin, (req, res) => {
+app.get("/admin", requireAdminOrErrorPage, (req, res) => {
   res.sendFile(path.join(rootDir, "protected/admin.html"));
 });
 
@@ -50,6 +50,13 @@ app.use("/api", (req, res) => {
     success: false,
     message: "API endpoint nem található.",
   });
+});
+
+//404 Nem API fallback
+app.use((req, res) => {
+  res
+    .status(404)
+    .sendFile(path.join(__dirname, "../public/error404.html"));
 });
 
 export default app;
