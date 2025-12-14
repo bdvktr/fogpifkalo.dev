@@ -1,5 +1,6 @@
 import { db } from "../repositories/db.repository.js";
 import { sendOrderPlacedEmail } from "./email.service.js";
+import { emitPendingOrdersUpdated } from "../config/websocket.js";
 
 export function checkout(req, res) {
   const userId = req.user.id;
@@ -128,6 +129,9 @@ export function checkout(req, res) {
             }).catch((emailErr) => {
               console.error("Hiba az order placed email küldésekor:", emailErr);
             });
+
+            // Rendelés real-time küldése a futár appnak
+            emitPendingOrdersUpdated();
 
             return res.json({
               success: true,

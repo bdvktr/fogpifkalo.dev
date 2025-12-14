@@ -14,7 +14,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const productId = btn.dataset.productId;
 
       try {
-        const response = await fetch("/api/cart/add", {
+        const response = await apiFetch("/api/cart/add", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!productId) return;
 
     try {
-      const res = await fetch("/api/cart/add", {
+      const res = await apiFetch("/api/cart/add", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -104,7 +104,7 @@ document.addEventListener("DOMContentLoaded", () => {
       cartDropdownContent.innerHTML =
         '<div class="text-muted small">Betöltés...</div>';
 
-      const res = await fetch("/api/cart");
+      const res = await apiFetch("/api/cart");
       if (res.status === 401) {
         cartDropdownContent.innerHTML =
           '<div class="text-muted small">A kosár használatához jelentkezz be.</div>';
@@ -214,7 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!confirm("Biztosan törlöd ezt a tételt a kosaradból?")) return;
 
         try {
-          const res = await fetch("/api/cart/remove", {
+          const res = await apiFetch("/api/cart/remove", {
             method: "POST",
             headers: {
               "Content-Type": "application/json",
@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const res = await fetch("/api/account/password", {
+        const res = await apiFetch("/api/account/password", {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -629,7 +629,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function checkAuth() {
     try {
-      const res = await fetch("/api/me");
+      const res = await apiFetch("/api/me");
       const data = await res.json();
 
       const adminPanelBtn = document.getElementById("adminPanelBtn");
@@ -688,7 +688,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ordersList.textContent = "Rendelések betöltése...";
 
     try {
-      const res = await fetch("/api/orders");
+      const res = await apiFetch("/api/orders");
       const data = await res.json();
 
       if (!data.success) {
@@ -777,7 +777,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reservationsList.textContent = "Foglalások betöltése...";
 
     try {
-      const res = await fetch("/api/my/reservations");
+      const res = await apiFetch("/api/my/reservations");
       const data = await res.json();
 
       if (!data.success) {
@@ -1016,7 +1016,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const { date, timeFrom, timeTo, tableNumber } = result;
 
     try {
-      const res = await fetch(`/api/my/reservations/${id}/time`, {
+      const res = await apiFetch(`/api/my/reservations/${id}/time`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1059,7 +1059,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!confirmed) return;
 
     try {
-      const res = await fetch(`/api/my/reservations/${id}/cancel`, {
+      const res = await apiFetch(`/api/my/reservations/${id}/cancel`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1093,7 +1093,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const { peopleCount, note } = result;
 
     try {
-      const res = await fetch(`/api/my/reservations/${id}`, {
+      const res = await apiFetch(`/api/my/reservations/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -1162,7 +1162,7 @@ function formatDateOnly(value) {
       }
 
       try {
-        const res = await fetch("/api/login", {
+        const res = await apiFetch("/api/login", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1233,7 +1233,7 @@ function formatDateOnly(value) {
       }
 
       try {
-        const res = await fetch("/api/register", {
+        const res = await apiFetch("/api/register", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -1276,7 +1276,7 @@ function formatDateOnly(value) {
   if (logoutBtn) {
     logoutBtn.addEventListener("click", async () => {
       try {
-        await fetch("/api/logout", { method: "POST" });
+        await apiFetch("/api/logout", { method: "POST" });
       } catch (err) {
         console.error("Hiba a logout-nál:", err);
       }

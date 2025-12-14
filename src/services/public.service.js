@@ -47,3 +47,28 @@ export function getMenu(req, res) {
     });
   });
 }
+
+export function getSpecialOffers(req, res) {
+  const sql = `
+    SELECT id, name, description, price, image_url, category
+    FROM products
+    WHERE is_active = 1
+      AND is_special_offer = 1
+    ORDER BY category, name
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("DB hiba (/api/special-offers):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a hétvégi ajánlatok lekérdezésekor.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      products: rows,
+    });
+  });
+}

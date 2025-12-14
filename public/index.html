@@ -202,14 +202,14 @@
     </section>
 
     <!-- MENU GRID -->
-    <section id="menu" class="py-5 bg-light">
-      <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-          <h2 class="h3 mb-0">Népszerű burgerjeink</h2>
-          <a href="#" class="btn btn-sm btn-outline-secondary"
-            >Teljes menü megtekintése</a
-          >
-        </div>
+<section id="menu" class="py-5 bg-light">
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2 class="h3 mb-0">Hétvégi ajánlataink</h2>
+      <a href="menu.html" class="btn btn-sm btn-outline-secondary">
+        Teljes menü megtekintése
+      </a>
+    </div>
 
         <div id="menuItems" class="row g-4">
           <div class="col-12 text-muted" id="menuLoading">
@@ -332,6 +332,7 @@
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
+    <script src="api.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const menuContainer = document.getElementById("menuItems");
@@ -343,13 +344,13 @@
           return Math.round(Number(value)).toLocaleString("hu-HU");
         }
 
-        async function loadMenu() {
+        async function loadSpecialOffers() {
           if (menuLoading) {
             menuLoading.textContent = "Menü betöltése...";
           }
 
           try {
-            const res = await fetch("/api/products");
+            const res = await fetch("/api/special-offers");
             const data = await res.json();
 
             if (!data.success) {
@@ -410,7 +411,7 @@
             // Ha már van ilyen, itt hívd meg, pl:
             // initOrderButtons();
           } catch (err) {
-            console.error("Hiba a /api/products hívásnál:", err);
+            console.error("Hiba a /api/special-offers hívásnál:", err);
             if (menuLoading) {
               menuLoading.textContent =
                 "Nem sikerült csatlakozni a szerverhez.";
@@ -418,7 +419,7 @@
           }
         }
 
-        loadMenu();
+        loadSpecialOffers();
       });
     </script>
   </body>

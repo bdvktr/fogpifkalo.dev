@@ -6,7 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadCheckoutCart() {
         try {
-            const res = await fetch("/api/cart");
+            const res = await apiFetch("/api/cart");
             if (res.status === 401) {
                 alert("A rendeléshez előbb jelentkezz be.");
                 window.location.href = "fiok.html";
@@ -91,7 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
             }
 
             try {
-                const res = await fetch("/api/checkout", {
+                const res = await apiFetch("/api/checkout", {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",

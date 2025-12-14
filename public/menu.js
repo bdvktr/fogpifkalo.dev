@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     async function loadMenu() {
         try {
-            const res = await fetch("/api/menu");
+            const res = await apiFetch("/api/menu");
             const data = await res.json();
 
             if (!data.success) {

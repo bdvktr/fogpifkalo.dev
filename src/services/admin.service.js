@@ -10,7 +10,7 @@ import { logAdminAction } from "./audit.service.js";
 // Termékek
 export function getProducts(req, res) {
   const sql = `
-    SELECT id, name, description, price, is_active, category, image_url
+    SELECT id, name, description, price, is_active, is_special_offer, category, image_url
     FROM products
     ORDER BY category, name
   `;
@@ -32,7 +32,15 @@ export function getProducts(req, res) {
 }
 
 export function createProduct(req, res) {
-  const { name, description, price, image_url, is_active, category } = req.body;
+  const {
+    name,
+    description,
+    price,
+    image_url,
+    is_active,
+    is_special_offer,
+    category,
+  } = req.body;
 
   if (!name || !price) {
     return res.status(400).json({
@@ -58,9 +66,12 @@ export function createProduct(req, res) {
     }
   }
 
+  const specialOfferFlag = is_special_offer ? 1 : 0;
+
   const sql = `
-    INSERT INTO products (name, description, price, image_url, is_active, category)
-    VALUES (?, ?, ?, ?, ?, ?)
+    INSERT INTO products 
+      (name, description, price, image_url, is_active, is_special_offer, category)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   db.query(
@@ -71,6 +82,7 @@ export function createProduct(req, res) {
       price,
       image_url || "",
       activeFlag,
+      specialOfferFlag,
       safeCategory,
     ],
     (err, result) => {
@@ -92,6 +104,7 @@ export function createProduct(req, res) {
           price,
           category: safeCategory,
           is_active: 1,
+          is_special_offer: specialOfferFlag === 1,
         },
       });
 
@@ -105,7 +118,15 @@ export function createProduct(req, res) {
 
 export function updateProduct(req, res) {
   const productId = req.params.id;
-  const { name, description, price, image_url, category, is_active } = req.body;
+  const {
+    name,
+    description,
+    price,
+    image_url,
+    category,
+    is_active,
+    is_special_offer,
+  } = req.body;
 
   if (!name || !price) {
     return res.status(400).json({
@@ -131,6 +152,8 @@ export function updateProduct(req, res) {
     }
   }
 
+  const specialOfferFlag = is_special_offer ? 1 : 0;
+
   const sql = `
     UPDATE products
     SET 
@@ -139,6 +162,7 @@ export function updateProduct(req, res) {
       price = ?, 
       image_url = ?, 
       is_active = ?, 
+      is_special_offer = ?,
       category = ?
     WHERE id = ?
   `;
@@ -151,6 +175,7 @@ export function updateProduct(req, res) {
       price,
       image_url || "",
       activeFlag,
+      specialOfferFlag,
       safeCategory,
       productId,
     ],
@@ -179,7 +204,8 @@ export function updateProduct(req, res) {
           name,
           price,
           category: safeCategory,
-          is_active: isActive,
+          is_active: activeFlag,
+          is_special_offer: specialOfferFlag === 1,
         },
       });
 

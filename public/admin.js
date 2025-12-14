@@ -21,6 +21,12 @@ document.addEventListener("DOMContentLoaded", () => {
   const reservationsAdminList = document.getElementById(
     "reservationsAdminList"
   );
+  const newProductIsSpecialOfferInput = document.getElementById(
+    "newProductIsSpecialOffer"
+  );
+  const editProductIsSpecialOfferInput = document.getElementById(
+    "editProductIsSpecialOffer"
+  );
 
   // Új termék kép feltöltés (drag & drop)
   const newProductImageUrlInput = document.getElementById("newProductImageUrl");
@@ -89,12 +95,6 @@ document.addEventListener("DOMContentLoaded", () => {
     adminError.textContent = message;
     adminError.classList.remove("d-none");
     adminContent.classList.add("d-none");
-  }
-
-  function hideError() {
-    if (!adminError) return;
-    adminError.textContent = "";
-    adminError.classList.add("d-none");
   }
 
   // Toast helper
@@ -167,7 +167,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!dropZone || !fileInput) {
       return {
         getSelectedFile: () => null,
-        clearSelectedFile: () => { },
+        clearSelectedFile: () => {},
       };
     }
 
@@ -262,53 +262,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  //Admin logok szépítése
-  function beautifyDetails(action, detailsObj) {
-    if (!detailsObj || typeof detailsObj !== "object") return "";
-
-    let result = [];
-
-    switch (action) {
-      case "product.create":
-        if (detailsObj.name) result.push(`Név: ${detailsObj.name}`);
-        if (detailsObj.price) result.push(`Ár: ${detailsObj.price} Ft`);
-        if (detailsObj.category)
-          result.push(`Kategória: ${detailsObj.category}`);
-        break;
-
-      case "product.update":
-        if (detailsObj.name) result.push(`Új név: ${detailsObj.name}`);
-        if (detailsObj.price) result.push(`Új ár: ${detailsObj.price} Ft`);
-        if (detailsObj.category)
-          result.push(`Kategória: ${detailsObj.category}`);
-        break;
-
-      case "product.softDelete":
-        result.push(`Termék inaktiválva`);
-        break;
-
-      case "product.activate":
-        result.push(`Termék újra aktiválva`);
-        break;
-
-      case "order.status.update":
-        if (detailsObj.newStatus)
-          result.push(`Új státusz: ${detailsObj.newStatus}`);
-        break;
-
-      case "reservation.status.update":
-        if (detailsObj.newStatus)
-          result.push(`Új státusz: ${detailsObj.newStatus}`);
-        break;
-
-      default:
-        // fallback – ha nincs speciális formátum, stringeljük ki szépen
-        result.push(JSON.stringify(detailsObj, null, 2));
-    }
-
-    return result.join("<br>");
-  }
-
   const newImageUpload = setupImageUpload({
     dropZone: newImageDropZone,
     fileInput: newImageFileInput,
@@ -328,21 +281,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // 🔹 1. Auth + admin ellenőrzés
   async function checkAdmin() {
     try {
-      const res = await fetch("api/me/admin");
+      const res = await apiFetch("/api/me/admin");
       const data = await res.json();
 
-      if (!data.loggedIn) {
-        showError("Ehhez az oldalhoz be kell jelentkezned admin fiókkal.");
-        return;
-      }
-
-      if (!data.user || !data.user.isAdmin) {
-        showError("Nincs jogosultságod az admin felület megtekintéséhez.");
-        return;
-      }
-
-      // Ha idáig eljutunk → admin
-      hideError();
       if (adminContent) adminContent.classList.remove("d-none");
 
       // Betöltjük a termékeket + rendeléseket
@@ -364,7 +305,7 @@ document.addEventListener("DOMContentLoaded", () => {
     productsList.textContent = "Termékek betöltése...";
 
     try {
-      const res = await fetch("/api/admin/products");
+      const res = await apiFetch("/api/admin/products");
       const data = await res.json();
 
       if (!data.success) {
@@ -383,6 +324,7 @@ document.addEventListener("DOMContentLoaded", () => {
       productsList.innerHTML = "";
       products.forEach((p) => {
         const isActive = Number(p.is_active) === 1;
+        const isSpecialOffer = Number(p.is_special_offer) === 1;
 
         const wrapper = document.createElement("div");
         wrapper.className =
@@ -393,9 +335,15 @@ document.addEventListener("DOMContentLoaded", () => {
           <strong>${p.name}</strong>
           <div class="text-muted small">${p.description || ""}</div>
           <div class="small fw-semibold">${formatFt(p.price)} Ft</div>
-          ${!isActive
-            ? '<div class="badge bg-secondary mt-1">Inaktív</div>'
-            : ""
+          ${
+            !isActive
+              ? '<div class="badge bg-secondary mt-1">Inaktív</div>'
+              : ""
+          }
+          ${
+            isSpecialOffer
+              ? '<div class="badge bg-warning text-dark mt-1">Hétvégi ajánlat</div>'
+              : ""
           }
         </div>
         <div class="text-end">
@@ -403,19 +351,26 @@ document.addEventListener("DOMContentLoaded", () => {
             class="btn btn-sm btn-outline-secondary me-1 admin-edit-product-btn"
             data-product-id="${p.id}"
             data-name="${p.name ? String(p.name).replace(/"/g, "&quot;") : ""}"
-            data-description="${p.description ? String(p.description).replace(/"/g, "&quot;") : ""
-          }"
+            data-description="${
+              p.description ? String(p.description).replace(/"/g, "&quot;") : ""
+            }"
             data-price="${p.price}"
-            data-image-url="${p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
-          }"
+            data-image-url="${
+              p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
+            }"
             data-category="${p.category || "burger"}"
+            data-is-special-offer="${
+              Number(p.is_special_offer) === 1 ? "1" : "0"
+            }"
+
             title="Szerkesztés"
           >
             <i class="bi bi-pencil"></i>
           </button>
 
-          ${isActive
-            ? `
+          ${
+            isActive
+              ? `
             <button 
               class="btn btn-sm btn-outline-danger admin-delete-product-btn"
               data-product-id="${p.id}"
@@ -423,7 +378,7 @@ document.addEventListener("DOMContentLoaded", () => {
             >
               <i class="bi bi-trash"></i>
             </button>`
-            : `
+              : `
             <button 
               class="btn btn-sm btn-outline-success admin-activate-product-btn"
               data-product-id="${p.id}"
@@ -455,6 +410,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const price = formData.get("price");
       let image_url = formData.get("image_url");
       const category = formData.get("category") || "burger";
+      const is_special_offer = formData.get("is_special_offer") === "on";
 
       // Ha van feltöltött kép, először azt küldjük fel Multerrel
       const newFile = newImageUpload.getSelectedFile
@@ -482,7 +438,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const res = await fetch("/api/admin/products", {
+        const res = await apiFetch("/api/admin/products", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -493,6 +449,7 @@ document.addEventListener("DOMContentLoaded", () => {
             price: Number(price),
             image_url,
             category,
+            is_special_offer,
           }),
         });
 
@@ -534,7 +491,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!ok) return;
 
         try {
-          const res = await fetch(`/api/admin/products/${productId}`, {
+          const res = await apiFetch(`/api/admin/products/${productId}`, {
             method: "DELETE",
           });
           const data = await res.json();
@@ -565,9 +522,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!ok) return;
 
         try {
-          const res = await fetch(`/api/admin/products/${productId}/activate`, {
-            method: "PUT",
-          });
+          const res = await apiFetch(
+            `/api/admin/products/${productId}/activate`,
+            {
+              method: "PUT",
+            }
+          );
           const data = await res.json();
 
           if (data.success) {
@@ -595,6 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const price = editBtn.dataset.price || "";
         const imageUrl = editBtn.dataset.imageUrl || "";
         const category = editBtn.dataset.category || "burger";
+        const isSpecialOffer = editBtn.dataset.isSpecialOffer === "1";
 
         editProductIdInput.value = productId;
         editProductNameInput.value = name;
@@ -604,6 +565,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (editProductCategorySelect) {
           editProductCategorySelect.value = category;
+        }
+        if (editProductIsSpecialOfferInput) {
+          editProductIsSpecialOfferInput.checked = isSpecialOffer;
         }
 
         editProductModal.show();
@@ -624,6 +588,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const category = editProductCategorySelect
         ? editProductCategorySelect.value
         : "burger";
+      const is_special_offer = Boolean(
+        editProductIsSpecialOfferInput && editProductIsSpecialOfferInput.checked
+      );
+
+      console.log("EDIT SUBMIT is_special_offer:", is_special_offer);
 
       // Ha szerkesztéskor új képet választottunk, töltsük fel Multerrel
       const editFile = editImageUpload.getSelectedFile
@@ -650,7 +619,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const res = await fetch(`/api/admin/products/${id}`, {
+        const res = await apiFetch(`/api/admin/products/${id}`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -661,6 +630,7 @@ document.addEventListener("DOMContentLoaded", () => {
             price: Number(price),
             image_url,
             category,
+            is_special_offer,
           }),
         });
 
@@ -693,7 +663,7 @@ document.addEventListener("DOMContentLoaded", () => {
     ordersAdminList.textContent = "Rendelések betöltése...";
 
     try {
-      const res = await fetch("/api/admin/orders");
+      const res = await apiFetch("/api/admin/orders");
       const data = await res.json();
 
       if (!data.success) {
@@ -771,12 +741,15 @@ document.addEventListener("DOMContentLoaded", () => {
                   data-order-id="${o.id}"
                   data-original-status="${o.status}"
                 >
-                  <option value="pending"   ${o.status === "pending" ? "selected" : ""
-              }>Folyamatban</option>
-                  <option value="completed" ${o.status === "completed" ? "selected" : ""
-              }>Teljesítve</option>
-                  <option value="cancelled" ${o.status === "cancelled" ? "selected" : ""
-              }>Törölve</option>
+                  <option value="pending"   ${
+                    o.status === "pending" ? "selected" : ""
+                  }>Folyamatban</option>
+                  <option value="completed" ${
+                    o.status === "completed" ? "selected" : ""
+                  }>Teljesítve</option>
+                  <option value="cancelled" ${
+                    o.status === "cancelled" ? "selected" : ""
+                  }>Törölve</option>
                 </select>
 
                 <div class="d-flex justify-content-between align-items-center mt-1">
@@ -826,7 +799,7 @@ document.addEventListener("DOMContentLoaded", () => {
     reservationsAdminList.textContent = "Foglalások betöltése...";
 
     try {
-      const res = await fetch("/api/admin/reservations");
+      const res = await apiFetch("/api/admin/reservations");
       const data = await res.json();
 
       if (!data.success) {
@@ -933,28 +906,33 @@ document.addEventListener("DOMContentLoaded", () => {
             wrapper.innerHTML = `
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <div><strong>${dateLabel}${timeRange ? " • " + timeRange : ""
-              }</strong></div>
-                <div>Asztal: <strong>${r.table_number}.</strong> • ${r.people_count
-              } fő</div>
+                <div><strong>${dateLabel}${
+              timeRange ? " • " + timeRange : ""
+            }</strong></div>
+                <div>Asztal: <strong>${r.table_number}.</strong> • ${
+              r.people_count
+            } fő</div>
                 <div>${r.name} – ${r.phone}</div>
-                ${r.note
-                ? `<div class="text-muted small mt-1">Megjegyzés: ${r.note}</div>`
-                : ""
-              }
+                ${
+                  r.note
+                    ? `<div class="text-muted small mt-1">Megjegyzés: ${r.note}</div>`
+                    : ""
+                }
               </div>
               <div class="text-end">
                 <div class="mb-1">
-                  ${r.status === "pending"
-                ? '<span class="badge bg-warning text-dark">Függőben</span>'
-                : r.status === "confirmed"
-                  ? '<span class="badge bg-success">Megerősítve</span>'
-                  : '<span class="badge bg-secondary">Lemondva</span>'
-              }
+                  ${
+                    r.status === "pending"
+                      ? '<span class="badge bg-warning text-dark">Függőben</span>'
+                      : r.status === "confirmed"
+                      ? '<span class="badge bg-success">Megerősítve</span>'
+                      : '<span class="badge bg-secondary">Lemondva</span>'
+                  }
                 </div>
                 <div>
-                  ${r.status === "pending"
-                ? `
+                  ${
+                    r.status === "pending"
+                      ? `
                     <button 
                       class="btn btn-sm btn-outline-success me-1 admin-reservation-confirm-btn"
                       data-reservation-id="${r.id}"
@@ -968,8 +946,8 @@ document.addEventListener("DOMContentLoaded", () => {
                       Lemondás
                     </button>
                   `
-                : ""
-              }
+                      : ""
+                  }
                 </div>
               </div>
             </div>
@@ -1014,6 +992,7 @@ document.addEventListener("DOMContentLoaded", () => {
       newStatus: "Új státusz",
       oldStatus: "Régi státusz",
       description: "Leírás",
+      is_special_offer: "Hétvégi ajánlat",
     };
 
     const statusTranslations = {
@@ -1045,7 +1024,7 @@ document.addEventListener("DOMContentLoaded", () => {
     adminLogsList.textContent = "Admin log betöltése...";
 
     try {
-      const res = await fetch("/api/admin/logs");
+      const res = await apiFetch("/api/admin/logs");
       const data = await res.json();
 
       if (!data.success) {
@@ -1091,8 +1070,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const entityLabel =
           entityTranslations[log.entity_type] || log.entity_type || "-";
-        const entityDisplay = `${entityLabel}${log.entity_id ? " #" + log.entity_id : ""
-          }`;
+        const entityDisplay = `${entityLabel}${
+          log.entity_id ? " #" + log.entity_id : ""
+        }`;
 
         wrapper.innerHTML = `
           <div class="d-flex justify-content-between">
@@ -1106,32 +1086,42 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
             ${Object.entries(detailsData)
               .map(([key, val]) => {
-              const label = detailLabels[key] || key;
+                const label = detailLabels[key] || key;
 
-              // Státusz magyarítása
-              const translatedVal =
-                typeof val === "string" && statusTranslations[val]
-                  ? statusTranslations[val]
-                  : val;
+                // Státusz magyarítása
+                const translatedVal =
+                  typeof val === "string" && statusTranslations[val]
+                    ? statusTranslations[val]
+                    : val;
 
-              // Státusz ikon
-              const icon =
-                typeof val === "string" && statusIcons[val] ? statusIcons[val] + " " : "";
+                // Státusz ikon
+                const icon =
+                  typeof val === "string" && statusIcons[val]
+                    ? statusIcons[val] + " "
+                    : "";
 
-              // Ár formázása
-              if (key === "price") {
-                return `<li><strong>${label}:</strong> ${translatedVal} Ft</li>`;
-              }
+                // Ár formázása
+                if (key === "price") {
+                  return `<li><strong>${label}:</strong> ${translatedVal} Ft</li>`;
+                }
 
-              // Boolean (1/0) formázás
-              if (val === 1 || val === 0) {
-                return `<li><strong>${label}:</strong> ${val === 1 ? "igen" : "nem"
+                // Boolean (1/0) formázás
+                if (val === 1 || val === 0) {
+                  return `<li><strong>${label}:</strong> ${
+                    val === 1 ? "igen" : "nem"
                   }</li>`;
-              }
+                }
 
-              return `<li><strong>${label}:</strong> ${icon}${translatedVal}</li>`;
+                // Boolean (true/false) formázás
+                if (val === true || val === false) {
+                  return `<li><strong>${label}:</strong> ${
+                    val ? "igen" : "nem"
+                  }</li>`;
+                }
+
+                return `<li><strong>${label}:</strong> ${icon}${translatedVal}</li>`;
               })
-            .join("")}
+              .join("")}
             </div>
             <div class="text-end small text-muted">
               ${dateLabel}
@@ -1162,7 +1152,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!ok) return;
 
         try {
-          const res = await fetch(`/api/admin/reservations/${id}/status`, {
+          const res = await apiFetch(`/api/admin/reservations/${id}/status`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -1197,7 +1187,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!ok) return;
 
         try {
-          const res = await fetch(`/api/admin/reservations/${id}/status`, {
+          const res = await apiFetch(`/api/admin/reservations/${id}/status`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -1265,7 +1255,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       try {
-        const res = await fetch(`/api/admin/orders/${orderId}/status`, {
+        const res = await apiFetch(`/api/admin/orders/${orderId}/status`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -1312,7 +1302,7 @@ document.addEventListener("DOMContentLoaded", () => {
       orderDetailsModal.show();
 
       try {
-        const res = await fetch(`/api/admin/orders/${orderId}`);
+        const res = await apiFetch(`/api/admin/orders/${orderId}`);
         const data = await res.json();
 
         if (!data.success) {
@@ -1349,8 +1339,9 @@ document.addEventListener("DOMContentLoaded", () => {
           <div><strong>Rendelés azonosító:</strong> #${order.id}</div>
           <div><strong>Dátum:</strong> ${formattedDate}</div>
           <div><strong>Státusz:</strong> ${statusText}</div>
-          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${order.user.email
-          }&gt;</div>
+          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${
+          order.user.email
+        }&gt;</div>
         </div>
       `;
 
@@ -1415,7 +1406,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (statusEl) statusEl.textContent = "Kép feltöltése folyamatban...";
 
     try {
-      const res = await fetch("/api/admin/products/upload-image", {
+      const res = await apiFetch("/api/admin/products/upload-image", {
         method: "POST",
         body: formData,
       });

@@ -2,11 +2,101 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../repositories/db.repository.js";
 import {
-  JWT_SECRET,
-  JWT_COOKIE_NAME,
-  JWT_COOKIE_OPTIONS,
+  ACCESS_TOKEN_SECRET,
+  REFRESH_TOKEN_SECRET,
+  ACCESS_TOKEN_EXPIRES_IN,
+  REFRESH_TOKEN_EXPIRES_IN,
+  ACCESS_TOKEN_COOKIE_NAME,
+  REFRESH_TOKEN_COOKIE_NAME,
+  ACCESS_TOKEN_COOKIE_OPTIONS,
+  REFRESH_TOKEN_COOKIE_OPTIONS,
   SALT_ROUNDS,
 } from "../config/auth.js";
+
+function buildUserPayloadFromRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    isAdmin: !!row.is_admin,
+    isDelivery: !!row.is_delivery,
+  };
+}
+
+function generateAccessToken(userPayload) {
+  return jwt.sign(userPayload, ACCESS_TOKEN_SECRET, {
+    expiresIn: ACCESS_TOKEN_EXPIRES_IN,
+  });
+}
+
+function generateRefreshToken(userId) {
+  return jwt.sign({ id: userId }, REFRESH_TOKEN_SECRET, {
+    expiresIn: REFRESH_TOKEN_EXPIRES_IN,
+  });
+}
+
+function saveRefreshToken(userId, token) {
+  const decoded = jwt.decode(token);
+  const expiresAt =
+    decoded && decoded.exp ? new Date(decoded.exp * 1000) : null;
+
+  return new Promise((resolve, reject) => {
+    const sql =
+      "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)";
+    db.query(sql, [userId, token, expiresAt], (err, result) => {
+      if (err) {
+        console.error("DB hiba (refresh token mentés):", err);
+        return reject(err);
+      }
+      resolve(result.insertId);
+    });
+  });
+}
+
+function deleteRefreshToken(token) {
+  return new Promise((resolve, reject) => {
+    const sql = "DELETE FROM refresh_tokens WHERE token = ?";
+    db.query(sql, [token], (err, result) => {
+      if (err) {
+        console.error("DB hiba (refresh token törlés):", err);
+        return reject(err);
+      }
+      resolve(result.affectedRows);
+    });
+  });
+}
+
+function findRefreshToken(token) {
+  return new Promise((resolve, reject) => {
+    const sql =
+      "SELECT id, user_id, token, expires_at FROM refresh_tokens WHERE token = ? LIMIT 1";
+    db.query(sql, [token], (err, rows) => {
+      if (err) {
+        console.error("DB hiba (refresh token keresés):", err);
+        return reject(err);
+      }
+      resolve(rows[0] || null);
+    });
+  });
+}
+
+function updateRefreshTokenRow(id, newToken) {
+  const decoded = jwt.decode(newToken);
+  const expiresAt =
+    decoded && decoded.exp ? new Date(decoded.exp * 1000) : null;
+
+  return new Promise((resolve, reject) => {
+    const sql =
+      "UPDATE refresh_tokens SET token = ?, expires_at = ? WHERE id = ?";
+    db.query(sql, [newToken, expiresAt, id], (err, result) => {
+      if (err) {
+        console.error("DB hiba (refresh token frissítés):", err);
+        return reject(err);
+      }
+      resolve(result.affectedRows);
+    });
+  });
+}
 
 export async function register(req, res) {
   const { name, email, password, passwordConfirm } = req.body;
@@ -35,54 +125,77 @@ export async function register(req, res) {
   const checkSql = "SELECT id FROM users WHERE email = ? LIMIT 1";
   db.query(checkSql, [email], async (err, rows) => {
     if (err) {
-      console.error("DB hiba (email ellenőrzés):", err);
+      console.error("DB hiba (reg check):", err);
       return res.status(500).json({
         success: false,
-        message: "Szerver hiba (email ellenőrzése).",
+        message: "Szerver hiba (regisztráció ellenőrzés).",
       });
     }
 
     if (rows.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Ezzel az e-mail címmel már létezik fiók.",
+        message: "Ezzel az e-mail címmel már regisztráltak.",
       });
     }
 
     try {
-      const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
+      const hash = await bcrypt.hash(password, SALT_ROUNDS);
 
       const insertSql =
-        "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, 0)";
+        "INSERT INTO users (name, email, password_hash, is_admin) VALUES (?, ?, ?, ?)";
+      db.query(
+        insertSql,
+        [name, email, hash, false],
+        async (insertErr, result) => {
+          if (insertErr) {
+            console.error("DB hiba (reg insert):", insertErr);
+            return res.status(500).json({
+              success: false,
+              message: "Szerver hiba (regisztráció mentés).",
+            });
+          }
 
-      db.query(insertSql, [name, email, passwordHash], (err2, result) => {
-        if (err2) {
-          console.error("DB hiba (regisztráció):", err2);
-          return res.status(500).json({
-            success: false,
-            message: "Szerver hiba (regisztráció).",
+          const newUserId = result.insertId;
+
+          const user = {
+            id: newUserId,
+            name,
+            email,
+            isAdmin: false,
+          };
+
+          const accessToken = generateAccessToken(user);
+          const refreshToken = generateRefreshToken(newUserId);
+
+          try {
+            await saveRefreshToken(newUserId, refreshToken);
+          } catch (tokenErr) {
+            return res.status(500).json({
+              success: false,
+              message: "Szerver hiba (refresh token mentés).",
+            });
+          }
+
+          res
+            .cookie(
+              ACCESS_TOKEN_COOKIE_NAME,
+              accessToken,
+              ACCESS_TOKEN_COOKIE_OPTIONS
+            )
+            .cookie(
+              REFRESH_TOKEN_COOKIE_NAME,
+              refreshToken,
+              REFRESH_TOKEN_COOKIE_OPTIONS
+            );
+
+          return res.json({
+            success: true,
+            message: "Sikeres regisztráció.",
+            user,
           });
         }
-
-        const newUserId = result.insertId;
-
-        const user = {
-          id: newUserId,
-          name,
-          email,
-          isAdmin: false,
-        };
-
-        const token = jwt.sign(user, JWT_SECRET, { expiresIn: "7d" });
-
-        res.cookie(JWT_COOKIE_NAME, token, JWT_COOKIE_OPTIONS);
-
-        return res.json({
-          success: true,
-          message: "Sikeres regisztráció.",
-          user,
-        });
-      });
+      );
     } catch (hashErr) {
       console.error("Jelszó hash hiba:", hashErr);
       return res.status(500).json({
@@ -97,33 +210,37 @@ export function login(req, res) {
   const { email, password } = req.body;
 
   if (!email || !password) {
-    return res
-      .status(400)
-      .json({ success: false, message: "E-mail és jelszó megadása kötelező." });
+    return res.status(400).json({
+      success: false,
+      message: "E-mail és jelszó megadása kötelező.",
+    });
   }
 
   const sql =
-    "SELECT id, name, email, password_hash, is_admin FROM users WHERE email = ? LIMIT 1";
+    "SELECT id, name, email, password_hash, is_admin, is_delivery FROM users WHERE email = ? LIMIT 1";
 
   db.query(sql, [email], (err, rows) => {
     if (err) {
       console.error("DB hiba (login select):", err);
-      return res
-        .status(500)
-        .json({ success: false, message: "Szerver hiba (login lekérdezés)." });
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (login lekérdezés).",
+      });
     }
 
     if (rows.length === 0) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Hibás e-mail vagy jelszó." });
+      return res.status(400).json({
+        success: false,
+        message: "Hibás e-mail vagy jelszó.",
+      });
     }
 
-    const user = rows[0];
+    const userRow = rows[0];
+    const storedHash = userRow.password_hash;
 
-    bcrypt.compare(password, user.password_hash, (cmpErr, isMatch) => {
-      if (cmpErr) {
-        console.error("bcrypt hiba (compare):", cmpErr);
+    bcrypt.compare(password, storedHash, async (compareErr, isMatch) => {
+      if (compareErr) {
+        console.error("Jelszó összehasonlítási hiba:", compareErr);
         return res.status(500).json({
           success: false,
           message: "Szerver hiba (jelszó ellenőrzés).",
@@ -131,21 +248,37 @@ export function login(req, res) {
       }
 
       if (!isMatch) {
-        return res
-          .status(400)
-          .json({ success: false, message: "Hibás e-mail vagy jelszó." });
+        return res.status(400).json({
+          success: false,
+          message: "Hibás e-mail vagy jelszó.",
+        });
       }
 
-      const userData = {
-        id: user.id,
-        name: user.name,
-        email: user.email,
-        isAdmin: !!user.is_admin,
-      };
+      const userData = buildUserPayloadFromRow(userRow);
 
-      const token = jwt.sign(userData, JWT_SECRET, { expiresIn: "7d" });
+      const accessToken = generateAccessToken(userData);
+      const refreshToken = generateRefreshToken(userData.id);
 
-      res.cookie(JWT_COOKIE_NAME, token, JWT_COOKIE_OPTIONS);
+      try {
+        await saveRefreshToken(userData.id, refreshToken);
+      } catch (tokenErr) {
+        return res.status(500).json({
+          success: false,
+          message: "Szerver hiba (refresh token mentés).",
+        });
+      }
+
+      res
+        .cookie(
+          ACCESS_TOKEN_COOKIE_NAME,
+          accessToken,
+          ACCESS_TOKEN_COOKIE_OPTIONS
+        )
+        .cookie(
+          REFRESH_TOKEN_COOKIE_NAME,
+          refreshToken,
+          REFRESH_TOKEN_COOKIE_OPTIONS
+        );
 
       return res.json({
         success: true,
@@ -168,14 +301,13 @@ export function me(req, res) {
       name: req.user.name,
       email: req.user.email,
       isAdmin: !!req.user.isAdmin,
+      isDelivery: !!req.user.isDelivery,
     },
   });
 }
 
 export function adminSelf(req, res) {
   return res.status(200).json({
-    status: 200,
-    success: true,
     loggedIn: true,
     message: "Admin panel elérése sikeres!",
     user: {
@@ -183,11 +315,130 @@ export function adminSelf(req, res) {
       name: req.user.name,
       email: req.user.email,
       isAdmin: !!req.user.isAdmin,
+      isDelivery: !!req.user.isDelivery,
     },
   });
 }
 
-export function logout(req, res) {
-  res.clearCookie(JWT_COOKIE_NAME);
+export async function logout(req, res) {
+  const refreshToken =
+    req.cookies && req.cookies[REFRESH_TOKEN_COOKIE_NAME];
+
+  if (refreshToken) {
+    try {
+      await deleteRefreshToken(refreshToken);
+    } catch (err) {
+      console.error("Refresh token törlés hiba logoutnál:", err);
+    }
+  }
+
+  res.clearCookie(ACCESS_TOKEN_COOKIE_NAME);
+  res.clearCookie(REFRESH_TOKEN_COOKIE_NAME);
+
   return res.json({ success: true, message: "Sikeres kilépés." });
+}
+
+export async function refresh(req, res) {
+  const refreshToken =
+    req.cookies && req.cookies[REFRESH_TOKEN_COOKIE_NAME];
+
+  if (!refreshToken) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Nincs refresh token." });
+  }
+
+  let storedToken;
+  try {
+    storedToken = await findRefreshToken(refreshToken);
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: "Szerver hiba (refresh token keresés).",
+    });
+  }
+
+  if (!storedToken) {
+    return res
+      .status(401)
+      .json({ success: false, message: "Érvénytelen refresh token." });
+  }
+
+  let payload;
+  try {
+    payload = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+  } catch (err) {
+    console.error("Refresh token verify hiba:", err);
+    try {
+      await deleteRefreshToken(refreshToken);
+    } catch (deleteErr) {
+      console.error("Refresh token törlés verify hiba után:", deleteErr);
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: "Lejárt vagy érvénytelen refresh token.",
+    });
+  }
+
+  const userId = payload.id;
+
+  const sql =
+    "SELECT id, name, email, is_admin FROM users WHERE id = ? LIMIT 1";
+
+  db.query(sql, [userId], async (err, rows) => {
+    if (err) {
+      console.error("DB hiba (refresh user select):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (refresh user lekérdezés).",
+      });
+    }
+
+    if (rows.length === 0) {
+      try {
+        await deleteRefreshToken(refreshToken);
+      } catch (deleteErr) {
+        console.error("Refresh token törlés nem létező userhez:", deleteErr);
+      }
+
+      return res
+        .status(401)
+        .json({ success: false, message: "Felhasználó nem található." });
+    }
+
+    const userRow = rows[0];
+    const userData = buildUserPayloadFromRow(userRow);
+
+    const newAccessToken = generateAccessToken(userData);
+    const newRefreshToken = generateRefreshToken(userData.id);
+
+    try {
+      await updateRefreshTokenRow(storedToken.id, newRefreshToken);
+    } catch (updateErr) {
+      console.error("DB hiba (refresh token rotáció):", updateErr);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (refresh token frissítés).",
+      });
+    }
+
+    res
+      .cookie(
+        ACCESS_TOKEN_COOKIE_NAME,
+        newAccessToken,
+        ACCESS_TOKEN_COOKIE_OPTIONS
+      )
+      .cookie(
+        REFRESH_TOKEN_COOKIE_NAME,
+        newRefreshToken,
+        REFRESH_TOKEN_COOKIE_OPTIONS
+      );
+
+    return res.json({
+      success: true,
+      message: "Access token frissítve.",
+      user: userData,
+    });
+  });
 }
