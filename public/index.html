@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hu">
   <head>
     <meta charset="utf-8" />
@@ -11,52 +11,197 @@
     />
     <!-- Bootstrap Icons -->
     <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css"
       rel="stylesheet"
     />
+
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
       rel="stylesheet"
     />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Pacifico&display=swap"
+      rel="stylesheet"
+    />
     <style>
       body {
-        font-family: "Inter", system-ui, -apple-system, Roboto, "Helvetica Neue",
+        font-family:
+          "Inter",
+          system-ui,
+          -apple-system,
+          Roboto,
+          "Helvetica Neue",
           Arial;
       }
+
       .hero {
-        background-image: url("https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=1600&auto=format&fit=crop&ixlib=rb-4.0.3&s=");
+        position: relative;
+        background-image: url("/images/hero3.jpg");
         background-size: cover;
-        background-position: center;
-        min-height: 64vh;
+        background-position: center 100%;
+        min-height: 100vh;
         display: flex;
         align-items: center;
+        overflow: hidden;
       }
-      .hero-overlay {
-        background: rgba(0, 0, 0, 0.45);
-        padding: 4rem 0;
+
+      .hero::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background:
+          radial-gradient(
+            1200px 600px at 22% 35%,
+            rgba(255, 170, 60, 0.18),
+            rgba(0, 0, 0, 0) 60%
+          ),
+          linear-gradient(
+            90deg,
+            rgba(0, 0, 0, 0.78) 0%,
+            rgba(0, 0, 0, 0.5) 45%,
+            rgba(0, 0, 0, 0.18) 70%,
+            rgba(0, 0, 0, 0) 100%
+          );
+        pointer-events: none;
+      }
+
+      .hero > .container {
+        position: relative;
+        z-index: 1;
         width: 100%;
       }
+
+      .hero-content {
+        position: relative;
+        z-index: 1;
+        padding: 5rem 0;
+        top: -30px;
+        max-width: min(760px, 100%);
+        margin-left: clamp(0rem, 6vw, 10rem);
+      }
+
+      .hero-title {
+        font-family: "Pacifico", cursive;
+        font-size: clamp(80px, 9vw, 115px);
+        line-height: 0.95;
+        margin: 0 0 16px;
+        color: #fff;
+        text-shadow: 0 10px 30px rgba(0, 0, 0, 0.55);
+        text-align: center;
+        letter-spacing: 5px;
+      }
+
+      .hero-title .accent {
+        color: #f6b23a;
+      }
+
+      .hero-subtitle {
+        font-size: clamp(16px, 1.8vw, 22px);
+        color: rgba(255, 255, 255, 0.9);
+        margin: 0 0 22px;
+        max-width: 760px;
+        text-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+        text-align: center;
+        letter-spacing: 1.5px;
+      }
+
+      .hero-actions {
+        display: flex;
+        gap: 14px;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-evenly;
+      }
+
+      .btn-hero-pill {
+        border-radius: 999px;
+        padding: 12px 26px;
+        font-weight: 700;
+        transition: 0.2s;
+      }
+
+      .btn-main:hover {
+        color: orange;
+        background-color: transparent;
+        transform: scale(1.1);
+      }
+
+      .btn-order:hover {
+        transform: scale(1.1);
+      }
+
+      @media (max-width: 576px) {
+        .hero {
+          min-height: 70vh;
+        }
+
+        .hero-content {
+          top: 0;
+          margin-left: 0;
+          padding: 3.5rem 1rem;
+          max-width: 100%;
+        }
+
+        .hero-title,
+        .hero-subtitle {
+          text-align: left;
+        }
+
+        .hero-actions {
+          justify-content: flex-start;
+        }
+      }
+
+      /* Tablet / kisebb laptop: csökkentsük az eltolást */
+      @media (max-width: 992px) {
+        .hero-content {
+          top: 0;
+          margin-left: 0;
+          padding-left: 1.75rem;
+          padding-right: 1.75rem;
+          max-width: 760px;
+        }
+      }
+
       .menu-card img {
         height: 180px;
         object-fit: cover;
       }
+
       .badge-special {
         background: #ff6b35;
       }
+
       .footer {
         background: #111;
         color: #ddd;
       }
     </style>
+    <link rel="stylesheet" href="menucard.css" />
+    <link rel="stylesheet" href="burger-configurator.css" />
+    <link rel="stylesheet" href="navbar.css" />
+    <link rel="stylesheet" href="reservation.css" />
+    <link rel="stylesheet" href="scrollbar.css" />
+    <link rel="stylesheet" href="style.css" />
   </head>
+
   <body>
     <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <nav
+      class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top navbar-floating"
+    >
       <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="#">
-          <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
-          <span class="fw-bold">Fogpifkáló</span>
+        <!-- LOGÓ -->
+        <a class="navbar-brand d-flex align-items-center" href="index.html">
+          <img
+            src="images/fogpifkalo.png"
+            alt="Fogpifkáló"
+            class="navbar-logo me-2"
+          />
+          <span class="fw-bold brand-text">Fogpifkáló</span>
         </a>
+
+        <!-- MOBIL TOGGLE -->
         <button
           class="navbar-toggler"
           type="button"
@@ -65,12 +210,15 @@
         >
           <span class="navbar-toggler-icon"></span>
         </button>
+
         <div class="collapse navbar-collapse" id="navMenu">
-          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+          <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
             <li class="nav-item">
               <a class="nav-link active" href="#">Főoldal</a>
             </li>
-            <li class="nav-item"><a class="nav-link" href="menu.html">Menü</a></li>
+            <li class="nav-item">
+              <a class="nav-link" href="menu.html">Menü</a>
+            </li>
             <li class="nav-item">
               <a class="nav-link" href="#rolunk">Rólunk</a>
             </li>
@@ -79,89 +227,100 @@
             </li>
           </ul>
 
-          <!-- Kosár ikon + dropdown -->
-          <div class="dropdown ms-lg-3">
-            <button
-              class="btn btn-outline-light position-relative d-flex align-items-center"
-              type="button"
-              id="cartDropdownBtn"
-              data-bs-toggle="dropdown"
-              aria-expanded="false"
+          <!-- JOBB OLDAL: FOGLALÁS + (KOSÁR | FIÓK) pill -->
+          <div class="d-flex align-items-center gap-2">
+            <!-- FOGLALÁS (ghost + glow) -->
+            <a
+              class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2"
+              href="foglalas.html"
             >
-              <i class="bi bi-bag me-1"></i>
-              <span class="d-none d-lg-inline">Kosár</span>
-              <span
-                class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle"
-                id="cartCountBadge"
-                style="font-size: 0.7rem; display: none"
-              >
-                0
-              </span>
-            </button>
-            <div
-              class="dropdown-menu dropdown-menu-end p-3"
-              aria-labelledby="cartDropdownBtn"
-              style="min-width: 280px"
-            >
-              <div id="cartDropdownContent">
-                <div class="text-muted small">A kosarad jelenleg üres.</div>
+              <i class="bi bi-calendar-event"></i>
+              <span>Foglalás</span>
+            </a>
+
+            <!-- KÖZÖS PILL: KOSÁR + FIÓK -->
+            <div class="nav-utility-pill d-flex align-items-center">
+              <!-- KOSÁR -->
+              <div class="dropdown">
+                <button
+                  class="btn nav-utility-btn position-relative d-inline-flex align-items-center gap-2"
+                  type="button"
+                  id="cartDropdownBtn"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  <i class="bi bi-bag"></i>
+                  <span class="d-none d-lg-inline">Kosár</span>
+                  <span
+                    class="cart-badge"
+                    id="cartCountBadge"
+                    style="display: none"
+                    >0</span
+                  >
+                </button>
+
+                <div
+                  class="dropdown-menu dropdown-menu-end p-3"
+                  aria-labelledby="cartDropdownBtn"
+                  style="min-width: 280px"
+                >
+                  <div id="cartDropdownContent">
+                    <div class="text-muted small">A kosarad jelenleg üres.</div>
+                  </div>
+                </div>
               </div>
+
+              <span class="nav-utility-divider"></span>
+
+              <!-- FIÓK -->
+              <a
+                class="btn nav-utility-btn d-inline-flex align-items-center gap-2"
+                href="fiok.html"
+                id="accountLink"
+              >
+                <i class="bi bi-person-circle account-icon"></i>
+                <span class="d-none d-lg-inline"></span>
+              </a>
             </div>
           </div>
-
-          <!-- Fiók ikon -->
-          <a
-            class="btn btn-outline-light ms-2 d-flex align-items-center"
-            href="fiok.html"
-            id="accountLink"
-          >
-            <i class="bi bi-person-circle me-1"></i>
-            <span class="d-none d-lg-inline">Fiókom</span>
-          </a>
-
-          <!-- Foglalás gomb -->
-          <a class="btn btn-warning ms-2" href="foglalas.html">Foglalás</a>
         </div>
       </div>
     </nav>
 
     <!-- HERO -->
     <header class="hero">
-      <div class="hero-overlay text-white">
-        <div class="container">
+      <div class="container">
+        <div class="hero-content text-white">
           <div class="row align-items-center">
             <div class="col-lg-7">
-              <h1 class="display-5 fw-bold">
-                Frissen sült, kézzel formázott burger — minden harapás egy
-                élmény
+              <h1 class="hero-title">
+                Kóstolj<br />
+                <span class="accent">bele!</span>
               </h1>
-              <p class="lead">
-                Helyi alapanyagok, saját szószok és a tökéletes, ropogós briós.
-                Gyere el, vagy rendelj házhoz!
+              <p class="hero-subtitle">
+                Rendelj frissen készült ételeket kényelmesen otthonodba!
               </p>
-              <div class="mt-3">
-                <a href="#menu" class="btn btn-lg btn-light me-2"
-                  >Menü megtekintése</a
+              <div class="hero-actions mt-3">
+                <a
+                  href="foglalas.html"
+                  class="btn btn-warning btn-hero-pill btn-lg btn-main"
+                  >Foglalj asztalt!</a
                 >
-                <a href="foglalas.html" class="btn btn-lg btn-outline-light"
-                  >Foglalás</a
+                <a
+                  href="menu.html"
+                  class="btn btn-outline-light btn-hero-pill btn-lg btn-order"
+                  >Rendelés</a
                 >
               </div>
             </div>
-            <div class="col-lg-5 d-none d-lg-block text-end">
-              <img
-                src="https://images.unsplash.com/photo-1550547660-d9450f859349?q=80&w=800&auto=format&fit=crop&ixlib=rb-4.0.3&s="
-                alt="burger"
-                class="img-fluid rounded shadow-lg"
-              />
-            </div>
+            <div class="col-lg-5 d-none d-lg-block"></div>
           </div>
         </div>
       </div>
     </header>
 
     <!-- HIGHLIGHTS -->
-    <section class="py-5">
+    <section class="py-5 my-5">
       <div class="container">
         <div class="row text-center g-4">
           <div class="col-md-4">
@@ -202,47 +361,101 @@
     </section>
 
     <!-- MENU GRID -->
-<section id="menu" class="py-5 bg-light">
-  <div class="container">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-      <h2 class="h3 mb-0">Hétvégi ajánlataink</h2>
-      <a href="menu.html" class="btn btn-sm btn-outline-secondary">
-        Teljes menü megtekintése
-      </a>
-    </div>
+    <section id="menu" class="py-5 my-5 bg-light">
+      <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h2 class="h3 mb-0 wo-title">Hétvégi ajánlataink</h2>
+        </div>
 
         <div id="menuItems" class="row g-4">
           <div class="col-12 text-muted" id="menuLoading">
             Menü betöltése...
           </div>
         </div>
+        <div class="d-flex mt-5 justify-content-center">
+          <a href="menu.html" class="btn btn-md btn-outline-secondary">
+            Teljes menü megtekintése
+          </a>
+        </div>
       </div>
     </section>
 
     <!-- ABOUT -->
-    <section id="rolunk" class="py-5">
+    <section id="rolunk" class="py-5 my-5 about-section">
       <div class="container">
         <div class="row align-items-center g-4">
+          <!-- Bal oldal: szöveg -->
           <div class="col-lg-6">
-            <h3>Rólunk</h3>
-            <p class="lead">
+            <h2 class="about-title mb-5">Rólunk.</h2>
+
+            <p class="lead mb-3">
               A Fogpifkáló 2018 óta szolgálja a várost: egyszerű, nagyszerű
               ízek, barátságos hangulat és remek ár-érték arány.
             </p>
-            <p>
-              Hiszünk a kézműves minőségben: minden pogácsát naponta készítünk,
-              a zsemlék frissen érkeznek a pékünktől, és minden köretet házon
-              belül készítünk.
+
+            <p class="lead mb-5">
+              Hiszünk a kézműves minőségben: minden pogácsát
+              <strong>naponta</strong> készítünk, a zsemlék
+              <strong>frissen</strong> érkeznek a pékünktől, és minden köretet
+              <strong>házon belül</strong> készítünk.
             </p>
-            <a href="#" class="btn btn-outline-primary">Tovább rólunk</a>
+
+            <div class="row g-3 about-points mb-4">
+              <div class="col-6 col-sm-3">
+                <div class="about-point">
+                  <i class="bi bi-calendar3 text-warning"></i>
+                  <div class="about-point-text">2018 óta</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="about-point">
+                  <i class="bi bi-fire text-warning"></i>
+                  <div class="about-point-text">Minden nap frissen</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="about-point">
+                  <i class="bi bi-egg-fried text-warning"></i>
+                  <div class="about-point-text">Házon belüli konyha</div>
+                </div>
+              </div>
+              <div class="col-6 col-sm-3">
+                <div class="about-point">
+                  <i class="bi bi-heart-fill text-warning"></i>
+                  <div class="about-point-text">Kézműves minőség</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <div class="about-quote">
+                „Úgy főzünk, ahogy <br />
+                mi is enni szeretünk.”
+              </div>
+            </div>
           </div>
+
+          <!-- Jobb oldal: képkollázs (placeholder) -->
           <div class="col-lg-6">
-            <div class="ratio ratio-16x9 rounded shadow-sm">
-              <iframe
-                src="https://www.youtube.com/watch?v=25LT2WNJmO4&t=40s"
-                title="Bemutatkozó"
-                allowfullscreen
-              ></iframe>
+            <div class="about-collage">
+              <img
+                src="images/biggerpic.jpg"
+                alt="Konyhai pillanat"
+                class="about-img-nagy about-img-main"
+                loading="lazy"
+              />
+              <img
+                src="images/smallerpic3.jpg"
+                alt="Friss pogácsák"
+                class="about-img-kicsi1 about-img-sub"
+                loading="lazy"
+              />
+              <img
+                src="images/smallerpic1.jpg"
+                alt="Vendégtér hangulat"
+                class="about-img-kicsi2 about-img-sub"
+                loading="lazy"
+              />
             </div>
           </div>
         </div>
@@ -250,18 +463,43 @@
     </section>
 
     <!-- RESERVATION CTA -->
-    <section id="foglalas" class="py-5 bg-dark text-white text-center">
+    <section id="foglalas" class="reservation-cta my-5 py-5">
       <div class="container">
-        <h3 class="mb-3">Foglalj asztalt most</h3>
-        <p class="mb-4">
-          Garantáltan jó helyed lesz egy hétvégi esti burger-partira.
-        </p>
-        <a href="foglalas.html" class="btn btn-warning btn-lg">Foglalás</a>
+        <div class="reservation-card">
+          <div
+            class="reservation-media"
+            role="img"
+            aria-label="Vendégtér"
+          ></div>
+
+          <div class="reservation-content">
+            <h2 class="reservation-title">Biztosítsd be a helyed!</h2>
+            <div class="reservation-subtitle">
+              Foglalj asztalt pár kattintással
+            </div>
+
+            <p class="reservation-text">
+              Foglalj most asztalt, és garantáltan egy nyugodt, hangulatos
+              asztal vár rátok a hétvégi esti programhoz.
+            </p>
+
+            <div class="reservation-actions">
+              <a
+                href="foglalas.html"
+                class="btn btn-warning btn-hero-pill btn-lg btn-main"
+                >Foglalj asztalt</a
+              >
+              <a href="menu.html" class="reservation-link"
+                >Mutasd a menüt <span aria-hidden="true">→</span></a
+              >
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
     <!-- CONTACT -->
-    <section id="kapcsolat" class="py-5">
+    <section id="kapcsolat" class="py-5 my-5">
       <div class="container">
         <div class="row g-4">
           <div class="col-md-6">
@@ -305,7 +543,7 @@
                   placeholder="Miben segíthetünk?"
                 ></textarea>
               </div>
-              <button class="btn btn-primary" type="submit">Küldés</button>
+              <button class="btn btn-warning" type="submit">Küldés</button>
             </form>
           </div>
         </div>
@@ -329,10 +567,114 @@
       </div>
     </footer>
 
+    <!-- Product Details Modal -->
+    <div
+      class="modal fade product-modal"
+      id="productDetailsModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div
+        class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"
+      >
+        <div class="modal-content product-modal-content">
+          <div class="product-modal-hero">
+            <img id="pModalImg" class="product-modal-hero-img" src="" alt="" />
+
+            <button
+              type="button"
+              class="btn btn-sm btn-light product-modal-close"
+              data-bs-dismiss="modal"
+              aria-label="Bezárás"
+            >
+              <i class="bi bi-x-lg"></i>
+            </button>
+
+            <div class="product-modal-hero-text">
+              <div class="d-flex align-items-end justify-content-between gap-2">
+                <h3 class="product-modal-title" id="pModalTitle">Termék</h3>
+                <div class="product-modal-price" id="pModalPrice">0 Ft</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-body product-modal-body">
+            <!-- Leírás -->
+            <div class="product-accordion">
+              <button
+                class="product-accordion-header"
+                type="button"
+                data-target="desc"
+              >
+                <span>Leírás</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+
+              <div class="product-accordion-content" data-content="desc">
+                <p class="product-modal-desc" id="pModalDesc"></p>
+              </div>
+            </div>
+
+            <!-- Összetevők -->
+            <div class="product-accordion" id="pModalIngredientsSection">
+              <button
+                class="product-accordion-header"
+                type="button"
+                data-target="ingredients"
+              >
+                <span>Összetevők</span>
+                <i class="bi bi-chevron-down"></i>
+              </button>
+
+              <div class="product-accordion-content" data-content="ingredients">
+                <div
+                  class="product-modal-ingredients"
+                  id="pModalIngredients"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="product-modal-footer">
+            <div class="qty-stepper" aria-label="Mennyiség">
+              <button
+                type="button"
+                class="qty-btn"
+                id="pQtyMinus"
+                aria-label="Csökkentés"
+              >
+                −
+              </button>
+              <div class="qty-value" id="pQtyValue">1</div>
+              <button
+                type="button"
+                class="qty-btn"
+                id="pQtyPlus"
+                aria-label="Növelés"
+              >
+                +
+              </button>
+            </div>
+
+            <button
+              type="button"
+              class="btn btn-light product-modal-cart"
+              id="pModalAddBtn"
+            >
+              Kosárba
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="script.js"></script>
+    <script src="productModal.js"></script>
     <script src="api.js"></script>
+    <script src="name.js"></script>
+    <script src="burgerConfigurator.js"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const menuContainer = document.getElementById("menuItems");
@@ -344,26 +686,72 @@
           return Math.round(Number(value)).toLocaleString("hu-HU");
         }
 
+        function escapeHtml(value) {
+          return String(value ?? "").replace(
+            /[&<>"']/g,
+            (char) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#39;",
+              })[char],
+          );
+        }
+
+        function escapeAttr(value) {
+          return escapeHtml(value).replace(/`/g, "&#96;");
+        }
+
         async function loadSpecialOffers() {
           if (menuLoading) {
             menuLoading.textContent = "Menü betöltése...";
           }
 
           try {
-            const res = await fetch("/api/special-offers");
-            const data = await res.json();
+            const [offersRes, productsRes] = await Promise.all([
+              fetch("/api/special-offers"),
+              fetch("/api/products"),
+            ]);
 
-            if (!data.success) {
+            const offersData = await offersRes.json();
+            const productsData = await productsRes.json();
+
+            if (!offersData.success) {
               if (menuLoading) {
                 menuLoading.textContent =
-                  data.message || "Nem sikerült betölteni a menüt.";
+                  offersData.message || "Nem sikerült betölteni a menüt.";
               }
               return;
             }
 
-            const products = data.products || [];
+            const offers = Array.isArray(offersData.products)
+              ? offersData.products
+              : Array.isArray(offersData)
+                ? offersData
+                : [];
 
-            if (products.length === 0) {
+            const allProducts = Array.isArray(productsData?.products)
+              ? productsData.products
+              : Array.isArray(productsData)
+                ? productsData
+                : [];
+
+            const offerMap = new Map(offers.map((p) => [String(p.id), p]));
+            const fullProductMap = new Map(
+              [...allProducts, ...offers].map((p) => [String(p.id), p]),
+            );
+
+            if (typeof window.setProductModalMap === "function") {
+              window.setProductModalMap(offerMap);
+            }
+
+            if (typeof window.setBurgerConfiguratorProductMap === "function") {
+              window.setBurgerConfiguratorProductMap(fullProductMap);
+            }
+
+            if (offers.length === 0) {
               if (menuLoading) {
                 menuLoading.textContent = "Jelenleg nincs elérhető termék.";
               }
@@ -373,34 +761,51 @@
             // Konténer ürítése
             menuContainer.innerHTML = "";
 
-            products.forEach((p) => {
+            offers.forEach((p) => {
               const col = document.createElement("div");
               col.className = "col-md-6 col-lg-4";
 
-              const imgUrl =
-                p.image_url && p.image_url.trim()
-                  ? p.image_url
-                  : "https://via.placeholder.com/400x250?text=Burger";
+              const fallbackImg =
+                "https://via.placeholder.com/800x600?text=Burger";
+
+              let imgUrl =
+                p.image_url && p.image_url.trim() ? p.image_url.trim() : "";
+
+              // Normalizálás: \ -> /, public/ levágása, és legyen /-sal kezdődő útvonal
+              imgUrl = imgUrl
+                .replace(/\\/g, "/")
+                .replace(/^public\//, "")
+                .replace(/^\.?\//, "");
+
+              imgUrl = imgUrl ? `/${imgUrl}` : fallbackImg;
 
               col.innerHTML = `
-          <div class="card menu-card h-100 shadow-sm">
-            <img src="${imgUrl}" class="card-img-top" alt="${p.name}">
-            <div class="card-body d-flex flex-column">
-              <h5 class="card-title">${p.name}</h5>
-              <p class="card-text">${p.description || ""}</p>
-              <div class="mt-auto d-flex justify-content-between align-items-center">
-                <strong>${formatFt(p.price)} Ft</strong>
-                <button 
-                  class="btn btn-sm btn-primary order-btn" 
-                  data-product-id="${p.id}"
-                  type="button"
+              <div class="menu-image-card weekend-offer-card shadow-sm" role="button" tabindex="0" data-product-id="${escapeAttr(p.id)}">
+                <img
+                  src="${escapeAttr(imgUrl)}"
+                  alt="${escapeAttr(p.name || "Termék")}"
+                  onerror="this.onerror=null;this.src='${fallbackImg}';"
                 >
-                  Rendelés
-                </button>
+                <div class="menu-image-overlay">
+                  <h5 class="product-title">${escapeHtml(p.name || "")}</h5>
+                  ${
+                    p.description
+                      ? `<p class="product-desc">${escapeHtml(p.description)}</p>`
+                      : ""
+                  }
+                  <div class="overlay-bottom">
+                    <div class="product-price">${formatFt(p.price)} Ft</div>
+                    <button
+                      class="btn btn-sm btn-light order-btn"
+                      data-product-id="${escapeAttr(p.id)}"
+                      type="button"
+                    >
+                      Kosárba
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
-        `;
+            `;
 
               menuContainer.appendChild(col);
             });
@@ -418,6 +823,21 @@
             }
           }
         }
+
+        document.addEventListener("click", (e) => {
+          // ha a Kosárba gombra kattintanak, ne nyisson modalt
+          if (e.target.closest(".order-btn")) return;
+
+          const card = e.target.closest(".weekend-offer-card");
+          if (!card) return;
+
+          const pid = card.dataset.productId;
+          if (!pid) return;
+
+          if (typeof window.openProductModalById === "function") {
+            window.openProductModalById(pid);
+          }
+        });
 
         loadSpecialOffers();
       });

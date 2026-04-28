@@ -1,166 +1,206 @@
 <!DOCTYPE html>
 <html lang="hu">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>BurgerBázis – Fizetés</title>
 
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <!-- NAVBAR (ugyanaz stílusban, mint az index/fiok) -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="index.html">
-          <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
-          <span class="fw-bold">BurgerBázis</span>
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navMenu"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navMenu">
-          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html">Főoldal</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="index.html#menu">Menü</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="fiok.html">Fiókom</a>
-            </li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>BurgerBázis – Fizetés</title>
 
-    <main class="py-5">
-      <div class="container">
-        <h1 class="h4 mb-4">Rendelés véglegesítése</h1>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="navbar2.css" />
+  <link rel="stylesheet" href="scrollbar.css">
+</head>
 
-        <div class="row g-4">
-          <!-- Kosár összegzés -->
-          <div class="col-lg-6">
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h2 class="h6 mb-3">Kosarad tartalma</h2>
-                <div id="checkoutCartItems" class="small text-muted">
-                  Kosár betöltése...
-                </div>
-                <div class="mt-3 pt-3 border-top d-flex justify-content-between">
-                  <strong>Összesen:</strong>
-                  <strong id="checkoutTotal">0 Ft</strong>
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <!-- LOGÓ -->
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <img src="images/fogpifkalo.png" alt="Fogpifkáló" class="navbar-logo me-2" />
+        <span class="fw-bold brand-text">Fogpifkáló</span>
+      </a>
+
+      <!-- MOBIL TOGGLE -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Főoldal</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="menu.html">Menü</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#rolunk">Rólunk</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
+          </li>
+        </ul>
+
+        <!-- JOBB OLDAL: FOGLALÁS + (KOSÁR | FIÓK) pill -->
+        <div class="d-flex align-items-center gap-2">
+          <!-- FOGLALÁS (ghost + glow) -->
+          <a class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2"
+            href="foglalas.html">
+            <i class="bi bi-calendar-event"></i>
+            <span>Foglalás</span>
+          </a>
+
+          <!-- KÖZÖS PILL: KOSÁR + FIÓK -->
+          <div class="nav-utility-pill d-flex align-items-center">
+            <!-- KOSÁR -->
+            <div class="dropdown">
+              <button class="btn nav-utility-btn position-relative d-inline-flex align-items-center gap-2" type="button"
+                id="cartDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bag"></i>
+                <span class="d-none d-lg-inline">Kosár</span>
+                <span class="cart-badge" id="cartCountBadge" style="display: none">0</span>
+              </button>
+
+              <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="cartDropdownBtn"
+                style="min-width: 280px">
+                <div id="cartDropdownContent">
+                  <div class="text-muted small">A kosarad jelenleg üres.</div>
                 </div>
               </div>
             </div>
+
+            <span class="nav-utility-divider"></span>
+
+            <!-- FIÓK -->
+            <a class="btn nav-utility-btn d-inline-flex align-items-center gap-2" href="fiok.html" id="accountLink">
+              <i class="bi bi-person-circle account-icon"></i>
+              <span class="d-none d-lg-inline"></span>
+            </a>
           </div>
+        </div>
+      </div>
+  </nav>
 
-          <!-- Szállítási adatok + fizetés -->
-          <div class="col-lg-6">
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h2 class="h6 mb-3">Szállítási adatok</h2>
-                <form id="checkoutForm">
-                  <div class="mb-2">
-                    <label class="form-label">Név</label>
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      id="shippingName"
-                      required
-                    />
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Telefonszám</label>
-                    <input
-                      type="tel"
-                      class="form-control form-control-sm"
-                      id="shippingPhone"
-                      required
-                    />
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Cím</label>
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      id="shippingAddress"
-                      placeholder="Irányítószám, város, utca, házszám"
-                      required
-                    />
-                  </div>
+  <main class="py-5 my-5">
+    <div class="container">
+      <h1 class="h4 mb-4">Rendelés véglegesítése</h1>
 
-                  <h3 class="h6 mt-3 mb-2">Fizetési mód</h3>
-                  <div class="mb-2">
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="radio"
-                        name="paymentMethod"
-                        id="payCash"
-                        value="cash"
-                        checked
-                      />
-                      <label class="form-check-label" for="payCash">
-                        Készpénz a futárnál
-                      </label>
-                    </div>
-                    <div class="form-check">
-                      <input
-                        class="form-check-input"
-                        type="radio"
-                        name="paymentMethod"
-                        id="payCard"
-                        value="card"
-                      />
-                      <label class="form-check-label" for="payCard">
-                        Bankkártya a futárnál
-                      </label>
-                    </div>
-                  </div>
-
-                  <div class="mb-3">
-                    <label class="form-label">Megjegyzés (opcionális)</label>
-                    <textarea
-                      id="orderNote"
-                      class="form-control form-control-sm"
-                      rows="2"
-                      placeholder="Pl. csengő nem működik, hívj ha itt vagy."
-                    ></textarea>
-                  </div>
-
-                  <div
-                    id="checkoutError"
-                    class="text-danger small mb-2 d-none"
-                  ></div>
-
-                  <button type="submit" class="btn btn-success w-100">
-                    Rendelés elküldése
-                  </button>
-                </form>
+      <div class="row g-4">
+        <!-- Kosár összegzés -->
+        <div class="col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Kosarad tartalma</h2>
+              <div id="checkoutCartItems" class="small text-muted">
+                Kosár betöltése...
+              </div>
+              <div class="mt-3 pt-3 border-top d-flex justify-content-between">
+                <strong>Összesen:</strong>
+                <strong id="checkoutTotal">0 Ft</strong>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </main>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- betöltjük a meglévő script.js-t, hogy a session, kosár ikon, stb. működjön -->
-    <script src="script.js"></script>
-    <script src="checkout.js"></script>
-    <script src="api.js"></script>
-  </body>
+        <!-- Szállítási adatok + fizetés -->
+        <div class="col-lg-6">
+          <div class="card shadow-sm">
+            <div class="card-body">
+              <h2 class="h6 mb-3">Szállítási adatok</h2>
+              <form id="checkoutForm">
+                <div class="mb-2">
+                  <label class="form-label">Név</label>
+                  <input type="text" class="form-control form-control-sm" id="shippingName" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label">Telefonszám</label>
+                  <input type="tel" class="form-control form-control-sm" id="shippingPhone" required />
+                </div>
+                <div class="mb-2">
+                  <label class="form-label" for="shippingCity">Város</label>
+                  <select class="form-select form-select-sm" id="shippingCity" required>
+                    <option value="">Válassz települést...</option>
+                    <option value="Mohács">Mohács</option>
+                    <option value="Somberek">Somberek</option>
+                    <option value="Bozsok">Bozsok</option>
+                    <option value="Bár">Bár</option>
+                    <option value="Szőlőhegy">Szőlőhegy</option>
+                    <option value="Sátorhely">Sátorhely</option>
+                    <option value="Kölked">Kölked</option>
+                    <option value="Lánycsók">Lánycsók</option>
+                  </select>
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label" for="shippingStreet">Utca</label>
+                  <input type="text" class="form-control form-control-sm" id="shippingStreet"
+                    placeholder="Pl. Kossuth Lajos utca" required />
+                </div>
+
+                <div class="mb-2">
+                  <label class="form-label" for="shippingHouseNumber">Házszám</label>
+                  <input type="text" class="form-control form-control-sm" id="shippingHouseNumber"
+                    placeholder="Pl. 12/B" required />
+                </div>
+
+                <h3 class="h6 mt-3 mb-2">Fizetési mód</h3>
+                <div class="mb-2">
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="paymentMethod" id="payCash" value="cash"
+                      checked />
+                    <label class="form-check-label" for="payCash">
+                      Készpénz a futárnál
+                    </label>
+                  </div>
+                  <div class="form-check">
+                    <input class="form-check-input" type="radio" name="paymentMethod" id="payCard" value="card" />
+                    <label class="form-check-label" for="payCard">
+                      Bankkártya a futárnál
+                    </label>
+                  </div>
+                </div>
+
+                <div class="mb-3">
+                  <label class="form-label">Megjegyzés (opcionális)</label>
+                  <textarea id="orderNote" class="form-control form-control-sm" rows="2"
+                    placeholder="Pl. csengő nem működik, hívj ha itt vagy."></textarea>
+                </div>
+
+                <div id="checkoutError" class="text-danger small mb-2 d-none"></div>
+
+                <button type="submit" class="btn btn-success w-100">
+                  Rendelés elküldése
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast értesítés (jobb alsó sarok) -->
+  <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
+    <div id="checkoutToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
+      aria-atomic="true">
+      <div class="d-flex">
+        <div id="checkoutToastText" class="toast-body">
+          Művelet sikeresen végrehajtva.
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Bezárás"></button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- betöltjük a meglévő script.js-t, hogy a session, kosár ikon, stb. működjön -->
+  <script src="script.js"></script>
+  <script src="checkout.js"></script>
+  <script src="api.js"></script>
+  <script src="name.js"></script>
+</body>
+
 </html>

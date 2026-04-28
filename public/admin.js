@@ -9,23 +9,23 @@ document.addEventListener("DOMContentLoaded", () => {
   const editProductIdInput = document.getElementById("editProductId");
   const editProductNameInput = document.getElementById("editProductName");
   const editProductDescriptionInput = document.getElementById(
-    "editProductDescription"
+    "editProductDescription",
   );
   const editProductPriceInput = document.getElementById("editProductPrice");
   const editProductImageUrlInput = document.getElementById(
-    "editProductImageUrl"
+    "editProductImageUrl",
   );
   const editProductCategorySelect = document.getElementById(
-    "editProductCategory"
+    "editProductCategory",
   );
   const reservationsAdminList = document.getElementById(
-    "reservationsAdminList"
+    "reservationsAdminList",
   );
   const newProductIsSpecialOfferInput = document.getElementById(
-    "newProductIsSpecialOffer"
+    "newProductIsSpecialOffer",
   );
   const editProductIsSpecialOfferInput = document.getElementById(
-    "editProductIsSpecialOffer"
+    "editProductIsSpecialOffer",
   );
 
   // Új termék kép feltöltés (drag & drop)
@@ -33,7 +33,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const newImageDropZone = document.getElementById("newImageDropZone");
   const newImageFileInput = document.getElementById("newImageFileInput");
   const newImageBrowseTrigger = document.getElementById(
-    "newImageBrowseTrigger"
+    "newImageBrowseTrigger",
   );
   const newImageUploadStatus = document.getElementById("newImageUploadStatus");
   const newImagePreview = document.getElementById("newImagePreview");
@@ -42,10 +42,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const editImageDropZone = document.getElementById("editImageDropZone");
   const editImageFileInput = document.getElementById("editImageFileInput");
   const editImageBrowseTrigger = document.getElementById(
-    "editImageBrowseTrigger"
+    "editImageBrowseTrigger",
   );
   const editImageUploadStatus = document.getElementById(
-    "editImageUploadStatus"
+    "editImageUploadStatus",
   );
   const editImagePreview = document.getElementById("editImagePreview");
 
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const confirmModalEl = document.getElementById("confirmModal");
   const confirmModalMessageEl = document.getElementById("confirmModalMessage");
   const confirmModalConfirmBtn = document.getElementById(
-    "confirmModalConfirmBtn"
+    "confirmModalConfirmBtn",
   );
   let confirmModal;
   if (confirmModalEl && typeof bootstrap !== "undefined") {
@@ -85,9 +85,74 @@ document.addEventListener("DOMContentLoaded", () => {
     orderDetailsModal = new bootstrap.Modal(orderDetailsModalEl);
   }
 
+  // Ingredients UI (új + szerkesztés)
+  const newIngredientsWrap = document.getElementById("newIngredientsWrap");
+  const newIngredientsAddBtn = document.getElementById("newIngredientsAddBtn");
+
+  const editIngredientsWrap = document.getElementById("editIngredientsWrap");
+  const editIngredientsAddBtn = document.getElementById(
+    "editIngredientsAddBtn",
+  );
+
   // Kis helper az Ft formázáshoz
   function formatFt(value) {
     return Math.round(Number(value)).toLocaleString("hu-HU");
+  }
+
+  function getBurgerConfigLines(config) {
+    if (!config || config.baseType !== "menu") {
+      return [];
+    }
+
+    const lines = ["Menü"];
+
+    if (config.sideType === "crispers") {
+      lines.push("Köret: Crispers");
+    } else if (config.sideType === "sweet_potato") {
+      lines.push("Köret: Édesburgonya");
+    }
+
+    if (config.extraType === "coleslaw") {
+      lines.push("Kiegészítő: Coleslaw saláta");
+    } else if (config.extraType === "sauce") {
+      lines.push("Kiegészítő: Szósz");
+      if (config.sauceName) {
+        lines.push(`Szósz: ${config.sauceName}`);
+      }
+    }
+
+    return lines;
+  }
+
+  function renderBurgerConfigTableHtml(config) {
+    const lines = getBurgerConfigLines(config);
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    <div class="text-muted small mt-1">
+      ${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}
+    </div>
+  `;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(
+      /[&<>"']/g,
+      (char) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char],
+    );
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
   }
 
   function showError(message) {
@@ -96,6 +161,78 @@ document.addEventListener("DOMContentLoaded", () => {
     adminError.classList.remove("d-none");
     adminContent.classList.add("d-none");
   }
+
+  // =========================
+  // Ingredients editor helper
+  // =========================
+  function createIngredientRow(initialValue = "") {
+    const row = document.createElement("div");
+    row.className = "input-group input-group-sm";
+
+    row.innerHTML = `
+      <input type="text" class="form-control ingredient-input mb-2" placeholder="pl. Bacon" />
+      <button class="btn btn-outline-danger ingredient-remove-btn mb-2" type="button" title="Törlés">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    `;
+
+    const input = row.querySelector(".ingredient-input");
+    input.value = initialValue;
+
+    // Enter -> új sor (ha van hozzá add gomb), vagy csak blur
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        input.blur();
+      }
+    });
+
+    return row;
+  }
+
+  function collectIngredientsFromWrap(wrapEl) {
+    if (!wrapEl) return [];
+    const inputs = wrapEl.querySelectorAll("input.ingredient-input");
+    return Array.from(inputs)
+      .map((i) => i.value.trim())
+      .filter(Boolean);
+  }
+
+  function setIngredientsToWrap(wrapEl, arr) {
+    if (!wrapEl) return;
+    wrapEl.innerHTML = "";
+    (arr || []).forEach((v) => wrapEl.appendChild(createIngredientRow(v)));
+  }
+
+  function wireIngredientsEditor({ wrapEl, addBtnEl }) {
+    if (!wrapEl || !addBtnEl) return;
+
+    // + gomb -> új sor, fókusz
+    addBtnEl.addEventListener("click", () => {
+      const row = createIngredientRow("");
+      wrapEl.appendChild(row);
+      const input = row.querySelector("input.ingredient-input");
+      if (input) input.focus();
+    });
+
+    // törlés delegálva
+    wrapEl.addEventListener("click", (e) => {
+      const removeBtn = e.target.closest(".ingredient-remove-btn");
+      if (!removeBtn) return;
+      const row = removeBtn.closest(".input-group");
+      if (row) row.remove();
+    });
+  }
+
+  // Bekötjük a két editor instance-t
+  wireIngredientsEditor({
+    wrapEl: newIngredientsWrap,
+    addBtnEl: newIngredientsAddBtn,
+  });
+  wireIngredientsEditor({
+    wrapEl: editIngredientsWrap,
+    addBtnEl: editIngredientsAddBtn,
+  });
 
   // Toast helper
   function showToast(message, type = "success") {
@@ -186,7 +323,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dropZone.addEventListener(
         eventName,
         () => dropZone.classList.add("bg-light"),
-        false
+        false,
       );
     });
 
@@ -194,7 +331,7 @@ document.addEventListener("DOMContentLoaded", () => {
       dropZone.addEventListener(
         eventName,
         () => dropZone.classList.remove("bg-light"),
-        false
+        false,
       );
     });
 
@@ -294,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadAdminLogs(),
       ]);
     } catch (err) {
-      console.error("Hiba az /api/me ellenőrzésnél:", err);
+      console.error("Hiba az /api/me/admin ellenőrzésnél:", err);
       showError("Nem sikerült csatlakozni a szerverhez.");
     }
   }
@@ -332,8 +469,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
         wrapper.innerHTML = `
         <div>
-          <strong>${p.name}</strong>
-          <div class="text-muted small">${p.description || ""}</div>
+          <strong>${escapeHtml(p.name)}</strong>
+          <div class="text-muted small clamp-2">${escapeHtml(p.description || "")}</div>
           <div class="small fw-semibold">${formatFt(p.price)} Ft</div>
           ${
             !isActive
@@ -346,22 +483,19 @@ document.addEventListener("DOMContentLoaded", () => {
               : ""
           }
         </div>
-        <div class="text-end">
+        <div class="text-end d-flex justify-content-end gap-1 flex-shrink-0 align-self-start">
           <button 
             class="btn btn-sm btn-outline-secondary me-1 admin-edit-product-btn"
-            data-product-id="${p.id}"
-            data-name="${p.name ? String(p.name).replace(/"/g, "&quot;") : ""}"
-            data-description="${
-              p.description ? String(p.description).replace(/"/g, "&quot;") : ""
-            }"
+            data-product-id="${escapeAttr(p.id)}"
+            data-name="${escapeAttr(p.name || "")}"
+            data-description="${escapeAttr(p.description || "")}"
+              data-ingredients="${escapeAttr(
+                p.ingredients ? JSON.stringify(p.ingredients) : "[]",
+              )}"
             data-price="${p.price}"
-            data-image-url="${
-              p.image_url ? String(p.image_url).replace(/"/g, "&quot;") : ""
-            }"
-            data-category="${p.category || "burger"}"
-            data-is-special-offer="${
-              Number(p.is_special_offer) === 1 ? "1" : "0"
-            }"
+            data-image-url="${escapeAttr(p.image_url || "")}"
+            data-category="${escapeAttr(p.category || "burger")}"
+            data-is-special-offer="${escapeAttr(Number(p.is_special_offer) === 1 ? "1" : "0")}"
 
             title="Szerkesztés"
           >
@@ -373,7 +507,7 @@ document.addEventListener("DOMContentLoaded", () => {
               ? `
             <button 
               class="btn btn-sm btn-outline-danger admin-delete-product-btn"
-              data-product-id="${p.id}"
+              data-product-id="${escapeAttr(p.id)}"
               title="Törlés"
             >
               <i class="bi bi-trash"></i>
@@ -381,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
               : `
             <button 
               class="btn btn-sm btn-outline-success admin-activate-product-btn"
-              data-product-id="${p.id}"
+              data-product-id="${escapeAttr(p.id)}"
               title="Újraaktiválás"
             >
               <i class="bi bi-arrow-counterclockwise"></i>
@@ -408,6 +542,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = formData.get("name");
       const description = formData.get("description");
       const price = formData.get("price");
+      const ingredients = collectIngredientsFromWrap(newIngredientsWrap);
       let image_url = formData.get("image_url");
       const category = formData.get("category") || "burger";
       const is_special_offer = formData.get("is_special_offer") === "on";
@@ -420,7 +555,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (newFile) {
         const uploadedUrl = await uploadImageFile(
           newFile,
-          newImageUploadStatus
+          newImageUploadStatus,
         );
         if (!uploadedUrl) {
           // hibáról már szóltunk toastban, ne menjünk tovább
@@ -446,6 +581,7 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({
             name,
             description,
+            ingredients,
             price: Number(price),
             image_url,
             category,
@@ -458,6 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (data.success) {
           showToast("Termék sikeresen hozzáadva.", "success");
           newProductForm.reset();
+          setIngredientsToWrap(newIngredientsWrap, []);
           await loadProducts();
           if (newImageUpload && newImageUpload.clearSelectedFile) {
             newImageUpload.clearSelectedFile();
@@ -465,7 +602,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           showToast(
             data.message || "Nem sikerült létrehozni a terméket.",
-            "danger"
+            "danger",
           );
         }
       } catch (err) {
@@ -502,7 +639,7 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             showToast(
               data.message || "Nem sikerült inaktiválni a terméket.",
-              "danger"
+              "danger",
             );
           }
         } catch (err) {
@@ -526,7 +663,7 @@ document.addEventListener("DOMContentLoaded", () => {
             `/api/admin/products/${productId}/activate`,
             {
               method: "PUT",
-            }
+            },
           );
           const data = await res.json();
 
@@ -536,7 +673,7 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             showToast(
               data.message || "Nem sikerült aktiválni a terméket.",
-              "danger"
+              "danger",
             );
           }
         } catch (err) {
@@ -552,6 +689,18 @@ document.addEventListener("DOMContentLoaded", () => {
         const productId = editBtn.dataset.productId;
         const name = editBtn.dataset.name || "";
         const description = editBtn.dataset.description || "";
+        let ingredients = [];
+        try {
+          ingredients = editBtn.dataset.ingredients
+            ? JSON.parse(editBtn.dataset.ingredients)
+            : [];
+        } catch (err) {
+          ingredients = [];
+        }
+        setIngredientsToWrap(
+          editIngredientsWrap,
+          Array.isArray(ingredients) ? ingredients : [],
+        );
         const price = editBtn.dataset.price || "";
         const imageUrl = editBtn.dataset.imageUrl || "";
         const category = editBtn.dataset.category || "burger";
@@ -584,12 +733,14 @@ document.addEventListener("DOMContentLoaded", () => {
       const name = editProductNameInput.value.trim();
       const description = editProductDescriptionInput.value.trim();
       const price = editProductPriceInput.value;
+      const ingredients = collectIngredientsFromWrap(editIngredientsWrap);
       let image_url = editProductImageUrlInput.value.trim();
       const category = editProductCategorySelect
         ? editProductCategorySelect.value
         : "burger";
       const is_special_offer = Boolean(
-        editProductIsSpecialOfferInput && editProductIsSpecialOfferInput.checked
+        editProductIsSpecialOfferInput &&
+        editProductIsSpecialOfferInput.checked,
       );
 
       console.log("EDIT SUBMIT is_special_offer:", is_special_offer);
@@ -602,7 +753,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (editFile) {
         const uploadedUrl = await uploadImageFile(
           editFile,
-          editImageUploadStatus
+          editImageUploadStatus,
         );
         if (!uploadedUrl) {
           return;
@@ -627,6 +778,7 @@ document.addEventListener("DOMContentLoaded", () => {
           body: JSON.stringify({
             name,
             description,
+            ingredients,
             price: Number(price),
             image_url,
             category,
@@ -646,7 +798,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           showToast(
             data.message || "Nem sikerült frissíteni a terméket.",
-            "danger"
+            "danger",
           );
         }
       } catch (err) {
@@ -711,35 +863,44 @@ document.addEventListener("DOMContentLoaded", () => {
             const formattedDate = createdAt.toLocaleString("hu-HU");
 
             let statusText = "";
+            let badgeClass = "";
+
             switch (o.status) {
               case "pending":
                 statusText = "Folyamatban";
+                badgeClass = "bg-warning text-dark";
                 break;
+
               case "completed":
                 statusText = "Teljesítve";
+                badgeClass = "bg-success";
                 break;
+
               case "cancelled":
                 statusText = "Törölve";
+                badgeClass = "bg-danger";
                 break;
+
               default:
                 statusText = o.status;
+                badgeClass = "bg-secondary";
             }
 
             wrapper.innerHTML = `
             <div class="d-flex justify-content-between mb-1">
               <div>
                 <strong>Rendelés #${o.id}</strong>
-                <div class="text-muted small">${formattedDate}</div>
-                <div class="text-muted small">Vevő: ${o.user_email}</div>
+                <div class="text-muted small">${escapeHtml(formattedDate)}</div>
+                <div class="text-muted small">Vevő: ${escapeHtml(o.user_email)}</div>
               </div>
               <div class="text-end" style="min-width: 190px;">
                 <div class="mb-1">
-                  <span class="badge bg-secondary">${statusText}</span>
+                  <span class="badge ${badgeClass}">${escapeHtml(statusText)}</span>
                 </div>
                 <select 
                   class="form-select form-select-sm admin-order-status mb-1"
-                  data-order-id="${o.id}"
-                  data-original-status="${o.status}"
+                  data-order-id="${escapeAttr(o.id)}"
+                  data-original-status="${escapeAttr(o.status)}"
                 >
                   <option value="pending"   ${
                     o.status === "pending" ? "selected" : ""
@@ -757,7 +918,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   <button 
                     type="button"
                     class="btn btn-sm btn-outline-primary ms-2 admin-order-details-btn"
-                    data-order-id="${o.id}"
+                    data-order-id="${escapeAttr(o.id)}"
                   >
                     Részletek
                   </button>
@@ -777,12 +938,12 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSection(
         "Folyamatban",
         pendingOrders,
-        "Nincs folyamatban lévő rendelés."
+        "Nincs folyamatban lévő rendelés.",
       );
       renderSection(
         "Teljesítve",
         completedOrders,
-        "Nincs teljesített rendelés."
+        "Nincs teljesített rendelés.",
       );
       renderSection("Törölve", cancelledOrders, "Nincs törölt rendelés.");
     } catch (err) {
@@ -906,16 +1067,16 @@ document.addEventListener("DOMContentLoaded", () => {
             wrapper.innerHTML = `
             <div class="d-flex justify-content-between align-items-start">
               <div>
-                <div><strong>${dateLabel}${
-              timeRange ? " • " + timeRange : ""
-            }</strong></div>
+                <div><strong>${escapeHtml(dateLabel)}${
+                  timeRange ? " • " + timeRange : ""
+                }</strong></div>
                 <div>Asztal: <strong>${r.table_number}.</strong> • ${
-              r.people_count
-            } fő</div>
-                <div>${r.name} – ${r.phone}</div>
+                  r.people_count
+                } fő</div>
+                <div>${escapeHtml(r.name)} – ${escapeHtml(r.phone)}</div>
                 ${
                   r.note
-                    ? `<div class="text-muted small mt-1">Megjegyzés: ${r.note}</div>`
+                    ? `<div class="text-muted small mt-1">Megjegyzés: ${escapeHtml(r.note)}</div>`
                     : ""
                 }
               </div>
@@ -925,8 +1086,8 @@ document.addEventListener("DOMContentLoaded", () => {
                     r.status === "pending"
                       ? '<span class="badge bg-warning text-dark">Függőben</span>'
                       : r.status === "confirmed"
-                      ? '<span class="badge bg-success">Megerősítve</span>'
-                      : '<span class="badge bg-secondary">Lemondva</span>'
+                        ? '<span class="badge bg-success">Megerősítve</span>'
+                        : '<span class="badge bg-secondary">Lemondva</span>'
                   }
                 </div>
                 <div>
@@ -935,13 +1096,13 @@ document.addEventListener("DOMContentLoaded", () => {
                       ? `
                     <button 
                       class="btn btn-sm btn-outline-success me-1 admin-reservation-confirm-btn"
-                      data-reservation-id="${r.id}"
+                      data-reservation-id="${escapeAttr(r.id)}"
                     >
                       Jóváhagyás
                     </button>
                     <button 
                       class="btn btn-sm btn-outline-danger admin-reservation-cancel-btn"
-                      data-reservation-id="${r.id}"
+                      data-reservation-id="${escapeAttr(r.id)}"
                     >
                       Lemondás
                     </button>
@@ -963,17 +1124,17 @@ document.addEventListener("DOMContentLoaded", () => {
       renderSection(
         "Függőben lévő foglalások",
         pending,
-        "Nincs függőben lévő foglalás."
+        "Nincs függőben lévő foglalás.",
       );
       renderSection(
         "Megerősített foglalások",
         confirmed,
-        "Nincs megerősített foglalás."
+        "Nincs megerősített foglalás.",
       );
       renderSection(
         "Lemondott foglalások",
         cancelled,
-        "Nincs lemondott foglalás."
+        "Nincs lemondott foglalás.",
       );
     } catch (err) {
       console.error("Hiba a /api/admin/reservations hívásnál:", err);
@@ -1077,14 +1238,19 @@ document.addEventListener("DOMContentLoaded", () => {
         wrapper.innerHTML = `
           <div class="d-flex justify-content-between">
             <div>
-              <div><strong>${log.action}</strong></div>
+              <div><strong>${escapeHtml(log.action)}</strong></div>
               <div class="text-muted small">
-                Admin: ${adminLabel}
+                Admin: ${escapeHtml(adminLabel)}
               </div>
               <div class="text-muted small">
-              Entitás: ${entityDisplay}
+              Entitás: ${escapeHtml(entityDisplay)}
             </div>
-            ${Object.entries(detailsData)
+            ${(detailsData &&
+            typeof detailsData === "object" &&
+            !Array.isArray(detailsData)
+              ? Object.entries(detailsData)
+              : []
+            )
               .map(([key, val]) => {
                 const label = detailLabels[key] || key;
 
@@ -1102,29 +1268,29 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Ár formázása
                 if (key === "price") {
-                  return `<li><strong>${label}:</strong> ${translatedVal} Ft</li>`;
+                  return `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(translatedVal)} Ft</li>`;
                 }
 
                 // Boolean (1/0) formázás
                 if (val === 1 || val === 0) {
-                  return `<li><strong>${label}:</strong> ${
+                  return `<li><strong>${escapeHtml(label)}:</strong> ${
                     val === 1 ? "igen" : "nem"
                   }</li>`;
                 }
 
                 // Boolean (true/false) formázás
                 if (val === true || val === false) {
-                  return `<li><strong>${label}:</strong> ${
+                  return `<li><strong>${escapeHtml(label)}:</strong> ${
                     val ? "igen" : "nem"
                   }</li>`;
                 }
 
-                return `<li><strong>${label}:</strong> ${icon}${translatedVal}</li>`;
+                return `<li><strong>${escapeHtml(label)}:</strong> ${escapeHtml(icon)}${escapeHtml(translatedVal)}</li>`;
               })
               .join("")}
             </div>
             <div class="text-end small text-muted">
-              ${dateLabel}
+              ${escapeHtml(dateLabel)}
             </div>
           </div>
         `;
@@ -1168,7 +1334,7 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             showToast(
               data.message || "Nem sikerült módosítani a foglalás státuszát.",
-              "danger"
+              "danger",
             );
           }
         } catch (err) {
@@ -1203,7 +1369,7 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             showToast(
               data.message || "Nem sikerült módosítani a foglalás státuszát.",
-              "danger"
+              "danger",
             );
           }
         } catch (err) {
@@ -1245,7 +1411,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const ok = await showConfirm(
-        `Biztosan módosítod a rendelés státuszát erre: "${statusTextHu}"?`
+        `Biztosan módosítod a rendelés státuszát erre: "${statusTextHu}"?`,
       );
 
       if (!ok) {
@@ -1273,7 +1439,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           showToast(
             data.message || "Nem sikerült frissíteni a státuszt.",
-            "danger"
+            "danger",
           );
           // Ha szerver hiba, állítsuk vissza a régire
           select.value = originalStatus;
@@ -1308,7 +1474,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (!data.success) {
           orderDetailsBody.innerHTML = `
           <div class="alert alert-danger small mb-0">
-            ${data.message || "Nem sikerült betölteni a rendelés részleteit."}
+            ${escapeHtml(data.message || "Nem sikerült betölteni a rendelés részleteit.")}
           </div>
         `;
           return;
@@ -1337,11 +1503,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const headerHtml = `
         <div class="mb-3">
           <div><strong>Rendelés azonosító:</strong> #${order.id}</div>
-          <div><strong>Dátum:</strong> ${formattedDate}</div>
-          <div><strong>Státusz:</strong> ${statusText}</div>
-          <div><strong>Vevő:</strong> ${order.user.name || ""} &lt;${
-          order.user.email
-        }&gt;</div>
+          <div><strong>Dátum:</strong> ${escapeHtml(formattedDate)}</div>
+          <div><strong>Státusz:</strong> ${escapeHtml(statusText)}</div>
+          <div><strong>Vevő:</strong> ${escapeHtml(order.user.name || "")} &lt;${escapeHtml(order.user.email)}&gt;</div>
         </div>
       `;
 
@@ -1351,7 +1515,10 @@ document.addEventListener("DOMContentLoaded", () => {
           const lineTotal = item.unit_price * item.quantity;
           itemsRows += `
           <tr>
-            <td>${item.name}</td>
+            <td>
+              <div>${escapeHtml(item.name)}</div>
+              ${renderBurgerConfigTableHtml(item.config)}
+            </td>
             <td class="text-center">${item.quantity}</td>
             <td class="text-end">${formatFt(item.unit_price)} Ft</td>
             <td class="text-end">${formatFt(lineTotal)} Ft</td>

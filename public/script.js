@@ -9,9 +9,82 @@ document.addEventListener("DOMContentLoaded", () => {
   const currentPasswordInput = document.getElementById("currentPassword");
   const newPasswordInput = document.getElementById("newPassword");
 
+  // --- Globális confirm modal injektálása (index/menu oldalakon is) ---
+  if (!document.getElementById("userConfirmModal")) {
+    document.body.insertAdjacentHTML(
+      "beforeend",
+      `
+    <div class="modal fade" id="userConfirmModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Biztos vagy benne?</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Bezárás"></button>
+          </div>
+          <div class="modal-body">
+            <p id="userConfirmMessage">Biztosan el szeretnéd végezni ezt a műveletet?</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Mégse</button>
+            <button type="button" class="btn btn-danger" id="userConfirmOkBtn">Igen</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    `,
+    );
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(
+      /[&<>"']/g,
+      (char) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char],
+    );
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
+  }
+
+  // Home navbar: scrollra váltson "navbar2" kinézetre
+  const homeNav = document.querySelector("nav.navbar-glass");
+  if (homeNav) {
+    const thresholdOn = 24; // lefele: itt vált "scrolled" (tehát floating OFF)
+    const thresholdOff = 6; // felfele: itt vált vissza floating ON
+
+    let isFloating = true;
+
+    const apply = () => {
+      if (isFloating && window.scrollY > thresholdOn) isFloating = false;
+      if (!isFloating && window.scrollY < thresholdOff) isFloating = true;
+      homeNav.classList.toggle("navbar-floating", isFloating);
+    };
+
+    window.addEventListener("scroll", apply, { passive: true });
+    apply();
+  }
+
   buttons.forEach((btn) => {
     btn.addEventListener("click", async () => {
       const productId = btn.dataset.productId;
+      if (!productId) return;
+
+      if (typeof window.tryOpenBurgerConfigurator === "function") {
+        const handled = window.tryOpenBurgerConfigurator(productId, {
+          initialQty: 1,
+        });
+
+        if (handled) {
+          return;
+        }
+      }
 
       try {
         const response = await apiFetch("/api/cart/add", {
@@ -46,6 +119,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const productId = btn.dataset.productId;
     if (!productId) return;
 
+    if (typeof window.tryOpenBurgerConfigurator === "function") {
+      const handled = window.tryOpenBurgerConfigurator(productId, {
+        initialQty: 1,
+      });
+      if (handled) {
+        return;
+      }
+    }
+
     try {
       const res = await apiFetch("/api/cart/add", {
         method: "POST",
@@ -74,7 +156,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (typeof showAlert === "function") {
           showAlert(
             "danger",
-            data.message || "Nem sikerült a terméket a kosárba tenni."
+            data.message || "Nem sikerült a terméket a kosárba tenni.",
           );
         } else {
           alert(data.message || "Nem sikerült a terméket a kosárba tenni.");
@@ -144,21 +226,23 @@ document.addEventListener("DOMContentLoaded", () => {
         row.className =
           "d-flex justify-content-between align-items-center mb-1";
         row.innerHTML = `
-    <div class="me-2">
-      <div>${item.name}</div>
-      <div class="text-muted">x ${item.quantity}</div>
-    </div>
-    <div class="text-end">
-      ${formatFt(item.line_total)} Ft
-      <button 
-        class="btn btn-link btn-sm text-danger p-0 ms-2 cart-remove-btn" 
-        data-product-id="${item.product_id}"
-        title="Tétel törlése"
-      >
-        <i class="bi bi-trash"></i>
-      </button>
-    </div>
-  `;
+          <div class="me-2">
+            <div>${escapeHtml(item.name)}</div>
+            ${renderBurgerConfigHtml(item.config)}
+            <div class="text-muted">x ${item.quantity}</div>
+          </div>
+          <div class="text-end">
+            ${formatFt(item.line_total)} Ft
+            <button 
+              class="btn btn-link btn-sm text-danger p-0 ms-2 cart-remove-btn" 
+              data-cart-item-id="${escapeAttr(item.id)}"
+              data-product-name="${escapeAttr(item.name)}"
+              title="Tétel törlése"
+            >
+              <i class="bi bi-trash"></i>
+            </button>
+          </div>
+        `;
         list.appendChild(row);
       });
 
@@ -166,14 +250,14 @@ document.addEventListener("DOMContentLoaded", () => {
       footer.className = "border-top pt-2 mt-2";
 
       footer.innerHTML = `
-  <div class="d-flex justify-content-between align-items-center mb-2">
-    <strong>Összesen:</strong>
-    <strong>${formatFt(totalPrice)} Ft</strong>
-  </div>
-  <button class="btn btn-sm btn-success w-100 mt-1 cart-checkout-btn">
-    Rendelés véglegesítése
-  </button>
-`;
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <strong>Összesen:</strong>
+          <strong>${formatFt(totalPrice)} Ft</strong>
+        </div>
+        <button class="btn btn-sm btn-success w-100 mt-1 cart-checkout-btn">
+          Rendelés véglegesítése
+        </button>
+      `;
 
       cartDropdownContent.innerHTML = "";
       cartDropdownContent.appendChild(list);
@@ -187,6 +271,8 @@ document.addEventListener("DOMContentLoaded", () => {
       updateCartBadge(0);
     }
   }
+
+  window.loadCartSummary = loadCartSummary;
 
   function updateCartBadge(count) {
     if (!cartCountBadge) return;
@@ -202,16 +288,58 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.round(Number(value)).toLocaleString("hu-HU");
   }
 
+  function getBurgerConfigLines(config) {
+    if (!config || config.baseType !== "menu") {
+      return [];
+    }
+
+    const lines = ["Menü"];
+
+    if (config.sideType === "crispers") {
+      lines.push("Köret: Crispers");
+    } else if (config.sideType === "sweet_potato") {
+      lines.push("Köret: Édesburgonya");
+    }
+
+    if (config.extraType === "coleslaw") {
+      lines.push("Kiegészítő: Coleslaw saláta");
+    } else if (config.extraType === "sauce") {
+      lines.push("Kiegészítő: Szósz");
+      if (config.sauceName) {
+        lines.push(`Szósz: ${config.sauceName}`);
+      }
+    }
+
+    return lines;
+  }
+
+  function renderBurgerConfigHtml(config) {
+    const lines = getBurgerConfigLines(config);
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    <div class="text-muted small mt-1">
+      ${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}
+    </div>
+    `;
+  }
+
   // Tétel törlése a kosár dropdownból (event delegation)
   if (cartDropdownContent) {
     cartDropdownContent.addEventListener("click", async (e) => {
       // Tétel törlése
       const removeBtn = e.target.closest(".cart-remove-btn");
       if (removeBtn) {
-        const productId = removeBtn.dataset.productId;
-        if (!productId) return;
+        const cartItemId = removeBtn.dataset.cartItemId;
+        if (!cartItemId) return;
 
-        if (!confirm("Biztosan törlöd ezt a tételt a kosaradból?")) return;
+        const productName = removeBtn.dataset.productName || "ezt a tételt";
+        const ok = await showUserConfirm(
+          `Biztosan törlöd a kosaradból: ${productName}?`,
+        );
+        if (!ok) return;
 
         try {
           const res = await apiFetch("/api/cart/remove", {
@@ -219,7 +347,7 @@ document.addEventListener("DOMContentLoaded", () => {
             headers: {
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({ productId: Number(productId) }),
+            body: JSON.stringify({ cartItemId: Number(cartItemId) }),
           });
 
           const data = await res.json();
@@ -230,7 +358,7 @@ document.addEventListener("DOMContentLoaded", () => {
           } else {
             showAlert(
               "danger",
-              data.message || "Nem sikerült törölni a tételt."
+              data.message || "Nem sikerült törölni a tételt.",
             );
           }
         } catch (err) {
@@ -271,7 +399,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const newPassword = newPasswordInput.value;
 
       if (!currentPassword || !newPassword) {
-        alert("Kérlek töltsd ki mindkét jelszó mezőt.");
+        showAlert("danger", "Kérlek töltsd ki mindkét jelszó mezőt.");
         return;
       }
 
@@ -287,14 +415,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
 
         if (data.success) {
-          alert("Jelszó frissítve.");
+          showAlert("success", "Jelszó frissítve.");
           passwordForm.reset();
         } else {
-          alert(data.message || "Nem sikerült frissíteni a jelszót.");
+          showAlert(
+            "warning",
+            data.message || "Nem sikerült frissíteni a jelszót.",
+          );
         }
       } catch (err) {
         console.error("Hiba a jelszó frissítésekor:", err);
-        alert("Nem sikerült csatlakozni a szerverhez.");
+        showAlert("danger", "Nem sikerült csatlakozni a szerverhez.");
       }
     });
   }
@@ -334,24 +465,96 @@ document.addEventListener("DOMContentLoaded", () => {
     userConfirmModal = new bootstrap.Modal(userConfirmModalEl);
   }
 
-  const editReservationModalEl = document.getElementById("editReservationModal");
+  const editReservationModalEl = document.getElementById(
+    "editReservationModal",
+  );
   const editReservationForm = document.getElementById("editReservationForm");
-  const editReservationPeopleInput = document.getElementById("editReservationPeople");
-  const editReservationNoteInput = document.getElementById("editReservationNote");
+  const editReservationPeopleInput = document.getElementById(
+    "editReservationPeople",
+  );
+  const editReservationNoteInput = document.getElementById(
+    "editReservationNote",
+  );
   let editReservationModal;
   if (editReservationModalEl && typeof bootstrap !== "undefined") {
     editReservationModal = new bootstrap.Modal(editReservationModalEl);
   }
 
-  const editReservationTimeModalEl = document.getElementById("editReservationTimeModal");
-  const editReservationTimeForm = document.getElementById("editReservationTimeForm");
-  const editReservationDateInput = document.getElementById("editReservationDate");
-  const editReservationFromInput = document.getElementById("editReservationFrom");
+  const editReservationTimeModalEl = document.getElementById(
+    "editReservationTimeModal",
+  );
+  const editReservationTimeForm = document.getElementById(
+    "editReservationTimeForm",
+  );
+  const editReservationDateInput = document.getElementById(
+    "editReservationDate",
+  );
+  const editReservationFromInput = document.getElementById(
+    "editReservationFrom",
+  );
   const editReservationToInput = document.getElementById("editReservationTo");
-  const editReservationTableInput = document.getElementById("editReservationTable");
+  const editReservationTableInput = document.getElementById(
+    "editReservationTable",
+  );
   let editReservationTimeModal;
   if (editReservationTimeModalEl && typeof bootstrap !== "undefined") {
     editReservationTimeModal = new bootstrap.Modal(editReservationTimeModalEl);
+  }
+
+  function getBurgerConfigLines(config) {
+    if (!config || config.baseType !== "menu") {
+      return [];
+    }
+
+    const lines = ["Menü"];
+
+    if (config.sideType === "crispers") {
+      lines.push("Köret: Crispers");
+    } else if (config.sideType === "sweet_potato") {
+      lines.push("Köret: Édesburgonya");
+    }
+
+    if (config.extraType === "coleslaw") {
+      lines.push("Kiegészítő: Coleslaw saláta");
+    } else if (config.extraType === "sauce") {
+      lines.push("Kiegészítő: Szósz");
+      if (config.sauceName) {
+        lines.push(`Szósz: ${config.sauceName}`);
+      }
+    }
+
+    return lines;
+  }
+
+  function renderBurgerConfigHtml(config) {
+    const lines = getBurgerConfigLines(config);
+    if (lines.length === 0) {
+      return "";
+    }
+
+    return `
+    <div class="text-muted small mt-1">
+      ${lines.map((line) => `<div>${escapeHtml(line)}</div>`).join("")}
+    </div>
+  `;
+  }
+
+  function escapeHtml(value) {
+    return String(value ?? "").replace(
+      /[&<>"']/g,
+      (char) =>
+        ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        })[char],
+    );
+  }
+
+  function escapeAttr(value) {
+    return escapeHtml(value).replace(/`/g, "&#96;");
   }
 
   function showUserToast(message, type = "success") {
@@ -368,7 +571,7 @@ document.addEventListener("DOMContentLoaded", () => {
     userToastInstance.show();
   }
 
-  function showUserConfirm(message) {
+  window.showUserConfirm = function (message) {
     return new Promise((resolve) => {
       if (
         !userConfirmModal ||
@@ -406,7 +609,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       userConfirmModal.show();
     });
-  }
+  };
 
   function toDateInputValue(value) {
     if (!value) return "";
@@ -429,21 +632,23 @@ document.addEventListener("DOMContentLoaded", () => {
         // Fallback: régi prompt-os megoldás
         const newPeopleStr = window.prompt(
           "Új létszám (fő):",
-          currentPeople || "2"
+          currentPeople || "2",
         );
         if (newPeopleStr === null) {
           resolve(null);
           return;
         }
         const newPeople = Number(newPeopleStr);
-        if (!newPeople || isNaN(newPeople) || newPeople <= 0) {
-          alert("Érvénytelen létszám.");
-          resolve(null);
+        if (!Number.isInteger(newPeople) || newPeople < 1 || newPeople > 12) {
+          showUserToast(
+            "Érvénytelen létszám. 1 és 12 fő között adhatsz meg értéket.",
+            "warning",
+          );
           return;
         }
         const newNote = window.prompt(
           "Megjegyzés (opcionális):",
-          currentNote || ""
+          currentNote || "",
         );
         if (newNote === null) {
           resolve(null);
@@ -462,9 +667,11 @@ document.addEventListener("DOMContentLoaded", () => {
         e.preventDefault();
         const newPeople = Number(editReservationPeopleInput.value);
         const newNote = editReservationNoteInput.value.trim();
-
-        if (!newPeople || isNaN(newPeople) || newPeople <= 0) {
-          showUserToast("Érvénytelen létszám.", "warning");
+        if (!Number.isInteger(newPeople) || newPeople < 1 || newPeople > 12) {
+          showUserToast(
+            "Érvénytelen létszám. 1 és 12 fő között adhatsz meg értéket.",
+            "warning",
+          );
           return;
         }
 
@@ -483,7 +690,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
       function cleanup() {
         editReservationForm.removeEventListener("submit", handleSubmit);
-        editReservationModalEl.removeEventListener("hidden.bs.modal", handleHidden);
+        editReservationModalEl.removeEventListener(
+          "hidden.bs.modal",
+          handleHidden,
+        );
       }
 
       editReservationForm.addEventListener("submit", handleSubmit);
@@ -496,7 +706,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentDate,
     currentFrom,
     currentTo,
-    currentTable
+    currentTable,
   ) {
     return new Promise((resolve) => {
       if (
@@ -516,7 +726,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const newFrom = window.prompt(
           "Új kezdési idő (HH:MM):",
-          currentFrom ? currentFrom.toString().slice(0, 5) : "18:00"
+          currentFrom ? currentFrom.toString().slice(0, 5) : "18:00",
         );
         if (!newFrom) {
           resolve(null);
@@ -524,7 +734,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const newTo = window.prompt(
           "Új befejezési idő (HH:MM):",
-          currentTo ? currentTo.toString().slice(0, 5) : "20:00"
+          currentTo ? currentTo.toString().slice(0, 5) : "20:00",
         );
         if (!newTo) {
           resolve(null);
@@ -532,16 +742,18 @@ document.addEventListener("DOMContentLoaded", () => {
         }
         const newTableStr = window.prompt(
           "Új asztalszám:",
-          currentTable || "1"
+          currentTable || "1",
         );
         if (!newTableStr) {
           resolve(null);
           return;
         }
         const newTable = Number(newTableStr);
-        if (!Number.isInteger(newTable) || newTable <= 0) {
-          alert("Érvénytelen asztalszám.");
-          resolve(null);
+        if (!Number.isInteger(newTable) || newTable < 1 || newTable > 6) {
+          showUserToast(
+            "Érvénytelen asztalszám. 1 és 6 között adhatsz meg értéket.",
+            "warning",
+          );
           return;
         }
         resolve({
@@ -580,17 +792,19 @@ document.addEventListener("DOMContentLoaded", () => {
         if (newFrom >= newTo) {
           showUserToast(
             "A befejezésnek későbbinek kell lennie, mint a kezdésnek.",
-            "warning"
+            "warning",
           );
           return;
         }
 
         const newTable = Number(newTableStr);
-        if (!Number.isInteger(newTable) || newTable <= 0) {
-          showUserToast("Érvénytelen asztalszám.", "warning");
+        if (!Number.isInteger(newTable) || newTable < 1 || newTable > 6) {
+          showUserToast(
+            "Érvénytelen asztalszám. 1 és 6 között adhatsz meg értéket.",
+            "warning",
+          );
           return;
         }
-
         resolved = true;
         cleanup();
         editReservationTimeModal.hide();
@@ -613,14 +827,14 @@ document.addEventListener("DOMContentLoaded", () => {
         editReservationTimeForm.removeEventListener("submit", handleSubmit);
         editReservationTimeModalEl.removeEventListener(
           "hidden.bs.modal",
-          handleHidden
+          handleHidden,
         );
       }
 
       editReservationTimeForm.addEventListener("submit", handleSubmit);
       editReservationTimeModalEl.addEventListener(
         "hidden.bs.modal",
-        handleHidden
+        handleHidden,
       );
 
       editReservationTimeModal.show();
@@ -637,7 +851,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (data.loggedIn) {
         if (authSection) authSection.classList.add("d-none");
         if (accountSection) accountSection.classList.remove("d-none");
-        
+
         const hero = document.getElementById("hero");
         if (hero) hero.classList.add("d-none");
 
@@ -715,18 +929,27 @@ document.addEventListener("DOMContentLoaded", () => {
         const formattedDate = createdAt.toLocaleString("hu-HU");
 
         let statusText = "";
+        let badgeClass = "";
+
         switch (order.status) {
           case "pending":
             statusText = "Folyamatban";
+            badgeClass = "bg-warning text-dark";
             break;
+
           case "completed":
             statusText = "Teljesítve";
+            badgeClass = "bg-success";
             break;
+
           case "cancelled":
             statusText = "Törölve";
+            badgeClass = "bg-danger";
             break;
+
           default:
             statusText = order.status;
+            badgeClass = "bg-secondary";
         }
 
         // tételek listája
@@ -734,9 +957,10 @@ document.addEventListener("DOMContentLoaded", () => {
         order.items.forEach((item) => {
           const lineTotal = Number(item.unit_price) * Number(item.quantity);
           itemsHtml += `
-          <div class="d-flex justify-content-between">
+          <div class="d-flex justify-content-between mb-2">
             <div>
-              ${item.name}
+              <div>${escapeHtml(item.name)}</div>
+              ${renderBurgerConfigHtml(item.config)}
               <span class="text-muted">× ${item.quantity}</span>
             </div>
             <div>
@@ -750,9 +974,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="d-flex justify-content-between mb-1">
           <div>
             <strong>Rendelés #${order.id}</strong>
-            <div class="text-muted small">${formattedDate}</div>
+            <div class="text-muted small">${escapeHtml(formattedDate)}</div>
           </div>
-          <span class="badge bg-secondary align-self-start">${statusText}</span>
+          <span class="badge ${badgeClass} align-self-start">${escapeHtml(statusText)}</span>
         </div>
         <div class="mb-2 small">
           ${itemsHtml}
@@ -854,12 +1078,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const dateText = formatDateOnly(r.date);
           const timeRange = `${formatTimeOnly(r.timeFrom)}–${formatTimeOnly(
-            r.timeTo
+            r.timeTo,
           )}`;
 
           const { statusText, statusClass } = renderStatus(r.status);
           const noteHtml = r.note
-            ? `<div class="small text-muted mt-1">Megjegyzés: ${r.note}</div>`
+            ? `<div class="small text-muted mt-1">Megjegyzés: ${escapeHtml(r.note)}</div>`
             : "";
 
           wrapper.innerHTML = `
@@ -875,7 +1099,7 @@ document.addEventListener("DOMContentLoaded", () => {
                   : ""
               }
             </div>
-            <span class="badge ${statusClass} align-self-start">${statusText}</span>
+            <span class="badge ${statusClass} align-self-start">${escapeHtml(statusText)}</span>
           </div>
           <div class="small">
             Létszám: <strong>${r.peopleCount} fő</strong>
@@ -890,24 +1114,25 @@ document.addEventListener("DOMContentLoaded", () => {
           actions.innerHTML = `
           <button 
             class="btn btn-sm btn-outline-primary js-edit-reservation"
-            data-id="${r.id}"
-            data-people="${r.peopleCount}"
-            data-note="${r.note || ""}"
+            data-id="${escapeAttr(r.id)}"
+            data-people="${escapeAttr(r.peopleCount)}"
+            data-note="${escapeAttr(r.note || "")}"
           >
             Módosítás
           </button>
           <button 
             class="btn btn-sm btn-outline-secondary js-edit-reservation-time"
-            data-id="${r.id}"
-            data-date="${r.date}"
-            data-from="${r.timeFrom}"
-            data-to="${r.timeTo}"
-            data-table="${r.tableNumber}"
+            data-id="${escapeAttr(r.id)}"
+            data-date="${escapeAttr(r.date)}"
+            data-from="${escapeAttr(r.timeFrom)}"
+            data-to="${escapeAttr(r.timeTo)}"
+            data-table="${escapeAttr(r.tableNumber)}"
           >
             Időpont módosítása
+          </button>
           <button 
             class="btn btn-sm btn-outline-danger js-cancel-reservation"
-            data-id="${r.id}"
+            data-id="${escapeAttr(r.id)}"
           >
             Lemondás
           </button>
@@ -931,12 +1156,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
           const dateText = formatDateOnly(r.date);
           const timeRange = `${formatTimeOnly(r.timeFrom)}–${formatTimeOnly(
-            r.timeTo
+            r.timeTo,
           )}`;
 
           const { statusText, statusClass } = renderStatus(r.status);
           const noteHtml = r.note
-            ? `<div class="small text-muted mt-1">Megjegyzés: ${r.note}</div>`
+            ? `<div class="small text-muted mt-1">Megjegyzés: ${escapeHtml(r.note)}</div>`
             : "";
 
           wrapper.innerHTML = `
@@ -948,7 +1173,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
               ${noteHtml}
             </div>
-            <span class="badge ${statusClass} align-self-start">${statusText}</span>
+            <span class="badge ${statusClass} align-self-start">${escapeHtml(statusText)}</span>
           </div>
         `;
 
@@ -981,7 +1206,7 @@ document.addEventListener("DOMContentLoaded", () => {
           currentDate,
           currentFrom,
           currentTo,
-          currentTable
+          currentTable,
         );
       }
 
@@ -994,13 +1219,12 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  
   async function handleEditReservationTime(
     id,
     currentDate,
     currentFrom,
     currentTo,
-    currentTable
+    currentTable,
   ) {
     if (!id) return;
 
@@ -1008,7 +1232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       currentDate,
       currentFrom,
       currentTo,
-      currentTable
+      currentTable,
     );
 
     if (!result) return;
@@ -1034,15 +1258,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok || !data.success) {
         showUserToast(
           data.message || "Nem sikerült módosítani a foglalás időpontját.",
-          "danger"
+          "danger",
         );
         return;
       }
 
-      showUserToast(
-        "Foglalásod időpontját sikeresen módosítottuk.",
-        "success"
-      );
+      showUserToast("Foglalásod időpontját sikeresen módosítottuk.", "success");
       await loadReservations();
     } catch (err) {
       console.error("Idősáv módosítási hiba:", err);
@@ -1054,7 +1275,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!id) return;
 
     const confirmed = await showUserConfirm(
-      "Biztosan le szeretnéd mondani ezt a foglalást?"
+      "Biztosan le szeretnéd mondani ezt a foglalást?",
     );
     if (!confirmed) return;
 
@@ -1071,7 +1292,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok || !data.success) {
         showUserToast(
           data.message || "Nem sikerült lemondani a foglalást.",
-          "danger"
+          "danger",
         );
         return;
       }
@@ -1109,7 +1330,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!res.ok || !data.success) {
         showUserToast(
           data.message || "Nem sikerült módosítani a foglalást.",
-          "danger"
+          "danger",
         );
         return;
       }
@@ -1121,7 +1342,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showUserToast("Nem sikerült csatlakozni a szerverhez.", "danger");
     }
   }
-function formatDateOnly(value) {
+  function formatDateOnly(value) {
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
     return d.toLocaleDateString("hu-HU");

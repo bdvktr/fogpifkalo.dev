@@ -1,0 +1,17 @@
+/* teljes oldal scrollbar */
+::-webkit-scrollbar {
+  width: 6px;              /* VÉKONY */
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* szinte eltűnik */
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #ffc107;
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: #ffcd39;
+}

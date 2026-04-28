@@ -81,17 +81,23 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const data = await res.json();
 
+      if (res.status === 401) {
+        alert("Asztalfoglaláshoz előbb be kell jelentkezned.");
+        window.location.href = "/fiok.html";
+        return;
+      }
+
       if (!res.ok || !data.success) {
         showMessage(
           data.message || "Nem sikerült rögzíteni a foglalást.",
-          "error"
+          "error",
         );
         return;
       }
 
       showMessage(
         data.message || "Foglalásod rögzítettük, hamarosan visszaigazoljuk. 🙂",
-        "success"
+        "success",
       );
 
       form.reset();

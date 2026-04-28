@@ -6,4 +6,176 @@
     display: flex;
     height: 90vh;
     justify-content: center;
+    position: relative;
+}
+
+.errorbtn {
+    text-align: center;
+    display: inline-block;
+    background: #ff3c3c;
+    color: white;
+    padding: 15px 35px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: bold;
+    font-family: 'jersey 20', sans-serif;
+    font-size: 18px;
+    letter-spacing: 1px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    transition: transform 0.1s ease, box-shadow 0.15s ease;;
+    position: absolute;
+    bottom: 150px;
+    left: 50%;
+}
+
+.error401 {
+    bottom: 100px !important;
+    left: 41%;
+}
+
+.error403{
+    left: 52%;
+    bottom: 190px;
+}
+
+.errorbtn:hover {
+    transform: scale(0.97);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.25);
+    background: white;
+    color: black;
+}
+
+.errorbtn:active {
+    transform: scale(0.93);
+    box-shadow: 0 2px 3px rgba(0,0,0,0.25);
+    border: black 1px solid;
+}
+
+.center {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 50px;
+}
+
+/* Menü kártya képek egységes megjelenítése */
+.menu-card-img {
+  height: 180px !important;
+  object-fit: contain !important;
+  background-color: #f8f9fa !important; /* világos háttér */
+}
+
+/* --- About / Rólunk section --- */
+.about-title{
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: #f6b23a;
+    font-family: "Pacifico", cursive;
+    font-size: clamp(70px, 8vw, 100px);
+    letter-spacing: 5px;
+}
+
+.about-points .about-point{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.65);
+    border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 14px;
+    height: 100%;
+}
+
+.about-point i{
+    font-size: 1.2rem;
+}
+
+.about-point-text{
+    font-size: 0.95rem;
+    line-height: 1.1;
+}
+
+.about-quote{
+    font-style: italic;
+    color: rgba(0,0,0,0.65);
+    font-size: 0.95rem;
+    font-family: "Pacifico", cursive;
+    margin-left: auto;
+    max-width: 80%;
+
+}
+
+.about-collage{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    gap: 14px;
+    padding: 14px;
+    background: rgba(255,255,255,0.55);
+    border-radius: 22px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+}
+
+.about-img-nagy{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 80%;
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+}
+
+.about-img-kicsi1{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 10%;
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+}
+
+.about-img-kicsi2{
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center 20%;
+    border-radius: 18px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.10);
+}
+
+.about-img-main{
+    grid-column: 1 / -1;
+    aspect-ratio: 16 / 9;
+}
+
+.about-img-sub{
+    aspect-ratio: 4 / 3;
+}
+
+/* Make the title scale nicely on small screens */
+@media (max-width: 576px){
+    .about-title{
+        font-size: 2rem;
+    }
+}
+
+.wo-title{
+  position: relative;
+  display: inline-block;
+  font-weight: 700;
+}
+
+.wo-title::after{
+  content: "";
+  display: block;
+  width: 260px;          /* vonal hossza */
+  height: 3px;           /* vastagság */
+  margin-top: 0.6rem;
+  background: linear-gradient(
+    90deg,
+    #facc15 0%,
+    #f59e0b 60%,
+    rgba(245,158,11,0) 100%
+  );
+  border-radius: 999px;
 }

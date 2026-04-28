@@ -1,0 +1,176 @@
+.navbar-glass {
+  transition: border-color 220ms ease, border-radius 220ms ease,
+    padding 220ms ease, box-shadow 220ms ease, transform 220ms ease,
+    background-color 220ms ease;
+  will-change: transform;
+}
+
+/* alap (scrolled) = navbar2 kinézet */
+.navbar-glass {
+  padding-left: 0;
+  padding-right: 0;
+  border-radius: 0;
+  border-left: 0;
+  border-right: 0;
+  transform: translateY(0) scaleX(1);
+  background: linear-gradient(
+    180deg,
+    rgba(15, 15, 15, 0.85),
+    rgba(15, 15, 15, 0.65)
+  );
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* floating (top) */
+.navbar-glass.navbar-floating {
+  padding-left: 2.5rem;
+  padding-right: 2.5rem;
+  border-radius: 34px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  transform: translateY(8px) scaleX(0.96);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+}
+
+/* NAV LINK */
+.navbar-glass .nav-link {
+  color: rgba(255, 255, 255, 0.85);
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  transition: color 0.2s ease;
+}
+
+.navbar-glass .nav-link:hover,
+.navbar-glass .nav-link.active {
+  color: #f6b23a;
+}
+
+/* LOGÓ */
+.navbar-brand span {
+  letter-spacing: 0.6px;
+  color: #fff;
+}
+
+/* KOSÁR */
+.btn-cart {
+  color: #fff;
+  background: transparent;
+  border: none;
+  font-size: 1.2rem;
+}
+
+.btn-cart:hover {
+  color: #f6b23a;
+}
+
+.cart-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  background: #dc3545;
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+/* FIÓK */
+.btn-account {
+  color: #fff;
+  border: transparent 1px solid;
+  background: transparent;
+}
+
+.btn-account:hover {
+  color: #f6b23a;
+  border-color: transparent
+}
+
+#accountLink:focus,
+#accountLink:focus-visible,
+#accountLink:active,
+#accountLink:active:focus{
+  outline: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+}
+
+.account-icon {
+  font-size: 1.25rem;   /* emeld 1.4rem-ig ha kell */
+  line-height: 1;
+}
+
+.navbar-logo {
+  position: absolute;
+  height: 118px;
+  width: auto;
+
+  top: 50%;
+  transform: translateY(-50%);
+
+  pointer-events: none; /* ne zavarja a klikkeleket */
+  filter: invert(1) brightness(2); /* fehér logó */
+}
+
+.navbar-brand {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.brand-text {
+  margin-left: 100px; /* EZ A KULCS */
+  font-weight: -100;
+  color: #fff;
+  letter-spacing: 0.6px;
+  white-space: nowrap;
+}
+
+/* NAVBAR jobb oldali action-ök (ghost pill stílus) */
+.nav-utility-pill{
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  padding: 2px;
+}
+
+.nav-utility-btn{
+  color: #fff;
+  background: transparent;
+  border: 0;
+  border-radius: 999px;
+  padding: .45rem .85rem;
+  font-weight: 600;
+}
+
+.nav-utility-btn:hover{
+  background: rgba(255,255,255,.08);
+  color: #fff;
+}
+
+.nav-utility-divider{
+  width: 1px;
+  height: 26px;
+  background: rgba(255,255,255,.18);
+  margin: 0 .25rem;
+}
+
+/* Foglalás: ghost + warning glow */
+.nav-cta{
+  background: rgba(255,193,7,.08);
+  border: 1px solid rgba(255,193,7,.55);
+  color: #ffc107;
+  box-shadow: 0 0 0 .18rem rgba(255,193,7,.12), 0 10px 30px rgba(0,0,0,.25);
+}
+
+.nav-cta:hover{
+  background: rgba(255,193,7,.14);
+  color: #ffc107;
+}
+
+.nav-cta i,
+.nav-utility-btn i{
+  font-size: 1.15rem;
+  line-height: 1;
+}

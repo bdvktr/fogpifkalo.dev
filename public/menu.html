@@ -2,158 +2,263 @@
 <html lang="hu">
 
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Fogpifkáló – Menü</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fogpifkáló – Menü</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
-    <style>
-        body {
-            font-family: "Inter", system-ui, -apple-system, Roboto, "Helvetica Neue",
-                Arial;
-        }
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    body {
+      font-family: "Inter", system-ui, -apple-system, Roboto, "Helvetica Neue",
+        Arial;
+    }
 
-        .menu-hero {
-            background: linear-gradient(135deg, #212529, #343a40);
-            color: #fff;
-            padding: 3rem 0 2rem;
-        }
+    .menu-hero {
+      background: linear-gradient(135deg, #212529, #343a40);
+      color: #fff;
+      padding: 3rem 0 2rem;
+    }
 
-        .menu-section h2 {
-            border-bottom: 2px solid #eee;
-            padding-bottom: 0.4rem;
-            margin-bottom: 1rem;
-        }
+    .menu-section h2 {
+      padding-bottom: 0.4rem;
+      margin-bottom: 1rem;
+      font-size: 28px;
+    }
 
-        .menu-card img {
-            height: 160px;
-            object-fit: cover;
-        }
-    </style>
+    .menu-card img {
+      height: 160px;
+      object-fit: cover;
+    }
+
+    .menu-section h2::after {
+      content: "";
+      display: block;
+      width: 260px;
+      height: 3px;
+      margin-top: 0.6rem;
+      background: linear-gradient(90deg,
+          #facc15 0%,
+          #f59e0b 60%,
+          rgba(245, 158, 11, 0) 100%);
+      border-radius: 999px;
+    }
+  </style>
+
+  <link rel="stylesheet" href="menucard.css" />
+  <link rel="stylesheet" href="burger-configurator.css" />
+  <link rel="stylesheet" href="navbar2.css" />
+  <link rel="stylesheet" href="scrollbar.css" />
 </head>
 
 <body>
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-            <a class="navbar-brand d-flex align-items-center" href="index.html">
-                <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
-                <span class="fw-bold">Fogpifkáló</span>
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <!-- LOGÓ -->
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <img src="images/fogpifkalo.png" alt="Fogpifkáló" class="navbar-logo me-2" />
+        <span class="fw-bold brand-text">Fogpifkáló</span>
+      </a>
+
+      <!-- MOBIL TOGGLE -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Főoldal</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link active" href="#">Menü</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#rolunk">Rólunk</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
+          </li>
+        </ul>
+
+        <!-- JOBB OLDAL: FOGLALÁS + (KOSÁR | FIÓK) pill -->
+        <div class="d-flex align-items-center gap-2">
+          <!-- FOGLALÁS (ghost + glow) -->
+          <a class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2"
+            href="foglalas.html">
+            <i class="bi bi-calendar-event"></i>
+            <span>Foglalás</span>
+          </a>
+
+          <!-- KÖZÖS PILL: KOSÁR + FIÓK -->
+          <div class="nav-utility-pill d-flex align-items-center">
+            <!-- KOSÁR -->
+            <div class="dropdown">
+              <button class="btn nav-utility-btn position-relative d-inline-flex align-items-center gap-2" type="button"
+                id="cartDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bag"></i>
+                <span class="d-none d-lg-inline">Kosár</span>
+                <span class="cart-badge" id="cartCountBadge" style="display: none">0</span>
+              </button>
+
+              <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="cartDropdownBtn"
+                style="min-width: 280px">
+                <div id="cartDropdownContent">
+                  <div class="text-muted small">A kosarad jelenleg üres.</div>
+                </div>
+              </div>
+            </div>
+
+            <span class="nav-utility-divider"></span>
+
+            <!-- FIÓK -->
+            <a class="btn nav-utility-btn d-inline-flex align-items-center gap-2" href="fiok.html" id="accountLink">
+              <i class="bi bi-person-circle account-icon"></i>
+              <span class="d-none d-lg-inline"></span>
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-                <span class="navbar-toggler-icon"></span>
+          </div>
+        </div>
+      </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="menu-hero">
+    <div class="container">
+      <h1 class="h3 mb-1 mt-5">Teljes menü</h1>
+      <p class="mb-0 text-light">
+        Válassz a burgerek, köretek, innivalók és szószok közül, és add a
+        kosaradhoz.
+      </p>
+    </div>
+  </section>
+
+  <!-- MENÜ TARTALOM -->
+  <main class="py-4">
+    <div class="container">
+      <!-- Burgerek -->
+      <section class="menu-section mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h5 mb-0">🍔 Burgerek</h2>
+        </div>
+        <div id="burgerList" class="row g-3 small text-muted">
+          Betöltés...
+        </div>
+      </section>
+
+      <!-- Köretek -->
+      <section class="menu-section mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h5 mb-0">🍟 Köretek</h2>
+        </div>
+        <div id="sideList" class="row g-3 small text-muted">Betöltés...</div>
+      </section>
+
+      <!-- Innivalók -->
+      <section class="menu-section mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h5 mb-0">🥤 Innivalók</h2>
+        </div>
+        <div id="drinkList" class="row g-3 small text-muted">Betöltés...</div>
+      </section>
+
+      <!-- Szószok -->
+      <section class="menu-section mb-4">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h2 class="h5 mb-0">🧂 Szószok</h2>
+        </div>
+        <div id="sauceList" class="row g-3 small text-muted">Betöltés...</div>
+      </section>
+    </div>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="footer py-4 bg-dark text-white-50">
+    <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
+      <div>
+        <strong>Fogpifkáló</strong> &copy; 2025 · Minden jog fenntartva
+      </div>
+      <div class="mt-2 mt-md-0">
+        <a href="#" class="text-decoration-none text-muted me-3">Adatvédelem</a>
+        <a href="#" class="text-decoration-none text-muted">Impresszum</a>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Product Details Modal -->
+  <div class="modal fade product-modal" id="productDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+      <div class="modal-content product-modal-content">
+        <div class="product-modal-hero">
+          <img id="pModalImg" class="product-modal-hero-img" src="" alt="" />
+
+          <button type="button" class="btn btn-sm btn-light product-modal-close" data-bs-dismiss="modal"
+            aria-label="Bezárás">
+            <i class="bi bi-x-lg"></i>
+          </button>
+
+          <div class="product-modal-hero-text">
+            <div class="d-flex align-items-end justify-content-between gap-2">
+              <h3 class="product-modal-title" id="pModalTitle">Termék</h3>
+              <div class="product-modal-price" id="pModalPrice">0 Ft</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-body product-modal-body">
+          <!-- Leírás -->
+          <div class="product-accordion">
+            <button class="product-accordion-header is-open" type="button" data-target="desc">
+              <span>Leírás</span>
+              <i class="bi bi-chevron-down"></i>
             </button>
-            <div class="collapse navbar-collapse" id="navMenu">
-                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-                    <li class="nav-item">
-                        <a class="nav-link" href="index.html">Főoldal</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link active" href="menu.html">Menü</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="fiok.html">Fiókom</a>
-                    </li>
-                </ul>
 
-                <!-- Kosár ikon (ugyanaz, mint indexen) -->
-                <div class="dropdown ms-3">
-                    <button class="btn btn-outline-light position-relative" type="button" id="cartDropdownBtn"
-                        data-bs-toggle="dropdown" aria-expanded="false">
-                        <i class="bi bi-bag"></i>
-                        <span id="cartCountBadge"
-                            class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger"
-                            style="display: none">
-                            0
-                        </span>
-                    </button>
-                    <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 260px"
-                        aria-labelledby="cartDropdownBtn">
-                        <div id="cartDropdownContent" class="small text-muted">
-                            Kosár betöltése...
-                        </div>
-                    </div>
-                </div>
+            <div class="product-accordion-content is-open" data-content="desc">
+              <p class="product-modal-desc" id="pModalDesc"></p>
             </div>
-        </div>
-    </nav>
+          </div>
 
-    <!-- HERO -->
-    <section class="menu-hero">
-        <div class="container">
-            <h1 class="h3 mb-1">Teljes menü</h1>
-            <p class="mb-0 text-light">
-                Válassz a burgerek, köretek, innivalók és szószok közül, és add a
-                kosaradhoz.
-            </p>
-        </div>
-    </section>
+          <!-- Összetevők -->
+          <div class="product-accordion" id="pModalIngredientsSection" style="display: none">
+            <button class="product-accordion-header" type="button" data-target="ingredients">
+              <span>Összetevők</span>
+              <i class="bi bi-chevron-down"></i>
+            </button>
 
-    <!-- MENÜ TARTALOM -->
-    <main class="py-4">
-        <div class="container">
-            <!-- Burgerek -->
-            <section class="menu-section mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2 class="h5 mb-0">🍔 Burgerek</h2>
-                </div>
-                <div id="burgerList" class="row g-3 small text-muted">
-                    Betöltés...
-                </div>
-            </section>
-
-            <!-- Köretek -->
-            <section class="menu-section mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2 class="h5 mb-0">🍟 Köretek</h2>
-                </div>
-                <div id="sideList" class="row g-3 small text-muted">
-                    Betöltés...
-                </div>
-            </section>
-
-            <!-- Innivalók -->
-            <section class="menu-section mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2 class="h5 mb-0">🥤 Innivalók</h2>
-                </div>
-                <div id="drinkList" class="row g-3 small text-muted">
-                    Betöltés...
-                </div>
-            </section>
-
-            <!-- Szószok -->
-            <section class="menu-section mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2 class="h5 mb-0">🧂 Szószok</h2>
-                </div>
-                <div id="sauceList" class="row g-3 small text-muted">
-                    Betöltés...
-                </div>
-            </section>
-        </div>
-    </main>
-
-    <!-- FOOTER -->
-    <footer class="footer py-4 bg-dark text-white-50">
-        <div class="container d-flex flex-column flex-md-row justify-content-between align-items-center">
-            <div>
-                <strong>BurgerBázis</strong> &copy; 2025 · Minden jog fenntartva
+            <div class="product-accordion-content" data-content="ingredients">
+              <div class="product-modal-ingredients" id="pModalIngredients"></div>
             </div>
-            <div class="mt-2 mt-md-0">
-                <a href="#" class="text-decoration-none text-muted me-3">Adatvédelem</a>
-                <a href="#" class="text-decoration-none text-muted">Impresszum</a>
-            </div>
+          </div>
         </div>
-    </footer>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- meglévő script.js, hogy működjön a kosár + .order-btn logika -->
-    <script src="script.js"></script>
-    <script src="menu.js"></script>
-    <script src="api.js"></script>
+        <div class="product-modal-footer">
+          <div class="qty-stepper" aria-label="Mennyiség">
+            <button type="button" class="qty-btn" id="pQtyMinus" aria-label="Csökkentés">
+              −
+            </button>
+            <div class="qty-value" id="pQtyValue">1</div>
+            <button type="button" class="qty-btn" id="pQtyPlus" aria-label="Növelés">
+              +
+            </button>
+          </div>
+
+          <button type="button" class="btn btn-light product-modal-cart" id="pModalAddBtn">
+            Kosárba
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- meglévő script.js, hogy működjön a kosár + .order-btn logika -->
+  <script src="script.js"></script>
+  <script src="productModal.js"></script>
+  <script src="menu.js"></script>
+  <script src="api.js"></script>
+  <script src="name.js"></script>
+  <script src="burgerConfigurator.js"></script>
 </body>
 
 </html>

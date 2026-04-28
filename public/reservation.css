@@ -1,0 +1,114 @@
+/* --- Reservation CTA --- */
+.reservation-cta{
+  padding: 64px 0;
+  background: #23272f;
+}
+
+.reservation-card{
+  display: flex;
+  border-radius: 26px;
+  overflow: hidden;
+  background: #1e222a;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+  min-height: 360px;
+}
+
+.reservation-media{
+  flex: 1 1 55%;
+  background-image: url("images/belter.jpg");
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+/* Dark vignette towards the text side */
+.reservation-media::after{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg,
+    rgba(0,0,0,0.05) 0%,
+    rgba(0,0,0,0.25) 55%,
+    rgba(0,0,0,0.70) 100%
+  );
+}
+
+.reservation-content{
+  flex: 1 1 45%;
+  padding: 56px 56px;
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+
+.reservation-title{
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+  font-size: clamp(30px, 3.2vw, 44px);
+}
+
+.reservation-subtitle{
+  color: #f6b23a;
+  font-weight: 800;
+  font-size: clamp(16px, 1.6vw, 20px);
+  margin-top: 4px;
+}
+
+.reservation-text{
+  margin: 10px 0 0;
+  color: rgba(255,255,255,0.85);
+  max-width: 44ch;
+  line-height: 1.65;
+}
+
+.reservation-actions{
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  flex-wrap: wrap;
+}
+
+.reservation-btn{
+  border-radius: 14px;
+  padding: 14px 26px;
+  font-weight: 800;
+}
+
+.reservation-link{
+  color: rgba(255,255,255,0.9);
+  font-weight: 700;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,0.45);
+  padding-bottom: 2px;
+}
+
+.reservation-link:hover{
+  color: #fff;
+  border-bottom-color: rgba(255,255,255,0.9);
+}
+
+@media (max-width: 992px){
+  .reservation-card{
+    flex-direction: column;
+  }
+
+  .reservation-media{
+    min-height: 260px;
+  }
+
+  .reservation-media::after{
+    background: linear-gradient(180deg,
+      rgba(0,0,0,0.10) 0%,
+      rgba(0,0,0,0.65) 100%
+    );
+  }
+
+  .reservation-content{
+    padding: 32px 22px 36px;
+  }
+}
+

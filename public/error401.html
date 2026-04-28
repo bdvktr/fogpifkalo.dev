@@ -1,74 +1,96 @@
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- Bootstrap 5 CSS -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <!-- Bootstrap Icons -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="style.css" />
-    <title>Error 401</title>
-  </head>
-  <body>
-        <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="index.html">
-          <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
-          <span class="fw-bold">Fogpifkáló</span>
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navMenu"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navMenu">
-          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html">Főoldal</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="menu.html">Menü</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="index.html#rolunk">Rólunk</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
-            </li>
-          </ul>
 
-          <!-- Fiókom ikon -->
-          <a
-            class="btn btn-outline-light ms-lg-3 d-flex align-items-center active"
-            href="fiok.html"
-            id="accountLink"
-          >
-            <i class="bi bi-person-circle me-1"></i>
-            <span class="d-none d-lg-inline">Fiókom</span>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="navbar2.css" />
+  <link rel="stylesheet" href="scrollbar.css">
+  <title>Error 401</title>
+</head>
+
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <!-- LOGÓ -->
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <img src="images/fogpifkalo.png" alt="Fogpifkáló" class="navbar-logo me-2" />
+        <span class="fw-bold brand-text">Fogpifkáló</span>
+      </a>
+
+      <!-- MOBIL TOGGLE -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Főoldal</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="menu.html">Menü</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#rolunk">Rólunk</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
+          </li>
+        </ul>
+
+        <!-- JOBB OLDAL: FOGLALÁS + (KOSÁR | FIÓK) pill -->
+        <div class="d-flex align-items-center gap-2">
+          <!-- FOGLALÁS (ghost + glow) -->
+          <a class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2"
+            href="foglalas.html">
+            <i class="bi bi-calendar-event"></i>
+            <span>Foglalás</span>
           </a>
 
-          <a class="btn btn-warning ms-2" href="foglalas.html"
-            >Foglalás</a
-          >
+          <!-- KÖZÖS PILL: KOSÁR + FIÓK -->
+          <div class="nav-utility-pill d-flex align-items-center">
+            <!-- KOSÁR -->
+            <div class="dropdown">
+              <button class="btn nav-utility-btn position-relative d-inline-flex align-items-center gap-2" type="button"
+                id="cartDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bag"></i>
+                <span class="d-none d-lg-inline">Kosár</span>
+                <span class="cart-badge" id="cartCountBadge" style="display: none">0</span>
+              </button>
+
+              <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="cartDropdownBtn"
+                style="min-width: 280px">
+                <div id="cartDropdownContent">
+                  <div class="text-muted small">A kosarad jelenleg üres.</div>
+                </div>
+              </div>
+            </div>
+
+            <span class="nav-utility-divider"></span>
+
+            <!-- FIÓK -->
+            <a class="btn nav-utility-btn d-inline-flex align-items-center gap-2" href="fiok.html" id="accountLink">
+              <i class="bi bi-person-circle account-icon"></i>
+              <span class="d-none d-lg-inline"></span>
+            </a>
+          </div>
         </div>
       </div>
-    </nav>
-    <div class="error-container">
-        <img class="errorimg" src="./images/error401.png" alt="401 error png" />
-    </div>
-  </body>
+  </nav>
+
+  <div class="error-container">
+    <img class="errorimg" src="./images/error401.png" alt="401 error png" />
+
+    <a href="index.html" class="errorbtn error401">Vissza a kezdőlapra!</a>
+  </div>
+  <script src="name.js"></script>
+</body>
+
 </html>

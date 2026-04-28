@@ -1,169 +1,173 @@
 <!DOCTYPE html>
 <html lang="hu">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Asztalfoglalás - Fogpifkáló</title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-        <!-- Bootstrap Icons -->
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
-  </head>
-  <body>
-    <!-- NAVBAR -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-      <div class="container">
-        <a class="navbar-brand d-flex align-items-center" href="index.html">
-          <i class="bi bi-egg-fried me-2" style="font-size: 1.4rem"></i>
-          <span class="fw-bold">Fogpifkáló</span>
-        </a>
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navMenu"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navMenu">
-          <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-            <li class="nav-item">
-              <a class="nav-link" href="index.html">Főoldal</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="menu.html">Menü</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="index.html#rolunk">Rólunk</a>
-            </li>
-            <li class="nav-item">
-              <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
-            </li>
-          </ul>
 
-          <!-- Fiókom ikon -->
-          <a
-            class="btn btn-outline-light ms-lg-3 d-flex align-items-center active"
-            href="fiok.html"
-            id="accountLink"
-          >
-            <i class="bi bi-person-circle me-1"></i>
-            <span class="d-none d-lg-inline">Fiókom</span>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Asztalfoglalás - Fogpifkáló</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Bootstrap Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet" />
+  <link rel="stylesheet" href="navbar2.css" />
+  <link rel="stylesheet" href="scrollbar.css">
+</head>
+
+<body>
+  <!-- NAVBAR -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
+    <div class="container">
+      <!-- LOGÓ -->
+      <a class="navbar-brand d-flex align-items-center" href="index.html">
+        <img src="images/fogpifkalo.png" alt="Fogpifkáló" class="navbar-logo me-2" />
+        <span class="fw-bold brand-text">Fogpifkáló</span>
+      </a>
+
+      <!-- MOBIL TOGGLE -->
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+
+      <div class="collapse navbar-collapse" id="navMenu">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
+          <li class="nav-item">
+            <a class="nav-link" href="index.html">Főoldal</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="menu.html">Menü</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#rolunk">Rólunk</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
+          </li>
+        </ul>
+
+        <!-- JOBB OLDAL: FOGLALÁS + (KOSÁR | FIÓK) pill -->
+        <div class="d-flex align-items-center gap-2">
+          <!-- FOGLALÁS (ghost + glow) -->
+          <a class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2"
+            href="foglalas.html">
+            <i class="bi bi-calendar-event"></i>
+            <span>Foglalás</span>
           </a>
-        </div>
-      </div>
-    </nav>
 
-    <main class="py-5">
-      <div class="container">
-        <h1 class="mb-3">Asztalfoglalás</h1>
-        <p class="text-muted mb-4">
-          Töltsd ki az alábbi űrlapot, és rögzítjük a foglalásod. A foglalás
-          státusza kezdetben <strong>„függőben”</strong>, később az étterem
-          visszaigazolja.
-        </p>
+          <!-- KÖZÖS PILL: KOSÁR + FIÓK -->
+          <div class="nav-utility-pill d-flex align-items-center">
+            <!-- KOSÁR -->
+            <div class="dropdown">
+              <button class="btn nav-utility-btn position-relative d-inline-flex align-items-center gap-2" type="button"
+                id="cartDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="bi bi-bag"></i>
+                <span class="d-none d-lg-inline">Kosár</span>
+                <span class="cart-badge" id="cartCountBadge" style="display: none">0</span>
+              </button>
 
-        <div id="reservationMessage" class="mb-3"></div>
-
-        <div class="card">
-          <div class="card-body">
-            <form id="reservationForm" class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Név</label>
-                <input type="text" name="name" class="form-control" required />
+              <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="cartDropdownBtn"
+                style="min-width: 280px">
+                <div id="cartDropdownContent">
+                  <div class="text-muted small">A kosarad jelenleg üres.</div>
+                </div>
               </div>
+            </div>
 
-              <div class="col-md-6">
-                <label class="form-label">Telefonszám</label>
-                <input type="text" name="phone" class="form-control" required />
-              </div>
+            <span class="nav-utility-divider"></span>
 
-              <div class="col-md-6">
-                <label class="form-label">Email cím</label>
-                <input
-                  type="email"
-                  name="email"
-                  class="form-control"
-                  required
-                />
-              </div>
-
-              <div class="col-md-4">
-                <label class="form-label">Dátum</label>
-                <input type="date" name="date" class="form-control" required />
-              </div>
-
-              <div class="col-md-4">
-                <label class="form-label">Időpont - mettől</label>
-                <input
-                  type="time"
-                  name="timeFrom"
-                  class="form-control"
-                  required
-                />
-              </div>
-
-              <div class="col-md-4">
-                <label class="form-label">Időpont - meddig</label>
-                <input
-                  type="time"
-                  name="timeTo"
-                  class="form-control"
-                  required
-                />
-              </div>
-
-              <div class="col-md-4">
-                <label class="form-label">Asztal száma</label>
-                <select name="tableNumber" class="form-select" required>
-                  <option value="">Válassz...</option>
-                  <option value="1">1. asztal</option>
-                  <option value="2">2. asztal</option>
-                  <option value="3">3. asztal</option>
-                  <option value="4">4. asztal</option>
-                  <option value="5">5. asztal</option>
-                  <option value="6">6. asztal</option>
-                </select>
-              </div>
-
-              <div class="col-md-4">
-                <label class="form-label">Létszám</label>
-                <input
-                  type="number"
-                  name="peopleCount"
-                  class="form-control"
-                  min="1"
-                  max="20"
-                  required
-                />
-              </div>
-
-              <div class="col-12">
-                <label class="form-label">Megjegyzés (opcionális)</label>
-                <textarea name="note" class="form-control" rows="3"></textarea>
-              </div>
-
-              <div class="col-12">
-                <button type="submit" class="btn btn-primary">
-                  Foglalás elküldése
-                </button>
-              </div>
-            </form>
+            <!-- FIÓK -->
+            <a class="btn nav-utility-btn d-inline-flex align-items-center gap-2" href="fiok.html" id="accountLink">
+              <i class="bi bi-person-circle account-icon"></i>
+              <span class="d-none d-lg-inline"></span>
+            </a>
           </div>
         </div>
       </div>
-    </main>
+  </nav>
 
-    <!-- Bootstrap JS (ha használod a navbarhoz, modálokhoz stb.) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <main class="py-5 my-5">
+    <div class="container">
+      <h1 class="mb-3">Asztalfoglalás</h1>
+      <p class="text-muted mb-4">
+        Töltsd ki az alábbi űrlapot, és rögzítjük a foglalásod. A foglalás
+        státusza kezdetben <strong>„függőben”</strong>, később az étterem
+        visszaigazolja.
+      </p>
 
-    <!-- Saját JS a foglaláshoz -->
-    <script src="foglalas.js"></script>
-    <script src="api.js"></script>
-  </body>
+      <div id="reservationMessage" class="mb-3"></div>
+
+      <div class="card">
+        <div class="card-body">
+          <form id="reservationForm" class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label">Név</label>
+              <input type="text" name="name" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Telefonszám</label>
+              <input type="text" name="phone" class="form-control" required />
+            </div>
+
+            <div class="col-md-6">
+              <label class="form-label">Email cím</label>
+              <input type="email" name="email" class="form-control" required />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Dátum</label>
+              <input type="date" name="date" class="form-control" required />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Időpont - mettől</label>
+              <input type="time" name="timeFrom" class="form-control" required />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Időpont - meddig</label>
+              <input type="time" name="timeTo" class="form-control" required />
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Asztal száma</label>
+              <select name="tableNumber" class="form-select" required>
+                <option value="">Válassz...</option>
+                <option value="1">1. asztal</option>
+                <option value="2">2. asztal</option>
+                <option value="3">3. asztal</option>
+                <option value="4">4. asztal</option>
+                <option value="5">5. asztal</option>
+                <option value="6">6. asztal</option>
+              </select>
+            </div>
+
+            <div class="col-md-4">
+              <label class="form-label">Létszám</label>
+              <input type="number" name="peopleCount" class="form-control" min="1" max="12" required />
+            </div>
+
+            <div class="col-12">
+              <label class="form-label">Megjegyzés (opcionális)</label>
+              <textarea name="note" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="col-12">
+              <button type="submit" class="btn btn-primary">
+                Foglalás elküldése
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Bootstrap JS (ha használod a navbarhoz, modálokhoz stb.) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+  <!-- Saját JS a foglaláshoz -->
+  <script src="foglalas.js"></script>
+  <script src="api.js"></script>
+  <script src="name.js"></script>
+</body>
+
 </html>
