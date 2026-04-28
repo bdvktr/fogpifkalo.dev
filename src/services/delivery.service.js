@@ -179,3 +179,78 @@ export function getOrderDetails(req, res) {
     });
   });
 }
+
+// Leadott rendelések futárnak (history)
+export function getCompletedOrders(req, res) {
+  const sql = `
+    SELECT
+      o.id,
+      o.created_at,
+      o.status,
+      o.total_price,
+      o.shipping_name,
+      o.shipping_phone,
+      o.shipping_address,
+      u.email AS user_email,
+      u.name  AS user_name
+    FROM orders o
+    JOIN users u ON u.id = o.user_id
+    WHERE o.status = 'completed'
+    ORDER BY o.created_at DESC, o.id DESC
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("DB hiba (delivery completed orders):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba (leadott rendelések lekérdezése).",
+      });
+    }
+
+    return res.json({ success: true, orders: rows });
+  });
+}
+
+// Futár visszavonja: completed -> pending
+export function undoCompleteOrder(req, res) {
+  const orderId = Number(req.params.id);
+
+  if (!Number.isInteger(orderId) || orderId <= 0) {
+    return res
+      .status(400)
+      .json({ success: false, message: "Érvénytelen rendelés azonosító." });
+  }
+
+  const sql = `
+    UPDATE orders
+    SET status = 'pending'
+    WHERE id = ? AND status = 'completed'
+  `;
+
+  db.query(sql, [orderId], (err, result) => {
+    if (err) {
+      console.error("DB hiba (delivery undoCompleteOrder):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a visszavonás közben.",
+      });
+    }
+
+    if (result.affectedRows === 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "A rendelés nem található, vagy nem leadott (completed) státuszban van.",
+      });
+    }
+
+    // pending lista frissítése realtime
+    emitPendingOrdersUpdated();
+
+    return res.json({
+      success: true,
+      message: "A rendelés visszavonva (pending).",
+    });
+  });
+}

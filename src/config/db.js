@@ -1,3 +1,4 @@
+import "./env.js";
 import { createPool } from "mysql2";
 
 export const db = createPool({

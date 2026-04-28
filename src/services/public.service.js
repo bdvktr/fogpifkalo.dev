@@ -1,12 +1,16 @@
 import { db } from "../repositories/db.repository.js";
+import {
+  parseIngredients,
+  toIngredientsJson
+} from "../config/parseIngredients.js";
 
 export function getProducts(req, res) {
   const sql = `
-    SELECT id, name, description, price, image_url 
-    FROM products
-    WHERE is_active = 1
-    ORDER BY id ASC
-  `;
+  SELECT id, name, description, ingredients, price, image_url, category, is_active 
+  FROM products
+  WHERE is_active = 1
+  ORDER BY id ASC
+`;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -17,6 +21,10 @@ export function getProducts(req, res) {
       });
     }
 
+    rows.forEach((p) => {
+      p.ingredients = parseIngredients(p.ingredients);
+    });
+
     return res.json({
       success: true,
       products: rows,
@@ -26,11 +34,11 @@ export function getProducts(req, res) {
 
 export function getMenu(req, res) {
   const sql = `
-    SELECT id, name, description, price, category
-    FROM products
-    WHERE is_active = 1
-    ORDER BY category, name
-  `;
+  SELECT id, name, description, ingredients, price, image_url, category
+  FROM products
+  WHERE is_active = 1
+  ORDER BY category, name
+`;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -41,6 +49,10 @@ export function getMenu(req, res) {
       });
     }
 
+    rows.forEach((p) => {
+      p.ingredients = parseIngredients(p.ingredients);
+    });
+
     return res.json({
       success: true,
       products: rows,
@@ -50,12 +62,12 @@ export function getMenu(req, res) {
 
 export function getSpecialOffers(req, res) {
   const sql = `
-    SELECT id, name, description, price, image_url, category
-    FROM products
-    WHERE is_active = 1
-      AND is_special_offer = 1
-    ORDER BY category, name
-  `;
+  SELECT id, name, description, ingredients, price, image_url, category
+  FROM products
+  WHERE is_active = 1
+    AND is_special_offer = 1
+  ORDER BY category, name
+`;
 
   db.query(sql, (err, rows) => {
     if (err) {
@@ -65,6 +77,10 @@ export function getSpecialOffers(req, res) {
         message: "Szerver hiba a hétvégi ajánlatok lekérdezésekor.",
       });
     }
+
+    rows.forEach((p) => {
+      p.ingredients = parseIngredients(p.ingredients);
+    });
 
     return res.json({
       success: true,

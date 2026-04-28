@@ -1,3 +1,4 @@
+import "./env.js";
 export const JWT_SECRET =
   process.env.JWT_SECRET || "nagyon-titkos-jwt-jelszo-csereld-ki";
 
@@ -22,7 +23,7 @@ export const ACCESS_TOKEN_COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
   sameSite: "lax",
-  maxAge: 20 * 1000, // 20mp
+  maxAge: 20 * 1000,
 };
 
 export const REFRESH_TOKEN_COOKIE_OPTIONS = {

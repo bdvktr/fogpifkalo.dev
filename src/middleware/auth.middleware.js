@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 
 import { db } from "../repositories/db.repository.js";
+import { hashRefreshToken } from "../config/tokenHash.js";
 import {
   ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET,
@@ -31,8 +32,8 @@ function query(sql, params = []) {
 
 /**
  * - Megpróbálja az access tokent
- * - Ha lejárt/hibás → refresh token alapján új access (és refresh) + req.user beállítása
- * - Ha semmi nincs → req.user = null
+ * - Ha nincs/lejárt/hibás → req.user = null
+ * - NEM refresh-el automatikusan (azt a frontend hívja /api/refresh-en)
  */
 export async function authWithRefreshMiddleware(req, res, next) {
   try {
@@ -40,89 +41,74 @@ export async function authWithRefreshMiddleware(req, res, next) {
 
     const accessToken = req.cookies?.[ACCESS_TOKEN_COOKIE_NAME];
 
-    // 1) Először próbáljuk az ACCESS tokent verifálni
-    if (accessToken) {
-      try {
-        const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
-        req.user = decoded; // { id, name, email, isAdmin }
-        return next();
-      } catch (err) {
-        // pl. TokenExpiredError – ez még nem baj, megyünk tovább refresh-re
-        console.warn(
-          "Access token verify hiba (megyünk tovább refresh-re):",
-          err.message
-        );
-      }
-    }
-
-    // 2) Ha nincs érvényes access → próbáljuk a REFRESH tokent
-    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
-
-    if (!refreshToken) {
-      // Nincs refresh → nincs user
-      req.user = null;
+    if (!accessToken) {
       return next();
     }
 
-    // 2/a) Megkeressük a DB-ben
+    try {
+      const decoded = jwt.verify(accessToken, ACCESS_TOKEN_SECRET);
+      req.user = decoded; // { id, name, email, isAdmin, isDelivery }
+      return next();
+    } catch (err) {
+      // TokenExpiredError, JsonWebTokenError, stb.
+      // Itt direkt nem refresh-elünk.
+      req.user = null;
+      return next();
+    }
+  } catch (err) {
+    console.error("authWithRefreshMiddleware hiba:", err);
+    req.user = null;
+    return next(err);
+  }
+}
+
+// Admin felület /admin védelme refresh-eléssel
+export async function adminRefreshMiddleware(req, res, next) {
+  try {
+    // ha már van érvényes access tokenből user, nincs dolgunk
+    if (req.user) return next();
+
+    const refreshToken = req.cookies?.[REFRESH_TOKEN_COOKIE_NAME];
+    if (!refreshToken) return next();
+
+    // DB-ben megvan-e a refresh token
+    const refreshTokenHash = hashRefreshToken(refreshToken);
+
     const rows = await query(
       "SELECT id, user_id, token, expires_at FROM refresh_tokens WHERE token = ? LIMIT 1",
-      [refreshToken]
+      [refreshTokenHash]
     );
     const storedToken = rows[0];
+    if (!storedToken) return next();
 
-    if (!storedToken) {
-      // Nincs ilyen refresh a DB-ben
-      req.user = null;
-      return next();
-    }
-
-    // 2/b) JWT verify a refresh tokenre
+    // refresh token verify
     let payload;
     try {
       payload = jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
     } catch (err) {
-      console.error(
-        "Refresh token verify hiba (globális middleware):",
-        err.message
-      );
-      // ha hibás → töröljük a DB-ből is
+      // hibás/lejárt refresh → takarítsuk DB-ből
       try {
         await query("DELETE FROM refresh_tokens WHERE id = ?", [
           storedToken.id,
         ]);
-      } catch (deleteErr) {
-        console.error(
-          "Refresh token törlés hiba verify fail után:",
-          deleteErr.message
-        );
-      }
-      req.user = null;
+      } catch (_) {}
       return next();
     }
 
     const userId = payload.id;
 
-    // 2/c) Felhasználó lekérése
+    // user betöltés (figyelj: is_delivery is kell!)
     const userRows = await query(
       "SELECT id, name, email, is_admin, is_delivery FROM users WHERE id = ? LIMIT 1",
       [userId]
     );
     const userRow = userRows[0];
-
     if (!userRow) {
-      // Nincs ilyen user → töröljük a refresh tokent is
       try {
         await query("DELETE FROM refresh_tokens WHERE id = ?", [
           storedToken.id,
         ]);
-      } catch (deleteErr) {
-        console.error(
-          "Refresh token törlés hiba (user nem található):",
-          deleteErr.message
-        );
-      }
-      req.user = null;
+      } catch (_) {}
       return next();
     }
 
@@ -134,7 +120,7 @@ export async function authWithRefreshMiddleware(req, res, next) {
       isDelivery: !!userRow.is_delivery,
     };
 
-    // 2/d) Új ACCESS + REFRESH token generálása (rotáció)
+    // token rotáció
     const newAccessToken = jwt.sign(userPayload, ACCESS_TOKEN_SECRET, {
       expiresIn: ACCESS_TOKEN_EXPIRES_IN,
     });
@@ -144,26 +130,16 @@ export async function authWithRefreshMiddleware(req, res, next) {
     });
 
     const decodedNewRefresh = jwt.decode(newRefreshToken);
-    const newExpiresAt =
-      decodedNewRefresh && decodedNewRefresh.exp
-        ? new Date(decodedNewRefresh.exp * 1000)
-        : null;
+    const newExpiresAt = decodedNewRefresh?.exp
+      ? new Date(decodedNewRefresh.exp * 1000)
+      : null;
 
-    try {
-      await query(
-        "UPDATE refresh_tokens SET token = ?, expires_at = ? WHERE id = ?",
-        [newRefreshToken, newExpiresAt, storedToken.id]
-      );
-    } catch (err) {
-      console.error(
-        "Refresh token rotáció DB hiba (globális middleware):",
-        err.message
-      );
-      req.user = null;
-      return next();
-    }
+    await query(
+      "UPDATE refresh_tokens SET token = ?, expires_at = ? WHERE id = ?",
+      [newRefreshToken, newExpiresAt, storedToken.id]
+    );
 
-    // 2/e) Cookie-k frissítése
+    // cookie-k frissítése
     res
       .cookie(
         ACCESS_TOKEN_COOKIE_NAME,
@@ -176,14 +152,12 @@ export async function authWithRefreshMiddleware(req, res, next) {
         REFRESH_TOKEN_COOKIE_OPTIONS
       );
 
-    // 2/f) req.user beállítása
+    // req.user beállítása, hogy a requireAdminOrErrorPage átengedjen
     req.user = userPayload;
 
     return next();
   } catch (err) {
-    console.error("authWithRefreshMiddleware hiba:", err);
-    // ne döntsön auth hibáról – majd a route/más middleware
-    req.user = null;
+    console.error("adminBootstrapRefreshMiddleware hiba:", err);
     return next(err);
   }
 }

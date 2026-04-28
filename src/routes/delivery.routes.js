@@ -10,10 +10,15 @@ router.use(requireDelivery);
 // Rendelések listázása futárnak
 router.get("/orders", deliveryController.getPendingOrders);
 
+router.get("/orders/completed", deliveryController.getCompletedOrders);
+
 // Rendelés részletei futárnak
 router.get("/orders/:id", deliveryController.getOrderDetails);
 
 // Rendelés teljesítése futár által
 router.put("/orders/:id/complete", deliveryController.completeOrder);
+
+// Visszavonás: completed -> pending
+router.put("/orders/:id/undo", deliveryController.undoCompleteOrder);
 
 export default router;

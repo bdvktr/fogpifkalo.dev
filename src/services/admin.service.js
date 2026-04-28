@@ -6,11 +6,34 @@ import {
   sendOrderCancelledEmail,
 } from "./email.service.js";
 import { logAdminAction } from "./audit.service.js";
+import {
+  parseIngredients,
+  toIngredientsJson,
+} from "../config/parseIngredients.js";
+import {
+  emitPendingOrdersUpdated,
+  emitReservationsUpdated,
+} from "../config/websocket.js";
+
+//helper
+function parseConfigJson(value) {
+  if (!value) return null;
+
+  if (typeof value === "object") {
+    return value;
+  }
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
+}
 
 // Termékek
 export function getProducts(req, res) {
   const sql = `
-    SELECT id, name, description, price, is_active, is_special_offer, category, image_url
+    SELECT id, name, description, ingredients, price, is_active, is_special_offer, category, image_url
     FROM products
     ORDER BY category, name
   `;
@@ -24,6 +47,10 @@ export function getProducts(req, res) {
       });
     }
 
+    rows.forEach((p) => {
+      p.ingredients = parseIngredients(p.ingredients);
+    });
+
     res.json({
       success: true,
       products: rows,
@@ -35,6 +62,7 @@ export function createProduct(req, res) {
   const {
     name,
     description,
+    ingredients,
     price,
     image_url,
     is_active,
@@ -69,16 +97,17 @@ export function createProduct(req, res) {
   const specialOfferFlag = is_special_offer ? 1 : 0;
 
   const sql = `
-    INSERT INTO products 
-      (name, description, price, image_url, is_active, is_special_offer, category)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `;
+  INSERT INTO products 
+    (name, description, ingredients, price, image_url, is_active, is_special_offer, category)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+`;
 
   db.query(
     sql,
     [
       name,
       description || null,
+      toIngredientsJson(ingredients),
       price,
       image_url || "",
       activeFlag,
@@ -112,7 +141,7 @@ export function createProduct(req, res) {
         success: true,
         productId: result.insertId,
       });
-    }
+    },
   );
 }
 
@@ -121,6 +150,7 @@ export function updateProduct(req, res) {
   const {
     name,
     description,
+    ingredients,
     price,
     image_url,
     category,
@@ -159,6 +189,7 @@ export function updateProduct(req, res) {
     SET 
       name = ?, 
       description = ?, 
+      ingredients = ?,
       price = ?, 
       image_url = ?, 
       is_active = ?, 
@@ -172,6 +203,7 @@ export function updateProduct(req, res) {
     [
       name,
       description || null,
+      toIngredientsJson(ingredients),
       price,
       image_url || "",
       activeFlag,
@@ -213,7 +245,7 @@ export function updateProduct(req, res) {
         success: true,
         message: "Termék frissítve.",
       });
-    }
+    },
   );
 }
 
@@ -326,11 +358,17 @@ export function getOrderDetails(req, res) {
       oi.product_id,
       oi.quantity,
       oi.unit_price,
-      p.name AS product_name
+      oi.config_json,
+      p.name AS product_name,
+      s.name AS sauce_name
     FROM orders o
-    JOIN users u       ON u.id = o.user_id
+    JOIN users u        ON u.id = o.user_id
     JOIN order_items oi ON oi.order_id = o.id
-    JOIN products p    ON p.id = oi.product_id
+    JOIN products p     ON p.id = oi.product_id
+    LEFT JOIN products s
+      ON s.id = CAST(
+        JSON_UNQUOTE(JSON_EXTRACT(oi.config_json, '$.sauceId')) AS UNSIGNED
+      )
     WHERE o.id = ?
     ORDER BY oi.id ASC
   `;
@@ -362,12 +400,21 @@ export function getOrderDetails(req, res) {
         email: first.user_email,
         name: first.user_name,
       },
-      items: rows.map((r) => ({
-        product_id: r.product_id,
-        name: r.product_name,
-        quantity: r.quantity,
-        unit_price: Number(r.unit_price),
-      })),
+      items: rows.map((r) => {
+        const config = parseConfigJson(r.config_json);
+
+        if (config && r.sauce_name) {
+          config.sauceName = r.sauce_name;
+        }
+
+        return {
+          product_id: r.product_id,
+          name: r.product_name,
+          quantity: r.quantity,
+          unit_price: Number(r.unit_price),
+          config,
+        };
+      }),
     };
 
     return res.json({
@@ -398,7 +445,7 @@ export function updateOrderStatus(req, res) {
       console.error(
         "DB hiba (admin update order status):",
         err.code,
-        err.sqlMessage
+        err.sqlMessage,
       );
       return res.status(500).json({
         success: false,
@@ -450,7 +497,7 @@ export function updateOrderStatus(req, res) {
         if (selErr) {
           console.error(
             "DB hiba (rendelés adatainak lekérése emailhez):",
-            selErr
+            selErr,
           );
           return;
         }
@@ -475,14 +522,14 @@ export function updateOrderStatus(req, res) {
           sendOrderCompletedEmail(orderForMail).catch((emailErr) => {
             console.error(
               "Hiba az order completed email küldésekor:",
-              emailErr
+              emailErr,
             );
           });
         } else if (status === "cancelled") {
           sendOrderCancelledEmail(orderForMail).catch((emailErr) => {
             console.error(
               "Hiba az order cancelled email küldésekor:",
-              emailErr
+              emailErr,
             );
           });
         }
@@ -595,7 +642,7 @@ export function updateReservationStatus(req, res) {
         if (selectErr) {
           console.error(
             "DB hiba (foglalás adatainak lekérése emailhez):",
-            selectErr
+            selectErr,
           );
           return;
         }
@@ -603,7 +650,7 @@ export function updateReservationStatus(req, res) {
         if (!rows || rows.length === 0) {
           console.warn(
             "Foglalás nem található email küldéshez, id:",
-            reservationId
+            reservationId,
           );
           return;
         }
@@ -624,13 +671,13 @@ export function updateReservationStatus(req, res) {
           sendReservationConfirmedEmail(reservationForMail).catch(
             (emailErr) => {
               console.error("Hiba a visszaigazoló email küldésekor:", emailErr);
-            }
+            },
           );
         } else if (status === "cancelled") {
           sendReservationCancelledEmail(reservationForMail).catch(
             (emailErr) => {
               console.error("Hiba a törlés email küldésekor:", emailErr);
-            }
+            },
           );
         }
       });

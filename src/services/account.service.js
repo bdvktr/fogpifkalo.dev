@@ -11,7 +11,8 @@ import {
 
 export function updateProfile(req, res) {
   const userId = req.user.id;
-  const { name, email } = req.body;
+  const name = String(req.body?.name || "").trim();
+  const email = String(req.body?.email || "").trim();
 
   if (!name || !email) {
     return res.status(400).json({
@@ -25,6 +26,14 @@ export function updateProfile(req, res) {
   db.query(sql, [name, email, userId], (err) => {
     if (err) {
       console.error("DB hiba (profil frissítés):", err);
+
+      if (err.code === "ER_DUP_ENTRY") {
+        return res.status(400).json({
+          success: false,
+          message: "Ez az e-mail cím már használatban van.",
+        });
+      }
+
       return res.status(500).json({
         success: false,
         message: "Szerver hiba (profil frissítés).",
@@ -65,6 +74,11 @@ export function changePassword(req, res) {
     return res.status(400).json({
       success: false,
       message: "A jelenlegi és az új jelszó megadása kötelező.",
+    });
+  } else if (currentPassword === newPassword) {
+    return res.status(400).json({
+      success: false,
+      message: "Az új jelszónak különböznie kell a jelenlegi jelszótól.",
     });
   }
 

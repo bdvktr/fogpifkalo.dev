@@ -3,6 +3,12 @@ import {
   sendReservationUserUpdatedEmail,
   sendReservationUserCancelledEmail,
 } from "./email.service.js";
+import {
+  hasReservationOverlap,
+  normalizeOptionalText,
+  validatePeopleCount,
+  validateReservationInput,
+} from "./reservation-validation.service.js";
 
 export function getMyReservations(req, res) {
   const userId = req.user.id;
@@ -91,7 +97,7 @@ export function cancelMyReservation(req, res) {
       if (err2) {
         console.error(
           "DB hiba (user lemondás emailhez foglalás lekérdezése):",
-          err2
+          err2,
         );
         return;
       }
@@ -99,7 +105,7 @@ export function cancelMyReservation(req, res) {
       if (!rows || rows.length === 0) {
         console.warn(
           "Foglalás nem található user lemondás emailhez, id:",
-          reservationId
+          reservationId,
         );
         return;
       }
@@ -120,9 +126,9 @@ export function cancelMyReservation(req, res) {
         (emailErr) => {
           console.error(
             "Hiba a user lemondás email küldésekor (cancelMyReservation):",
-            emailErr
+            emailErr,
           );
-        }
+        },
       );
     });
   });
@@ -133,23 +139,31 @@ export function updateMyReservationDetails(req, res) {
   const reservationId = req.params.id;
   const { peopleCount, note } = req.body;
 
-  if (!peopleCount || isNaN(Number(peopleCount)) || Number(peopleCount) <= 0) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Érvénytelen létszám." });
+  const peopleValidation = validatePeopleCount(peopleCount);
+  if (!peopleValidation.success) {
+    return res.status(400).json({
+      success: false,
+      message: peopleValidation.message,
+    });
   }
+
+  const normalizedNote = normalizeOptionalText(note);
 
   const sql = `
     UPDATE reservations
-    SET people_count = ?, note = ?
-    WHERE id = ? 
-      AND user_id = ? 
-      AND status != 'cancelled'
+    SET
+      people_count = ?,
+      note = ?,
+      status = CASE
+        WHEN status = 'confirmed' THEN 'pending'
+        ELSE status
+      END
+    WHERE id = ? AND user_id = ? AND status != 'cancelled'
   `;
 
   db.query(
     sql,
-    [Number(peopleCount), note || null, reservationId, userId],
+    [peopleValidation.ppl, normalizedNote, reservationId, userId],
     (err, result) => {
       if (err) {
         console.error("DB hiba (/api/my/reservations/:id):", err);
@@ -166,13 +180,11 @@ export function updateMyReservationDetails(req, res) {
         });
       }
 
-      // 💌 válasz a usernek
       res.json({
         success: true,
         message: "Foglalásod létszámát sikeresen módosítottad.",
       });
 
-      // 💌 email a módosításról
       const selectSql = `
         SELECT
           id,
@@ -191,7 +203,7 @@ export function updateMyReservationDetails(req, res) {
         if (err2) {
           console.error(
             "DB hiba (foglalás emailhez lekérdezés user details update):",
-            err2
+            err2,
           );
           return;
         }
@@ -199,7 +211,7 @@ export function updateMyReservationDetails(req, res) {
         if (!rows || rows.length === 0) {
           console.warn(
             "Foglalás nem található email küldéshez (details), id:",
-            reservationId
+            reservationId,
           );
           return;
         }
@@ -216,14 +228,16 @@ export function updateMyReservationDetails(req, res) {
           peopleCount: r.people_count,
         };
 
-        sendReservationUserUpdatedEmail(reservationForMail).catch((emailErr) => {
-          console.error(
-            "Hiba a foglalás módosítva email küldésekor (details):",
-            emailErr
-          );
-        });
+        sendReservationUserUpdatedEmail(reservationForMail).catch(
+          (emailErr) => {
+            console.error(
+              "Hiba a foglalás módosítva email küldésekor (details):",
+              emailErr,
+            );
+          },
+        );
       });
-    }
+    },
   );
 }
 
@@ -233,55 +247,23 @@ export function updateMyReservationTime(req, res) {
 
   const { date, timeFrom, timeTo, tableNumber } = req.body;
 
-  if (!date || !timeFrom || !timeTo || !tableNumber) {
+  const validation = validateReservationInput({
+    tableNumber,
+    date,
+    timeFrom,
+    timeTo,
+    requirePeopleCount: false,
+  });
+
+  if (!validation.success) {
     return res.status(400).json({
       success: false,
-      message:
-        "Dátum, kezdési és záró idő, valamint asztalszám megadása kötelező.",
+      message: validation.message,
     });
   }
 
-  const tableNum = Number(tableNumber);
-  if (!Number.isInteger(tableNum) || tableNum <= 0) {
-    return res.status(400).json({
-      success: false,
-      message: "Érvénytelen asztalszám.",
-    });
-  }
-
-  const [fromH, fromM] = timeFrom.split(":").map(Number);
-  const [toH, toM] = timeTo.split(":").map(Number);
-
-  if (isNaN(fromH) || isNaN(fromM) || isNaN(toH) || isNaN(toM)) {
-    return res.status(400).json({
-      success: false,
-      message: "Érvénytelen időformátum. Használj HH:MM formátumot.",
-    });
-  }
-
-  const startMinutes = fromH * 60 + fromM;
-  const endMinutes = toH * 60 + toM;
-
-  if (endMinutes <= startMinutes) {
-    return res.status(400).json({
-      success: false,
-      message: "A befejezésnek későbbinek kell lennie, mint a kezdésnek.",
-    });
-  }
-
-  const now = new Date();
-  const newStart = new Date(date);
-  newStart.setHours(fromH, fromM, 0, 0);
-
-  if (newStart.getTime() <= now.getTime()) {
-    return res.status(400).json({
-      success: false,
-      message: "A foglalás új időpontja nem lehet a múltban.",
-    });
-  }
-
-  const mysqlStart = `${timeFrom}:00`;
-  const mysqlEnd = `${timeTo}:00`;
+  const { tableNum, mysqlStart, mysqlEnd, newStartMinutes, newEndMinutes } =
+    validation;
 
   const getReservationSql = `
     SELECT id, status
@@ -298,7 +280,7 @@ export function updateMyReservationTime(req, res) {
       });
     }
 
-    if (rows.length === 0) {
+    if (!rows || rows.length === 0) {
       return res.status(404).json({
         success: false,
         message: "Nem található ilyen foglalás.",
@@ -306,6 +288,7 @@ export function updateMyReservationTime(req, res) {
     }
 
     const reservation = rows[0];
+
     if (reservation.status === "cancelled") {
       return res.status(400).json({
         success: false,
@@ -314,76 +297,79 @@ export function updateMyReservationTime(req, res) {
     }
 
     const overlapSql = `
-      SELECT id
+      SELECT
+        id,
+        reservation_time,
+        end_time
       FROM reservations
-      WHERE 
-        table_number = ?
+      WHERE table_number = ?
         AND reservation_date = ?
         AND status != 'cancelled'
         AND id <> ?
-        AND NOT (
-          end_time <= ? OR
-          reservation_time >= ?
-        )
     `;
 
-    db.query(
-      overlapSql,
-      [tableNum, date, reservationId, mysqlStart, mysqlEnd],
-      (err2, conflicts) => {
-        if (err2) {
-          console.error("DB hiba (ütközésellenőrzés módosításkor):", err2);
-          return res.status(500).json({
-            success: false,
-            message: "Hiba történt az ütközések ellenőrzésekor.",
-          });
-        }
+    db.query(overlapSql, [tableNum, date, reservationId], (err2, conflicts) => {
+      if (err2) {
+        console.error("DB hiba (ütközésellenőrzés módosításkor):", err2);
+        return res.status(500).json({
+          success: false,
+          message: "Hiba történt az ütközések ellenőrzésekor.",
+        });
+      }
 
-        if (conflicts.length > 0) {
-          return res.status(400).json({
-            success: false,
-            message:
-              "Ezen az asztalon, ezen a napon már van foglalás ebben az idősávban.",
-          });
-        }
+      const overlap = hasReservationOverlap(
+        conflicts || [],
+        newStartMinutes,
+        newEndMinutes,
+      );
 
-        const updateSql = `
-          UPDATE reservations
-          SET 
-            reservation_date = ?,
-            reservation_time = ?,
-            end_time = ?,
-            table_number = ?
-          WHERE id = ? AND user_id = ?
-        `;
+      if (overlap) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Ezen az asztalon, ezen a napon már van foglalás ebben az idősávban.",
+        });
+      }
 
-        db.query(
-          updateSql,
-          [date, mysqlStart, mysqlEnd, tableNum, reservationId, userId],
-          (err3, result) => {
-            if (err3) {
-              console.error("DB hiba (idősáv módosítás):", err3);
-              return res.status(500).json({
-                success: false,
-                message: "Hiba történt az idősáv módosítása közben.",
-              });
-            }
+      const updateSql = `
+        UPDATE reservations
+        SET
+          reservation_date = ?,
+          reservation_time = ?,
+          end_time = ?,
+          table_number = ?,
+          status = CASE
+            WHEN status = 'confirmed' THEN 'pending'
+            ELSE status
+          END
+        WHERE id = ? AND user_id = ? AND status != 'cancelled'
+      `;
 
-            if (result.affectedRows === 0) {
-              return res.status(404).json({
-                success: false,
-                message: "Nem sikerült módosítani a foglalást.",
-              });
-            }
-
-            // 💌 válasz a usernek
-            res.json({
-              success: true,
-              message: "Foglalásod időpontját sikeresen módosítottad.",
+      db.query(
+        updateSql,
+        [date, mysqlStart, mysqlEnd, tableNum, reservationId, userId],
+        (err3, result) => {
+          if (err3) {
+            console.error("DB hiba (idősáv módosítás):", err3);
+            return res.status(500).json({
+              success: false,
+              message: "Hiba történt az idősáv módosítása közben.",
             });
+          }
 
-            // 💌 email a módosításról
-            const selectSql = `
+          if (result.affectedRows === 0) {
+            return res.status(404).json({
+              success: false,
+              message: "Nem sikerült módosítani a foglalást.",
+            });
+          }
+
+          res.json({
+            success: true,
+            message: "Foglalásod időpontját sikeresen módosítottad.",
+          });
+
+          const selectSql = `
               SELECT
                 id,
                 name,
@@ -397,47 +383,46 @@ export function updateMyReservationTime(req, res) {
               WHERE id = ? AND user_id = ?
             `;
 
-            db.query(selectSql, [reservationId, userId], (err4, rows) => {
-              if (err4) {
-                console.error(
-                  "DB hiba (foglalás emailhez lekérdezés user time update):",
-                  err4
-                );
-                return;
-              }
-
-              if (!rows || rows.length === 0) {
-                console.warn(
-                  "Foglalás nem található email küldéshez (time), id:",
-                  reservationId
-                );
-                return;
-              }
-
-              const r = rows[0];
-
-              const reservationForMail = {
-                email: r.email,
-                name: r.name,
-                date: r.reservation_date,
-                timeFrom: r.reservation_time,
-                timeTo: r.end_time,
-                tableNumber: r.table_number,
-                peopleCount: r.people_count,
-              };
-
-              sendReservationUserUpdatedEmail(reservationForMail).catch(
-                (emailErr) => {
-                  console.error(
-                    "Hiba a foglalás módosítva email küldésekor (time):",
-                    emailErr
-                  );
-                }
+          db.query(selectSql, [reservationId, userId], (err4, rows2) => {
+            if (err4) {
+              console.error(
+                "DB hiba (foglalás emailhez lekérdezés user time update):",
+                err4,
               );
-            });
-          }
-        );
-      }
-    );
+              return;
+            }
+
+            if (!rows2 || rows2.length === 0) {
+              console.warn(
+                "Foglalás nem található email küldéshez (time), id:",
+                reservationId,
+              );
+              return;
+            }
+
+            const r = rows2[0];
+
+            const reservationForMail = {
+              email: r.email,
+              name: r.name,
+              date: r.reservation_date,
+              timeFrom: r.reservation_time,
+              timeTo: r.end_time,
+              tableNumber: r.table_number,
+              peopleCount: r.people_count,
+            };
+
+            sendReservationUserUpdatedEmail(reservationForMail).catch(
+              (emailErr) => {
+                console.error(
+                  "Hiba a foglalás módosítva email küldésekor (time):",
+                  emailErr,
+                );
+              },
+            );
+          });
+        },
+      );
+    });
   });
 }

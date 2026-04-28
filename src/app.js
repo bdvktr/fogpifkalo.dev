@@ -3,7 +3,7 @@ import cookieParser from "cookie-parser";
 import path from "path";
 import { fileURLToPath } from "url";
 
-import { authWithRefreshMiddleware, requireAdminOrErrorPage } from "./middleware/auth.middleware.js";
+import { authWithRefreshMiddleware, requireAdminOrErrorPage, adminRefreshMiddleware} from "./middleware/auth.middleware.js";
 import healthRoutes from "./routes/health.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import accountRoutes from "./routes/account.routes.js";
@@ -30,7 +30,7 @@ app.use(cookieParser());
 app.use(authWithRefreshMiddleware);
 
 // Admin HTML oldal levédve
-app.get("/admin", requireAdminOrErrorPage, (req, res) => {
+app.get("/admin", adminRefreshMiddleware, requireAdminOrErrorPage, (req, res) => {
   res.sendFile(path.join(rootDir, "protected/admin.html"));
 });
 

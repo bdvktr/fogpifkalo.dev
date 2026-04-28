@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { db } from "../repositories/db.repository.js";
+import { hashRefreshToken } from "../config/tokenHash.js";
 import {
   ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET,
@@ -43,7 +44,8 @@ function saveRefreshToken(userId, token) {
   return new Promise((resolve, reject) => {
     const sql =
       "INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES (?, ?, ?)";
-    db.query(sql, [userId, token, expiresAt], (err, result) => {
+    const tokenHash = hashRefreshToken(token);
+    db.query(sql, [userId, tokenHash, expiresAt], (err, result) => {
       if (err) {
         console.error("DB hiba (refresh token mentés):", err);
         return reject(err);
@@ -56,7 +58,8 @@ function saveRefreshToken(userId, token) {
 function deleteRefreshToken(token) {
   return new Promise((resolve, reject) => {
     const sql = "DELETE FROM refresh_tokens WHERE token = ?";
-    db.query(sql, [token], (err, result) => {
+    const tokenHash = hashRefreshToken(token);
+    db.query(sql, [tokenHash], (err, result) => {
       if (err) {
         console.error("DB hiba (refresh token törlés):", err);
         return reject(err);
@@ -70,7 +73,8 @@ function findRefreshToken(token) {
   return new Promise((resolve, reject) => {
     const sql =
       "SELECT id, user_id, token, expires_at FROM refresh_tokens WHERE token = ? LIMIT 1";
-    db.query(sql, [token], (err, rows) => {
+    const tokenHash = hashRefreshToken(token);
+    db.query(sql, [tokenHash], (err, rows) => {
       if (err) {
         console.error("DB hiba (refresh token keresés):", err);
         return reject(err);
@@ -88,7 +92,8 @@ function updateRefreshTokenRow(id, newToken) {
   return new Promise((resolve, reject) => {
     const sql =
       "UPDATE refresh_tokens SET token = ?, expires_at = ? WHERE id = ?";
-    db.query(sql, [newToken, expiresAt, id], (err, result) => {
+    const tokenHash = hashRefreshToken(newToken);
+    db.query(sql, [tokenHash, expiresAt, id], (err, result) => {
       if (err) {
         console.error("DB hiba (refresh token frissítés):", err);
         return reject(err);
@@ -384,7 +389,7 @@ export async function refresh(req, res) {
   const userId = payload.id;
 
   const sql =
-    "SELECT id, name, email, is_admin FROM users WHERE id = ? LIMIT 1";
+    "SELECT id, name, email, is_admin, is_delivery FROM users WHERE id = ? LIMIT 1";
 
   db.query(sql, [userId], async (err, rows) => {
     if (err) {
