@@ -1,5 +1,6 @@
 (function () {
   let productById = new Map();
+  let toppingOptions = [];
   let modalInstance = null;
   let modalEl = null;
   let titleEl = null;
@@ -13,20 +14,6 @@
   let stepLabelEl = null;
 
   const FALLBACK_IMG = "images/farmburger.png";
-  const SIDE_OPTIONS = {
-    crispers: {
-      label: "Crispers menü",
-      desc: "A burger mellé ropogós crispers burgonya jár.",
-      icon: "bi bi-stars",
-      badge: "Crispers",
-    },
-    sweet_potato: {
-      label: "Édesburgonyás menü",
-      desc: "A burger mellé édesburgonya köret jár.",
-      icon: "bi bi-emoji-smile",
-      badge: "Édesburgonya",
-    },
-  };
   const EXTRA_OPTIONS = {
     coleslaw: {
       label: "Coleslaw saláta",
@@ -163,10 +150,19 @@
       productImage: getProductImage(product),
       quantity: Math.max(1, Math.min(99, Number(initialQty) || 1)),
       baseType: null,
-      sideType: null,
+      sideProductId: null,
       extraType: null,
       sauceId: null,
+      toppings: [],
     };
+  }
+
+  function normalizeMenuSideName(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
   }
 
   function getActiveSauces() {
@@ -179,14 +175,48 @@
     });
   }
 
+  function getActiveSides() {
+    const allowedSideNames = new Set(["crispers burgonya", "edesburgonya"]);
+
+    return [...productById.values()].filter((product) => {
+      if (!product) return false;
+      if (product.category !== "side") return false;
+      if (Number(product.is_active ?? 1) !== 1) return false;
+
+      const normalizedName = normalizeMenuSideName(product.name);
+      return allowedSideNames.has(normalizedName);
+    });
+  }
+
+  async function loadToppings() {
+    try {
+      const res = await fetch("/api/toppings");
+      const data = await res.json();
+
+      if (!data.success) {
+        console.warn("Nem sikerült betölteni a toppingokat:", data.message);
+        toppingOptions = [];
+        return;
+      }
+
+      toppingOptions = Array.isArray(data.toppings) ? data.toppings : [];
+    } catch (err) {
+      console.error("Hiba a toppingok betöltésekor:", err);
+      toppingOptions = [];
+    }
+  }
+
   function getStepKeys() {
     const steps = ["base"];
+
     if (state?.baseType === "menu") {
       steps.push("side", "extra");
       if (state.extraType === "sauce") {
         steps.push("sauce");
       }
     }
+
+    steps.push("toppings");
     return steps;
   }
 
@@ -212,6 +242,13 @@
           title: "Melyik szószt kéred?",
           subtitle: "A menühöz egy darab szósz választható.",
         };
+
+      case "toppings":
+        return {
+          title: "Kérsz extra feltétet?",
+          subtitle:
+            "Tetszőlegesen választhatsz extra feltéteket a burgeredhez.",
+        };
       default:
         return {
           title: "Állítsd össze a burgered",
@@ -230,11 +267,13 @@
       case "base":
         return Boolean(state.baseType);
       case "side":
-        return Boolean(state.sideType);
+        return Boolean(state.sideProductId);
       case "extra":
         return Boolean(state.extraType);
       case "sauce":
         return Boolean(state.sauceId);
+      case "toppings":
+        return true;
       default:
         return false;
     }
@@ -262,6 +301,7 @@
 
   function renderSummary() {
     if (!summaryEl || !state) return;
+
     const chips = [
       `<span class="burger-config-chip"><i class="bi bi-bag"></i>${escapeHtml(state.productName)}</span>`,
     ];
@@ -276,16 +316,22 @@
       chips.push(
         `<span class="burger-config-chip"><i class="bi bi-grid"></i>Menü</span>`,
       );
-      if (state.sideType) {
-        chips.push(
-          `<span class="burger-config-chip"><i class="bi bi-emoji-smile"></i>${escapeHtml(SIDE_OPTIONS[state.sideType].label)}</span>`,
-        );
+
+      if (state.sideProductId) {
+        const side = productById.get(String(state.sideProductId));
+        if (side) {
+          chips.push(
+            `<span class="burger-config-chip"><i class="bi bi-emoji-smile"></i>${escapeHtml(side.name)}</span>`,
+          );
+        }
       }
+
       if (state.extraType) {
         chips.push(
           `<span class="burger-config-chip"><i class="bi bi-bookmark-heart"></i>${escapeHtml(EXTRA_OPTIONS[state.extraType].label)}</span>`,
         );
       }
+
       if (state.sauceId) {
         const sauce = productById.get(String(state.sauceId));
         if (sauce) {
@@ -294,6 +340,20 @@
           );
         }
       }
+    }
+
+    if (Array.isArray(state.toppings) && state.toppings.length > 0) {
+      state.toppings.forEach((toppingId) => {
+        const topping = toppingOptions.find(
+          (item) => Number(item.id) === Number(toppingId),
+        );
+
+        if (topping) {
+          chips.push(
+            `<span class="burger-config-chip"><i class="bi bi-plus-circle"></i>${escapeHtml(topping.name)}</span>`,
+          );
+        }
+      });
     }
 
     summaryEl.innerHTML = chips.join("");
@@ -333,27 +393,46 @@
 
   function renderSideStep() {
     if (!contentEl || !state) return;
-    contentEl.innerHTML = `
-      <div class="burger-config-grid two-cols">
-        ${Object.entries(SIDE_OPTIONS)
-          .map(
-            ([value, item]) => `
-            <button type="button" class="burger-config-option ${state.sideType === value ? "is-selected" : ""}" data-config-select="side" data-config-value="${escapeAttr(value)}">
-              <div class="burger-config-option-visual d-flex align-items-center justify-content-center">
-                <span class="burger-config-option-badge"><i class="${escapeAttr(item.icon)}"></i>${escapeHtml(item.badge)}</span>
-                <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
-                <i class="${escapeAttr(item.icon)} text-white" style="font-size: 4rem;"></i>
-              </div>
-              <div class="burger-config-option-body">
-                <div class="burger-config-option-title">${escapeHtml(item.label)}</div>
-                <p class="burger-config-option-desc">${escapeHtml(item.desc)}</p>
-              </div>
-            </button>
-          `,
-          )
-          .join("")}
+
+    const sides = getActiveSides();
+
+    if (sides.length === 0) {
+      contentEl.innerHTML = `
+      <div class="alert alert-warning mb-0">
+        Jelenleg nincs aktív köret a menühöz, ezért ezt az opciót most nem lehet végigvinni.
       </div>
     `;
+      return;
+    }
+
+    contentEl.innerHTML = `
+    <div class="burger-config-grid two-cols">
+      ${sides
+        .map(
+          (side) => `
+          <button
+            type="button"
+            class="burger-config-option ${Number(state.sideProductId) === Number(side.id) ? "is-selected" : ""}"
+            data-config-select="side"
+            data-config-value="${escapeAttr(side.id)}"
+          >
+            <div class="burger-config-option-visual">
+              <img src="${escapeAttr(getProductImage(side))}" alt="${escapeAttr(side.name || "Köret")}">
+              <span class="burger-config-option-badge">
+                <i class="bi bi-emoji-smile"></i>${escapeHtml(side.name || "Köret")}
+              </span>
+              <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
+            </div>
+            <div class="burger-config-option-body">
+              <div class="burger-config-option-title">${escapeHtml(side.name || "Köret")}</div>
+              <p class="burger-config-option-desc">${escapeHtml(side.description || "Válaszd ki a menühöz tartozó köretet.")}</p>
+            </div>
+          </button>
+        `,
+        )
+        .join("")}
+    </div>
+  `;
   }
 
   function renderExtraStep() {
@@ -417,6 +496,57 @@
     `;
   }
 
+  function renderToppingsStep() {
+    if (!contentEl || !state) return;
+
+    if (!Array.isArray(toppingOptions) || toppingOptions.length === 0) {
+      contentEl.innerHTML = `
+      <div class="alert alert-secondary mb-0">
+        Jelenleg nincs aktív extra feltét, ezért ezt a lépést kihagyhatod.
+      </div>
+    `;
+      return;
+    }
+
+    contentEl.innerHTML = `
+    <div class="burger-config-grid two-cols">
+      ${toppingOptions
+        .map(
+          (topping) => `
+            <button
+              type="button"
+              class="burger-config-option ${state.toppings.includes(Number(topping.id)) ? "is-selected" : ""}"
+              data-config-select="topping"
+              data-config-value="${escapeAttr(topping.id)}"
+            >
+              <div class="burger-config-option-visual d-flex align-items-center justify-content-center">
+                <span class="burger-config-option-badge">
+                  <i class="bi bi-plus-circle"></i>Extra feltét
+                </span>
+                <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
+                <i class="bi bi-plus-circle text-white" style="font-size: 4rem;"></i>
+              </div>
+              <div class="burger-config-option-body">
+                <div class="burger-config-option-title">${escapeHtml(topping.name)}</div>
+                <p class="burger-config-option-desc">
+                  ${
+                    Number(topping.price || 0) > 0
+                      ? `${formatFt(topping.price)} Ft`
+                      : "Jelenleg teszt feltét"
+                  }
+                </p>
+              </div>
+            </button>
+          `,
+        )
+        .join("")}
+    </div>
+    <div class="burger-config-note">
+      Több extra feltétet is kiválaszthatsz, de ez a lépés opcionális.
+    </div>
+  `;
+  }
+
   function renderContent() {
     const stepMeta = getStepMeta(currentStepKey);
     if (titleEl) titleEl.textContent = stepMeta.title;
@@ -434,6 +564,9 @@
         break;
       case "sauce":
         renderSauceStep();
+        break;
+      case "toppings":
+        renderToppingsStep();
         break;
       default:
         renderBaseStep();
@@ -456,11 +589,9 @@
     backBtnEl.style.visibility = currentIndex === 0 ? "hidden" : "visible";
 
     nextBtnEl.disabled = !isCurrentStepValid();
-    if (currentStepKey === "base" && state.baseType === "single") {
+
+    if (isLast) {
       nextBtnEl.textContent = "Kosárba";
-    } else if (isLast) {
-      nextBtnEl.textContent =
-        state.baseType === "menu" ? "Befejezés" : "Kosárba";
     } else {
       nextBtnEl.textContent = "Tovább";
     }
@@ -536,25 +667,31 @@
     if (!state) return;
 
     try {
+      const normalizedToppings = Array.isArray(state.toppings)
+        ? state.toppings
+            .map((id) => Number(id))
+            .filter((id) => Number.isInteger(id) && id > 0)
+        : [];
+
+      let config = null;
+
       if (state.baseType === "single") {
-        await addConfiguredBurgerToCart(null);
-
-        if (modalInstance) {
-          modalInstance.hide();
-        }
-
-        return;
+        config = {
+          baseType: "single",
+          toppings: normalizedToppings,
+        };
+      } else {
+        config = {
+          baseType: "menu",
+          sideProductId: Number(state.sideProductId || 0),
+          extraType: state.extraType,
+          sauceId:
+            state.extraType === "sauce" ? Number(state.sauceId || 0) : null,
+          toppings: normalizedToppings,
+        };
       }
 
-      const menuConfig = {
-        baseType: "menu",
-        sideType: state.sideType,
-        extraType: state.extraType,
-        sauceId:
-          state.extraType === "sauce" ? Number(state.sauceId || 0) : null,
-      };
-
-      await addConfiguredBurgerToCart(menuConfig);
+      await addConfiguredBurgerToCart(config);
 
       if (modalInstance) {
         modalInstance.hide();
@@ -578,11 +715,6 @@
 
   function goNext() {
     if (!isCurrentStepValid()) return;
-
-    if (currentStepKey === "base" && state.baseType === "single") {
-      handleFinish();
-      return;
-    }
 
     const steps = getStepKeys();
     const currentIndex = getCurrentStepIndex();
@@ -624,14 +756,18 @@
       if (kind === "base") {
         state.baseType = value;
         if (value === "single") {
-          state.sideType = null;
+          state.sideProductId = null;
           state.extraType = null;
           state.sauceId = null;
         }
       }
 
       if (kind === "side") {
-        state.sideType = value;
+        const sideProductId = Number(value);
+        if (!Number.isInteger(sideProductId) || sideProductId <= 0) {
+          return;
+        }
+        state.sideProductId = sideProductId;
       }
 
       if (kind === "extra") {
@@ -643,6 +779,22 @@
 
       if (kind === "sauce") {
         state.sauceId = Number(value);
+      }
+
+      if (kind === "topping") {
+        const toppingId = Number(value);
+
+        if (!Number.isInteger(toppingId) || toppingId <= 0) {
+          return;
+        }
+
+        const exists = state.toppings.includes(toppingId);
+
+        if (exists) {
+          state.toppings = state.toppings.filter((id) => id !== toppingId);
+        } else {
+          state.toppings = [...state.toppings, toppingId];
+        }
       }
 
       renderAll();
@@ -695,14 +847,16 @@
   };
 
   if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       injectMarkup();
       cacheRefs();
       bindEvents();
+      await loadToppings();
     });
   } else {
     injectMarkup();
     cacheRefs();
     bindEvents();
+    loadToppings();
   }
 })();

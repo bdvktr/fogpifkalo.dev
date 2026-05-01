@@ -26,40 +26,32 @@ document.addEventListener("DOMContentLoaded", () => {
     );
   }
 
-  function escapeHtml(value) {
-    return String(value ?? "").replace(
-      /[&<>"']/g,
-      (char) =>
-        ({
-          "&": "&amp;",
-          "<": "&lt;",
-          ">": "&gt;",
-          '"': "&quot;",
-          "'": "&#39;",
-        })[char],
-    );
-  }
-
   function getBurgerConfigLines(config) {
-    if (!config || config.baseType !== "menu") {
+    if (!config) {
       return [];
     }
 
-    const lines = ["Menü"];
+    const lines = [];
 
-    if (config.sideType === "crispers") {
-      lines.push("Köret: Crispers");
-    } else if (config.sideType === "sweet_potato") {
-      lines.push("Köret: Édesburgonya");
+    if (config.baseType === "menu") {
+      lines.push("Menü");
+
+      if (config.sideName) {
+        lines.push(`Köret: ${config.sideName}`);
+      }
+
+      if (config.extraType === "coleslaw") {
+        lines.push("Kiegészítő: Coleslaw saláta");
+      } else if (config.extraType === "sauce") {
+        lines.push("Kiegészítő: Szósz");
+        if (config.sauceName) {
+          lines.push(`Szósz: ${config.sauceName}`);
+        }
+      }
     }
 
-    if (config.extraType === "coleslaw") {
-      lines.push("Kiegészítő: Coleslaw saláta");
-    } else if (config.extraType === "sauce") {
-      lines.push("Kiegészítő: Szósz");
-      if (config.sauceName) {
-        lines.push(`Szósz: ${config.sauceName}`);
-      }
+    if (Array.isArray(config.toppingNames) && config.toppingNames.length > 0) {
+      lines.push(`Extra feltétek: ${config.toppingNames.join(", ")}`);
     }
 
     return lines;

@@ -36,7 +36,9 @@
   height: 0.35rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.18);
-  transition: background-color 0.2s ease, transform 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    transform 0.2s ease;
 }
 
 .burger-config-progress-step.is-active,
@@ -47,6 +49,9 @@
 .burger-config-body {
   padding: 1.25rem;
   background: #f8fafc;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .burger-config-summary {
@@ -87,7 +92,10 @@
   background: #fff;
   overflow: hidden;
   cursor: pointer;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    border-color 0.18s ease;
   text-align: left;
 }
 
@@ -180,6 +188,10 @@
   padding: 1rem 1.25rem 1.25rem;
   background: #fff;
   border-top: 1px solid #e5e7eb;
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 .burger-config-footer-actions {
@@ -232,5 +244,16 @@
   .burger-config-footer-actions {
     width: 100%;
     justify-content: space-between;
+  }
+  .burger-config-modal .modal-dialog {
+    margin: 1rem auto;
+  }
+
+  .burger-config-modal .modal-dialog.modal-dialog-scrollable {
+    height: calc(100vh - 2rem);
+  }
+
+  .burger-config-modal .modal-dialog.modal-dialog-scrollable .modal-content {
+    height: 100%;
   }
 }
