@@ -14,16 +14,44 @@ function parseConfigJson(value) {
   }
 }
 
+function normalizeToppingIds(rawToppings) {
+  if (!Array.isArray(rawToppings)) {
+    return [];
+  }
+
+  const normalized = rawToppings
+    .map((value) => Number(value))
+    .filter((value) => Number.isInteger(value) && value > 0);
+
+  return [...new Set(normalized)].sort((a, b) => a - b);
+}
+
 function buildConfigKey(config) {
-  if (!config || config.baseType !== "menu") {
+  if (!config) {
     return "base";
   }
 
-  const sideType = config.sideType || "none";
+  const normalizedToppings = normalizeToppingIds(config.toppings);
+  const toppingsPart =
+    normalizedToppings.length > 0 ? normalizedToppings.join("-") : "0";
+
+  if (config.baseType === "single") {
+    if (toppingsPart === "0") {
+      return "base";
+    }
+
+    return `single|${toppingsPart}`;
+  }
+
+  if (config.baseType !== "menu") {
+    return "base";
+  }
+
+  const sideProductId = Number(config.sideProductId || 0);
   const extraType = config.extraType || "none";
   const sauceId = extraType === "sauce" ? Number(config.sauceId || 0) : 0;
 
-  return `menu|${sideType}|${extraType}|${sauceId}`;
+  return `menu|${sideProductId}|${extraType}|${sauceId}|${toppingsPart}`;
 }
 
 function normalizeCartConfig(rawConfig) {
@@ -36,19 +64,28 @@ function normalizeCartConfig(rawConfig) {
   }
 
   const baseType = rawConfig.baseType === "menu" ? "menu" : "single";
+  const toppings = normalizeToppingIds(rawConfig.toppings);
 
-  if (baseType !== "menu") {
+  if (baseType === "single") {
+    const config =
+      toppings.length > 0
+        ? {
+            baseType: "single",
+            toppings,
+          }
+        : null;
+
     return {
       success: true,
-      config: null,
-      configKey: "base",
+      config,
+      configKey: buildConfigKey(config),
     };
   }
 
-  const sideType = rawConfig.sideType;
+  const sideProductId = Number(rawConfig.sideProductId);
   const extraType = rawConfig.extraType;
 
-  if (sideType !== "crispers" && sideType !== "sweet_potato") {
+  if (!Number.isInteger(sideProductId) || sideProductId <= 0) {
     return {
       success: false,
       message: "Érvénytelen menü köret választás.",
@@ -79,9 +116,10 @@ function normalizeCartConfig(rawConfig) {
 
   const config = {
     baseType: "menu",
-    sideType,
+    sideProductId,
     extraType,
     sauceId,
+    toppings,
   };
 
   return {
@@ -129,12 +167,17 @@ export function getCart(req, res) {
       p.name,
       p.price,
       s.name AS sauce_name,
+      side_p.name AS side_name,
       (ci.quantity * p.price) AS line_total
     FROM cart_items ci
     JOIN products p ON ci.product_id = p.id
     LEFT JOIN products s
       ON s.id = CAST(
         JSON_UNQUOTE(JSON_EXTRACT(ci.config_json, '$.sauceId')) AS UNSIGNED
+      )
+    LEFT JOIN products side_p
+      ON side_p.id = CAST(
+        JSON_UNQUOTE(JSON_EXTRACT(ci.config_json, '$.sideProductId')) AS UNSIGNED
       )
     WHERE ci.user_id = ?
     ORDER BY ci.id ASC
@@ -156,6 +199,10 @@ export function getCart(req, res) {
         config.sauceName = row.sauce_name;
       }
 
+      if (config && row.side_name) {
+        config.sideName = row.side_name;
+      }
+
       return {
         id: row.id,
         product_id: row.product_id,
@@ -168,12 +215,64 @@ export function getCart(req, res) {
       };
     });
 
+    const toppingIds = [
+      ...new Set(
+        items.flatMap((item) =>
+          Array.isArray(item.config?.toppings)
+            ? item.config.toppings
+                .map((value) => Number(value))
+                .filter((value) => Number.isInteger(value) && value > 0)
+            : [],
+        ),
+      ),
+    ];
+
     const total = items.reduce((sum, item) => sum + Number(item.line_total), 0);
 
-    return res.json({
-      success: true,
-      items,
-      total,
+    if (toppingIds.length === 0) {
+      return res.json({
+        success: true,
+        items,
+        total,
+      });
+    }
+
+    const toppingsSql = `
+      SELECT id, name
+      FROM toppings
+      WHERE is_active = 1
+        AND id IN (?)
+      ORDER BY sort_order ASC, name ASC
+    `;
+
+    db.query(toppingsSql, [toppingIds], (toppingErr, toppingRows) => {
+      if (toppingErr) {
+        console.error("DB hiba (cart toppings select):", toppingErr);
+        return res.status(500).json({
+          success: false,
+          message: "Szerver hiba (kosár feltétek lekérdezése).",
+        });
+      }
+
+      const toppingNameMap = new Map(
+        (toppingRows || []).map((row) => [Number(row.id), row.name]),
+      );
+
+      items.forEach((item) => {
+        if (!item.config || !Array.isArray(item.config.toppings)) {
+          return;
+        }
+
+        item.config.toppingNames = item.config.toppings
+          .map((id) => toppingNameMap.get(Number(id)))
+          .filter(Boolean);
+      });
+
+      return res.json({
+        success: true,
+        items,
+        total,
+      });
     });
   });
 }
@@ -251,13 +350,120 @@ export function addToCart(req, res) {
       });
     }
 
+    const toppingIds = Array.isArray(configResult.config?.toppings)
+      ? configResult.config.toppings
+      : [];
+
+    function validateToppingsAndInsert() {
+      if (toppingIds.length === 0) {
+        return insertCartItem({
+          res,
+          userId,
+          productId: normalizedProductId,
+          qty,
+          config: configResult.config,
+          configKey: configResult.configKey,
+        });
+      }
+
+      const toppingsSql = `
+    SELECT id, is_active
+    FROM toppings
+    WHERE id IN (?)
+  `;
+
+      db.query(toppingsSql, [toppingIds], (toppingErr, toppingRows) => {
+        if (toppingErr) {
+          console.error("DB hiba (cart add toppings check):", toppingErr);
+          return res.status(500).json({
+            success: false,
+            message: "Szerver hiba a feltétek ellenőrzésekor.",
+          });
+        }
+
+        if (!toppingRows || toppingRows.length !== toppingIds.length) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "A kiválasztott extra feltétek között érvénytelen elem található.",
+          });
+        }
+
+        const hasInactive = toppingRows.some(
+          (row) => Number(row.is_active) !== 1,
+        );
+
+        if (hasInactive) {
+          return res.status(400).json({
+            success: false,
+            message:
+              "A kiválasztott extra feltétek között nem elérhető elem található.",
+          });
+        }
+
+        return insertCartItem({
+          res,
+          userId,
+          productId: normalizedProductId,
+          qty,
+          config: configResult.config,
+          configKey: configResult.configKey,
+        });
+      });
+    }
+
+    function validateSideAndContinue() {
+      if (configResult.config?.baseType !== "menu") {
+        return validateToppingsAndInsert();
+      }
+
+      const sideSql = `
+    SELECT id, is_active, category
+    FROM products
+    WHERE id = ?
+    LIMIT 1
+  `;
+
+      db.query(
+        sideSql,
+        [configResult.config.sideProductId],
+        (sideErr, sideRows) => {
+          if (sideErr) {
+            console.error("DB hiba (cart add side check):", sideErr);
+            return res.status(500).json({
+              success: false,
+              message: "Szerver hiba (köret ellenőrzése).",
+            });
+          }
+
+          if (!sideRows || sideRows.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "A kiválasztott köret nem található.",
+            });
+          }
+
+          const side = sideRows[0];
+
+          if (Number(side.is_active) !== 1 || side.category !== "side") {
+            return res.status(400).json({
+              success: false,
+              message: "A kiválasztott köret nem választható.",
+            });
+          }
+
+          return validateToppingsAndInsert();
+        },
+      );
+    }
+
     if (configResult.config && configResult.config.extraType === "sauce") {
       const sauceSql = `
-        SELECT id, is_active, category
-        FROM products
-        WHERE id = ?
-        LIMIT 1
-      `;
+    SELECT id, is_active, category
+    FROM products
+    WHERE id = ?
+    LIMIT 1
+  `;
 
       db.query(
         sauceSql,
@@ -287,28 +493,14 @@ export function addToCart(req, res) {
             });
           }
 
-          return insertCartItem({
-            res,
-            userId,
-            productId: normalizedProductId,
-            qty,
-            config: configResult.config,
-            configKey: configResult.configKey,
-          });
+          return validateSideAndContinue();
         },
       );
 
       return;
     }
 
-    return insertCartItem({
-      res,
-      userId,
-      productId: normalizedProductId,
-      qty,
-      config: configResult.config,
-      configKey: configResult.configKey,
-    });
+    return validateSideAndContinue();
   });
 }
 

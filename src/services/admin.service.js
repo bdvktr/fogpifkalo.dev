@@ -360,7 +360,8 @@ export function getOrderDetails(req, res) {
       oi.unit_price,
       oi.config_json,
       p.name AS product_name,
-      s.name AS sauce_name
+      s.name AS sauce_name,
+      side_p.name AS side_name
     FROM orders o
     JOIN users u        ON u.id = o.user_id
     JOIN order_items oi ON oi.order_id = o.id
@@ -368,6 +369,10 @@ export function getOrderDetails(req, res) {
     LEFT JOIN products s
       ON s.id = CAST(
         JSON_UNQUOTE(JSON_EXTRACT(oi.config_json, '$.sauceId')) AS UNSIGNED
+      )
+    LEFT JOIN products side_p
+      ON side_p.id = CAST(
+        JSON_UNQUOTE(JSON_EXTRACT(oi.config_json, '$.sideProductId')) AS UNSIGNED
       )
     WHERE o.id = ?
     ORDER BY oi.id ASC
@@ -405,6 +410,10 @@ export function getOrderDetails(req, res) {
 
         if (config && r.sauce_name) {
           config.sauceName = r.sauce_name;
+        }
+
+        if (config && r.side_name) {
+          config.sideName = r.side_name;
         }
 
         return {

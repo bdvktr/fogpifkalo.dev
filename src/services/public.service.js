@@ -1,7 +1,7 @@
 import { db } from "../repositories/db.repository.js";
 import {
   parseIngredients,
-  toIngredientsJson
+  toIngredientsJson,
 } from "../config/parseIngredients.js";
 
 export function getProducts(req, res) {
@@ -85,6 +85,30 @@ export function getSpecialOffers(req, res) {
     return res.json({
       success: true,
       products: rows,
+    });
+  });
+}
+
+export function getToppings(req, res) {
+  const sql = `
+  SELECT id, name, price, image_url, is_active, sort_order
+  FROM toppings
+  WHERE is_active = 1
+  ORDER BY sort_order ASC, name ASC
+`;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("DB hiba (/api/toppings):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a feltétek lekérdezésekor.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      toppings: rows,
     });
   });
 }
