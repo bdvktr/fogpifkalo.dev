@@ -26,6 +26,15 @@ function normalizeToppingIds(rawToppings) {
   return [...new Set(normalized)].sort((a, b) => a - b);
 }
 
+function normalizeMenuExtraType(value) {
+  return value === "sauce" || value === "coleslaw" ? value : null;
+}
+
+function toMoneyNumber(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) ? amount : 0;
+}
+
 function buildConfigKey(config) {
   if (!config) {
     return "base";
@@ -129,29 +138,44 @@ function normalizeCartConfig(rawConfig) {
   };
 }
 
-function insertCartItem({ res, userId, productId, qty, config, configKey }) {
+function insertCartItem({
+  res,
+  userId,
+  productId,
+  qty,
+  config,
+  configKey,
+  unitPrice,
+}) {
   const sql = `
-    INSERT INTO cart_items (user_id, product_id, quantity, config_json, config_key)
-    VALUES (?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE quantity = quantity + VALUES(quantity)
+    INSERT INTO cart_items (user_id, product_id, quantity, unit_price, config_json, config_key)
+    VALUES (?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      quantity = quantity + VALUES(quantity),
+      unit_price = VALUES(unit_price)
   `;
 
   const configJson = config ? JSON.stringify(config) : null;
+  const normalizedUnitPrice = toMoneyNumber(unitPrice).toFixed(2);
 
-  db.query(sql, [userId, productId, qty, configJson, configKey], (err) => {
-    if (err) {
-      console.error("DB hiba (cart add):", err);
-      return res.status(500).json({
-        success: false,
-        message: "Szerver hiba (kosárhoz adás).",
+  db.query(
+    sql,
+    [userId, productId, qty, normalizedUnitPrice, configJson, configKey],
+    (err) => {
+      if (err) {
+        console.error("DB hiba (cart add):", err);
+        return res.status(500).json({
+          success: false,
+          message: "Szerver hiba (kosárhoz adás).",
+        });
+      }
+
+      return res.json({
+        success: true,
+        message: "Termék hozzáadva a kosárhoz.",
       });
-    }
-
-    return res.json({
-      success: true,
-      message: "Termék hozzáadva a kosárhoz.",
-    });
-  });
+    },
+  );
 }
 
 export function getCart(req, res) {
@@ -162,13 +186,13 @@ export function getCart(req, res) {
       ci.id,
       ci.product_id,
       ci.quantity,
+      ci.unit_price,
       ci.config_json,
       ci.config_key,
       p.name,
-      p.price,
       s.name AS sauce_name,
       side_p.name AS side_name,
-      (ci.quantity * p.price) AS line_total
+      (ci.quantity * ci.unit_price) AS line_total
     FROM cart_items ci
     JOIN products p ON ci.product_id = p.id
     LEFT JOIN products s
@@ -207,11 +231,12 @@ export function getCart(req, res) {
         id: row.id,
         product_id: row.product_id,
         quantity: row.quantity,
+        unit_price: toMoneyNumber(row.unit_price),
         config_key: row.config_key || "base",
         config,
         name: row.name,
-        price: Number(row.price),
-        line_total: Number(row.line_total),
+        price: toMoneyNumber(row.unit_price),
+        line_total: toMoneyNumber(row.line_total),
       };
     });
 
@@ -227,7 +252,10 @@ export function getCart(req, res) {
       ),
     ];
 
-    const total = items.reduce((sum, item) => sum + Number(item.line_total), 0);
+    const total = items.reduce(
+      (sum, item) => sum + toMoneyNumber(item.line_total),
+      0,
+    );
 
     if (toppingIds.length === 0) {
       return res.json({
@@ -299,7 +327,7 @@ export function addToCart(req, res) {
   }
 
   const productSql = `
-    SELECT id, is_active, category
+    SELECT id, is_active, category, price
     FROM products
     WHERE id = ?
     LIMIT 1
@@ -330,6 +358,8 @@ export function addToCart(req, res) {
       });
     }
 
+    const baseUnitPrice = toMoneyNumber(product.price);
+
     if (product.category !== "burger") {
       return insertCartItem({
         res,
@@ -338,6 +368,7 @@ export function addToCart(req, res) {
         qty,
         config: null,
         configKey: "base",
+        unitPrice: baseUnitPrice,
       });
     }
 
@@ -354,23 +385,28 @@ export function addToCart(req, res) {
       ? configResult.config.toppings
       : [];
 
-    function validateToppingsAndInsert() {
+    function finalizeInsert(unitPrice) {
+      return insertCartItem({
+        res,
+        userId,
+        productId: normalizedProductId,
+        qty,
+        config: configResult.config,
+        configKey: configResult.configKey,
+        unitPrice,
+      });
+    }
+
+    function validateToppingsAndContinue(unitPrice) {
       if (toppingIds.length === 0) {
-        return insertCartItem({
-          res,
-          userId,
-          productId: normalizedProductId,
-          qty,
-          config: configResult.config,
-          configKey: configResult.configKey,
-        });
+        return finalizeInsert(unitPrice);
       }
 
       const toppingsSql = `
-    SELECT id, is_active
-    FROM toppings
-    WHERE id IN (?)
-  `;
+        SELECT id, is_active, price
+        FROM toppings
+        WHERE id IN (?)
+      `;
 
       db.query(toppingsSql, [toppingIds], (toppingErr, toppingRows) => {
         if (toppingErr) {
@@ -401,28 +437,131 @@ export function addToCart(req, res) {
           });
         }
 
-        return insertCartItem({
-          res,
-          userId,
-          productId: normalizedProductId,
-          qty,
-          config: configResult.config,
-          configKey: configResult.configKey,
-        });
+        const toppingsTotal = toppingRows.reduce(
+          (sum, row) => sum + toMoneyNumber(row.price),
+          0,
+        );
+
+        return finalizeInsert(unitPrice + toppingsTotal);
       });
     }
 
-    function validateSideAndContinue() {
+    function validateExtraAndContinue(unitPrice) {
       if (configResult.config?.baseType !== "menu") {
-        return validateToppingsAndInsert();
+        return validateToppingsAndContinue(unitPrice);
+      }
+
+      if (configResult.config.extraType === "sauce") {
+        const sauceSql = `
+          SELECT id, is_active, category, menu_extra_type, price
+          FROM products
+          WHERE id = ?
+          LIMIT 1
+        `;
+
+        db.query(
+          sauceSql,
+          [configResult.config.sauceId],
+          (sauceErr, sauceRows) => {
+            if (sauceErr) {
+              console.error("DB hiba (cart add sauce check):", sauceErr);
+              return res.status(500).json({
+                success: false,
+                message: "Szerver hiba (szósz ellenőrzése).",
+              });
+            }
+
+            if (!sauceRows || sauceRows.length === 0) {
+              return res.status(400).json({
+                success: false,
+                message: "A kiválasztott szósz nem található.",
+              });
+            }
+
+            const sauce = sauceRows[0];
+
+            if (
+              Number(sauce.is_active) !== 1 ||
+              sauce.category !== "sauce" ||
+              normalizeMenuExtraType(sauce.menu_extra_type) !== "sauce"
+            ) {
+              return res.status(400).json({
+                success: false,
+                message: "A kiválasztott szósz nem választható.",
+              });
+            }
+
+            return validateToppingsAndContinue(
+              unitPrice + toMoneyNumber(sauce.price),
+            );
+          },
+        );
+
+        return;
+      }
+
+      if (configResult.config.extraType === "coleslaw") {
+        const coleslawSql = `
+          SELECT id, is_active, category, menu_extra_type, price
+          FROM products
+          WHERE is_active = 1
+            AND category = 'sauce'
+            AND menu_extra_type = 'coleslaw'
+          ORDER BY id ASC
+          LIMIT 1
+        `;
+
+        db.query(coleslawSql, (coleslawErr, coleslawRows) => {
+          if (coleslawErr) {
+            console.error("DB hiba (cart add coleslaw check):", coleslawErr);
+            return res.status(500).json({
+              success: false,
+              message: "Szerver hiba (coleslaw ellenőrzése).",
+            });
+          }
+
+          if (!coleslawRows || coleslawRows.length === 0) {
+            return res.status(400).json({
+              success: false,
+              message: "Jelenleg nincs elérhető coleslaw a menühöz.",
+            });
+          }
+
+          const coleslaw = coleslawRows[0];
+
+          if (
+            Number(coleslaw.is_active) !== 1 ||
+            coleslaw.category !== "sauce" ||
+            normalizeMenuExtraType(coleslaw.menu_extra_type) !== "coleslaw"
+          ) {
+            return res.status(400).json({
+              success: false,
+              message: "A coleslaw jelenleg nem választható.",
+            });
+          }
+
+          return validateToppingsAndContinue(
+            unitPrice + toMoneyNumber(coleslaw.price),
+          );
+        });
+
+        return;
+      }
+
+      return validateToppingsAndContinue(unitPrice);
+    }
+
+    function validateSideAndContinue(unitPrice) {
+      if (configResult.config?.baseType !== "menu") {
+        return validateExtraAndContinue(unitPrice);
       }
 
       const sideSql = `
-    SELECT id, is_active, category
-    FROM products
-    WHERE id = ?
-    LIMIT 1
-  `;
+        SELECT id, is_active, category, price
+        FROM products
+        WHERE id = ?
+        LIMIT 1
+      `;
 
       db.query(
         sideSql,
@@ -452,55 +591,14 @@ export function addToCart(req, res) {
             });
           }
 
-          return validateToppingsAndInsert();
+          return validateExtraAndContinue(
+            unitPrice + toMoneyNumber(side.price),
+          );
         },
       );
     }
 
-    if (configResult.config && configResult.config.extraType === "sauce") {
-      const sauceSql = `
-    SELECT id, is_active, category
-    FROM products
-    WHERE id = ?
-    LIMIT 1
-  `;
-
-      db.query(
-        sauceSql,
-        [configResult.config.sauceId],
-        (sauceErr, sauceRows) => {
-          if (sauceErr) {
-            console.error("DB hiba (cart add sauce check):", sauceErr);
-            return res.status(500).json({
-              success: false,
-              message: "Szerver hiba (szósz ellenőrzése).",
-            });
-          }
-
-          if (!sauceRows || sauceRows.length === 0) {
-            return res.status(400).json({
-              success: false,
-              message: "A kiválasztott szósz nem található.",
-            });
-          }
-
-          const sauce = sauceRows[0];
-
-          if (Number(sauce.is_active) !== 1 || sauce.category !== "sauce") {
-            return res.status(400).json({
-              success: false,
-              message: "A kiválasztott szósz nem választható.",
-            });
-          }
-
-          return validateSideAndContinue();
-        },
-      );
-
-      return;
-    }
-
-    return validateSideAndContinue();
+    return validateSideAndContinue(baseUnitPrice);
   });
 }
 

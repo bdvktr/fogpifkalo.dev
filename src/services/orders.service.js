@@ -85,10 +85,10 @@ export function checkout(req, res) {
     SELECT 
       ci.product_id,
       ci.quantity,
+      ci.unit_price,
       ci.config_json,
       ci.config_key,
-      p.name,
-      p.price
+      p.name
     FROM cart_items ci
     JOIN products p ON p.id = ci.product_id
     WHERE ci.user_id = ?
@@ -158,7 +158,7 @@ export function checkout(req, res) {
 
         let totalPrice = 0;
         cartRows.forEach((row) => {
-          totalPrice += Number(row.price) * Number(row.quantity);
+          totalPrice += Number(row.unit_price || 0) * Number(row.quantity || 0);
         });
 
         connection.query(
@@ -186,7 +186,7 @@ export function checkout(req, res) {
               orderId,
               row.product_id,
               row.quantity,
-              row.price,
+              Number(row.unit_price || 0),
               serializeConfigJson(row.config_json),
             ]);
 
@@ -300,18 +300,19 @@ export function getMyOrders(req, res) {
       });
     }
 
-    const ordersMap = {};
+    const ordersMap = new Map();
+    const toppingIds = new Set();
 
     rows.forEach((row) => {
       const id = row.order_id;
-      if (!ordersMap[id]) {
-        ordersMap[id] = {
+      if (!ordersMap.has(id)) {
+        ordersMap.set(id, {
           id: id,
           created_at: row.created_at,
           status: row.status,
           total_price: Number(row.total_price),
           items: [],
-        };
+        });
       }
 
       const config = parseConfigJson(row.config_json);
@@ -324,7 +325,16 @@ export function getMyOrders(req, res) {
         config.sideName = row.side_name;
       }
 
-      ordersMap[id].items.push({
+      if (config && Array.isArray(config.toppings)) {
+        config.toppings.forEach((toppingId) => {
+          const normalizedId = Number(toppingId);
+          if (Number.isInteger(normalizedId) && normalizedId > 0) {
+            toppingIds.add(normalizedId);
+          }
+        });
+      }
+
+      ordersMap.get(id).items.push({
         product_id: row.product_id,
         name: row.product_name,
         quantity: row.quantity,
@@ -333,11 +343,52 @@ export function getMyOrders(req, res) {
       });
     });
 
-    const orders = Object.values(ordersMap);
+    const orders = Array.from(ordersMap.values());
 
-    return res.json({
-      success: true,
-      orders,
+    if (toppingIds.size === 0) {
+      return res.json({
+        success: true,
+        orders,
+      });
+    }
+
+    const toppingsSql = `
+      SELECT id, name
+      FROM toppings
+      WHERE is_active = 1
+        AND id IN (?)
+      ORDER BY sort_order ASC, name ASC
+    `;
+
+    db.query(toppingsSql, [[...toppingIds]], (toppingErr, toppingRows) => {
+      if (toppingErr) {
+        console.error("DB hiba (orders toppings select):", toppingErr);
+        return res.status(500).json({
+          success: false,
+          message: "Szerver hiba (rendelés feltétek lekérdezése).",
+        });
+      }
+
+      const toppingNameMap = new Map(
+        (toppingRows || []).map((row) => [Number(row.id), row.name]),
+      );
+
+      orders.forEach((order) => {
+        order.items.forEach((item) => {
+          if (!item.config || !Array.isArray(item.config.toppings)) {
+            return;
+          }
+
+          item.config.toppingNames = item.config.toppings
+            .map((id) => toppingNameMap.get(Number(id)))
+            .filter(Boolean);
+        });
+      });
+
+      return res.json({
+        success: true,
+        orders,
+      });
     });
   });
 }

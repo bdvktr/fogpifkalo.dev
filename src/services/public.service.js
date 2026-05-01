@@ -6,7 +6,7 @@ import {
 
 export function getProducts(req, res) {
   const sql = `
-  SELECT id, name, description, ingredients, price, image_url, category, is_active 
+  SELECT id, name, description, ingredients, price, image_url, category, is_active, menu_extra_type
   FROM products
   WHERE is_active = 1
   ORDER BY id ASC
@@ -34,7 +34,7 @@ export function getProducts(req, res) {
 
 export function getMenu(req, res) {
   const sql = `
-  SELECT id, name, description, ingredients, price, image_url, category
+  SELECT id, name, description, ingredients, price, image_url, category, menu_extra_type
   FROM products
   WHERE is_active = 1
   ORDER BY category, name

@@ -33,7 +33,7 @@ function parseConfigJson(value) {
 // Termékek
 export function getProducts(req, res) {
   const sql = `
-    SELECT id, name, description, ingredients, price, is_active, is_special_offer, category, image_url
+    SELECT id, name, description, ingredients, price, is_active, is_special_offer, category, menu_extra_type, image_url
     FROM products
     ORDER BY category, name
   `;
@@ -68,6 +68,7 @@ export function createProduct(req, res) {
     is_active,
     is_special_offer,
     category,
+    menu_extra_type,
   } = req.body;
 
   if (!name || !price) {
@@ -96,11 +97,16 @@ export function createProduct(req, res) {
 
   const specialOfferFlag = is_special_offer ? 1 : 0;
 
+  const safeMenuExtraType =
+    menu_extra_type === "sauce" || menu_extra_type === "coleslaw"
+      ? menu_extra_type
+      : null;
+
   const sql = `
-  INSERT INTO products 
-    (name, description, ingredients, price, image_url, is_active, is_special_offer, category)
-  VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-`;
+    INSERT INTO products 
+      (name, description, ingredients, price, image_url, is_active, is_special_offer, category, menu_extra_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
 
   db.query(
     sql,
@@ -113,6 +119,7 @@ export function createProduct(req, res) {
       activeFlag,
       specialOfferFlag,
       safeCategory,
+      safeMenuExtraType,
     ],
     (err, result) => {
       if (err) {
@@ -156,6 +163,7 @@ export function updateProduct(req, res) {
     category,
     is_active,
     is_special_offer,
+    menu_extra_type,
   } = req.body;
 
   if (!name || !price) {
@@ -184,6 +192,11 @@ export function updateProduct(req, res) {
 
   const specialOfferFlag = is_special_offer ? 1 : 0;
 
+  const safeMenuExtraType =
+    menu_extra_type === "sauce" || menu_extra_type === "coleslaw"
+      ? menu_extra_type
+      : null;
+
   const sql = `
     UPDATE products
     SET 
@@ -194,7 +207,8 @@ export function updateProduct(req, res) {
       image_url = ?, 
       is_active = ?, 
       is_special_offer = ?,
-      category = ?
+      category = ?,
+      menu_extra_type = ?
     WHERE id = ?
   `;
 
@@ -209,6 +223,7 @@ export function updateProduct(req, res) {
       activeFlag,
       specialOfferFlag,
       safeCategory,
+      safeMenuExtraType,
       productId,
     ],
     (err, result) => {
@@ -394,6 +409,7 @@ export function getOrderDetails(req, res) {
       });
     }
 
+    const toppingIds = new Set();
     const first = rows[0];
 
     const order = {
@@ -416,6 +432,15 @@ export function getOrderDetails(req, res) {
           config.sideName = r.side_name;
         }
 
+        if (config && Array.isArray(config.toppings)) {
+          config.toppings.forEach((toppingId) => {
+            const normalizedId = Number(toppingId);
+            if (Number.isInteger(normalizedId) && normalizedId > 0) {
+              toppingIds.add(normalizedId);
+            }
+          });
+        }
+
         return {
           product_id: r.product_id,
           name: r.product_name,
@@ -426,9 +451,48 @@ export function getOrderDetails(req, res) {
       }),
     };
 
-    return res.json({
-      success: true,
-      order,
+    if (toppingIds.size === 0) {
+      return res.json({
+        success: true,
+        order,
+      });
+    }
+
+    const toppingsSql = `
+      SELECT id, name
+      FROM toppings
+      WHERE is_active = 1
+        AND id IN (?)
+      ORDER BY sort_order ASC, name ASC
+    `;
+
+    db.query(toppingsSql, [[...toppingIds]], (toppingErr, toppingRows) => {
+      if (toppingErr) {
+        console.error("DB hiba (admin order toppings select):", toppingErr);
+        return res.status(500).json({
+          success: false,
+          message: "Szerver hiba (rendelés feltétek lekérdezése).",
+        });
+      }
+
+      const toppingNameMap = new Map(
+        (toppingRows || []).map((row) => [Number(row.id), row.name]),
+      );
+
+      order.items.forEach((item) => {
+        if (!item.config || !Array.isArray(item.config.toppings)) {
+          return;
+        }
+
+        item.config.toppingNames = item.config.toppings
+          .map((id) => toppingNameMap.get(Number(id)))
+          .filter(Boolean);
+      });
+
+      return res.json({
+        success: true,
+        order,
+      });
     });
   });
 }
