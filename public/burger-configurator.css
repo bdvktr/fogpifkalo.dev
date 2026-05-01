@@ -1,8 +1,24 @@
+.burger-config-modal .modal-dialog {
+  margin: 1rem auto;
+}
+
+.burger-config-modal .modal-dialog.modal-dialog-scrollable {
+  height: calc(100vh - 2rem);
+}
+
+.burger-config-modal .modal-dialog.modal-dialog-scrollable .modal-content {
+  height: 100%;
+}
+
 .burger-config-modal .modal-content {
   border: 0;
   border-radius: 1.5rem;
   overflow: hidden;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - 2rem);
+  background: #fff;
 }
 
 .burger-config-header {
@@ -46,12 +62,121 @@
   background: linear-gradient(90deg, #facc15, #f59e0b);
 }
 
-.burger-config-body {
-  padding: 1.25rem;
+.burger-config-main-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.burger-config-sidebar {
   background: #f8fafc;
+  border-right: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  min-width: 0;
+}
+
+.burger-config-receipt {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 1rem;
+  padding: 1.25rem;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+}
+
+.burger-config-receipt-title {
+  text-align: center;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.95rem;
+  color: #111827;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+}
+
+.burger-config-receipt-top {
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px dashed #d1d5db;
+  color: #1f2937;
+}
+
+.burger-config-breakdown {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
+}
+
+.burger-config-sidebar-qty {
+  padding-top: 1rem;
+  margin-top: 1rem;
+  display: flex;
+  justify-content: center;
+  border-top: 1px solid #e5e7eb;
+}
+
+.burger-config-stage {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #ffffff;
+}
+
+.burger-config-stage-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem 1.25rem 0.75rem;
+  background: #ffffff;
+}
+
+.burger-config-step-pill {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  white-space: nowrap;
+  flex: 0 0 auto;
+  align-self: flex-start;
+}
+
+.burger-config-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 0 1.25rem 1.25rem;
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+}
+
+#burgerConfigContent {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.burger-config-stage-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-top: 1px solid #e5e7eb;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.burger-config-stage-price {
+  display: none;
 }
 
 .burger-config-summary {
@@ -59,6 +184,20 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-bottom: 1rem;
+}
+
+.burger-config-summary--top {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  margin-bottom: 0.25rem;
+}
+
+.burger-config-summary--top .burger-config-chip {
+  width: auto;
+  justify-content: flex-start;
 }
 
 .burger-config-chip {
@@ -114,15 +253,16 @@
   position: relative;
   min-height: 180px;
   background: linear-gradient(135deg, #111827, #1f2937);
+  overflow: hidden;
 }
 
 .burger-config-option-visual img {
   width: 100%;
   height: 180px;
-  object-fit: contain;
+  object-fit: cover;
   object-position: center;
   display: block;
-  padding: 0.75rem;
+  padding: 0;
 }
 
 .burger-config-option-badge {
@@ -139,23 +279,6 @@
   font-size: 0.78rem;
   font-weight: 700;
   backdrop-filter: blur(4px);
-}
-
-.burger-config-option-body {
-  padding: 1rem;
-}
-
-.burger-config-option-title {
-  font-size: 1.05rem;
-  font-weight: 700;
-  color: #111827;
-  margin-bottom: 0.35rem;
-}
-
-.burger-config-option-desc {
-  font-size: 0.92rem;
-  color: #6b7280;
-  margin: 0;
 }
 
 .burger-config-option-check {
@@ -180,18 +303,25 @@
   transform: scale(1);
 }
 
-.burger-config-footer {
+.burger-config-option-body {
+  padding: 1rem;
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 1rem 1.25rem 1.25rem;
-  background: #fff;
-  border-top: 1px solid #e5e7eb;
-  flex-shrink: 0;
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
+  flex-direction: column;
+  flex: 1 1 auto;
+}
+
+.burger-config-option-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  margin-bottom: 0.35rem;
+}
+
+.burger-config-option-desc {
+  font-size: 0.92rem;
+  color: #6b7280;
+  margin: 0;
+  flex: 1 1 auto;
 }
 
 .burger-config-footer-actions {
@@ -231,29 +361,72 @@
   font-size: 0.9rem;
 }
 
+@media (min-width: 768px) {
+  .burger-config-grid--fill {
+    flex: 1 1 auto;
+    height: 100%;
+    grid-auto-rows: 1fr;
+    align-items: stretch;
+  }
+
+  .burger-config-grid--fill .burger-config-option {
+    height: 100%;
+  }
+
+  .burger-config-grid--fill .burger-config-option-visual {
+    min-height: 300px;
+    flex: 0 0 300px;
+  }
+
+  .burger-config-grid--fill .burger-config-option-visual img {
+    height: 300px;
+    object-fit: cover;
+    object-position: center;
+  }
+}
+
+@media (max-width: 991.98px) {
+  .burger-config-main-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .burger-config-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .burger-config-receipt {
+    height: auto;
+  }
+
+  .burger-config-breakdown {
+    overflow: visible;
+  }
+}
+
 @media (max-width: 767.98px) {
   .burger-config-grid.two-cols {
     grid-template-columns: 1fr;
   }
 
-  .burger-config-footer {
+  .burger-config-stage-top,
+  .burger-config-stage-footer {
     flex-direction: column;
     align-items: stretch;
   }
 
+  .burger-config-step-pill {
+    width: auto;
+    align-self: flex-start;
+  }
+
   .burger-config-footer-actions {
     width: 100%;
-    justify-content: space-between;
-  }
-  .burger-config-modal .modal-dialog {
-    margin: 1rem auto;
+    display: flex;
+    gap: 0.75rem;
   }
 
-  .burger-config-modal .modal-dialog.modal-dialog-scrollable {
-    height: calc(100vh - 2rem);
-  }
-
-  .burger-config-modal .modal-dialog.modal-dialog-scrollable .modal-content {
-    height: 100%;
+  .burger-config-footer-actions .btn {
+    flex: 1 1 auto;
   }
 }

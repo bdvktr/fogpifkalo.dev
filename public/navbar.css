@@ -103,14 +103,13 @@
 
 .navbar-logo {
   position: absolute;
-  height: 118px;
+  height: 158px;
   width: auto;
 
-  top: 50%;
+  top: 350%;
   transform: translateY(-50%);
 
   pointer-events: none; /* ne zavarja a klikkeleket */
-  filter: invert(1) brightness(2); /* fehér logó */
 }
 
 .navbar-brand {

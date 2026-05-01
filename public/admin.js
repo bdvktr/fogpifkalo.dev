@@ -123,6 +123,10 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
 
+    if (Array.isArray(config.toppingNames) && config.toppingNames.length > 0) {
+      lines.push(`Extra feltétek: ${config.toppingNames.join(", ")}`);
+    }
+
     return lines;
   }
 

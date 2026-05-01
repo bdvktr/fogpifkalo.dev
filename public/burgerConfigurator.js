@@ -15,12 +15,6 @@
 
   const FALLBACK_IMG = "images/farmburger.png";
   const EXTRA_OPTIONS = {
-    coleslaw: {
-      label: "Coleslaw saláta",
-      desc: "A menühöz egy adag friss coleslaw saláta jár.",
-      icon: "bi bi-flower1",
-      badge: "Coleslaw",
-    },
     sauce: {
       label: "Szószt kérek",
       desc: "Válassz egy darab szószt a menühöz.",
@@ -54,6 +48,11 @@
     return Math.round(Number(value || 0)).toLocaleString("hu-HU");
   }
 
+  function formatOptionPrice(value, withPlus = true) {
+    const amount = Number(value || 0);
+    return withPlus ? `+ ${formatFt(amount)} Ft` : `${formatFt(amount)} Ft`;
+  }
+
   function getProductImage(product) {
     let imgSrc =
       product?.image_url || product?.imageUrl || product?.image || "";
@@ -85,31 +84,51 @@
               <div class="burger-config-progress" id="burgerConfigProgress"></div>
             </div>
 
-            <div class="burger-config-body">
-              <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                <div class="burger-config-summary" id="burgerConfigSummary"></div>
-                <div class="text-muted small fw-semibold" id="burgerConfigStepLabel"></div>
-              </div>
-              <div id="burgerConfigContent"></div>
-            </div>
+            <div class="burger-config-main-layout">
+              <aside class="burger-config-sidebar">
+                <div class="burger-config-receipt">
+                  <div class="burger-config-receipt-title">Rendelés összegző</div>
 
-            <div class="burger-config-footer">
-              <div class="d-flex align-items-center gap-3 flex-wrap">
-                <div class="burger-config-qty" aria-label="Mennyiség választó">
-                  <button type="button" id="burgerConfigQtyMinus" aria-label="Csökkentés">−</button>
-                  <div class="burger-config-qty-value" id="burgerConfigQtyValue">1</div>
-                  <button type="button" id="burgerConfigQtyPlus" aria-label="Növelés">+</button>
-                </div>
-                <div class="text-muted small">
-                  <strong id="burgerConfigFooterName">Burger</strong>
-                  <span class="ms-2" id="burgerConfigFooterPrice">0 Ft</span>
-                </div>
-              </div>
+                  <div class="burger-config-receipt-top">
+                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                      <strong id="burgerConfigFooterName">Burger</strong>
+                      <span class="text-muted fw-semibold">
+                        <span id="burgerConfigQtyValue">1</span> db
+                      </span>
+                    </div>
+                  </div>
 
-              <div class="burger-config-footer-actions">
-                <button type="button" class="btn btn-outline-secondary" id="burgerConfigBackBtn">Vissza</button>
-                <button type="button" class="btn btn-warning" id="burgerConfigNextBtn" disabled>Tovább</button>
-              </div>
+                  <div id="burgerConfigFooterBreakdown" class="burger-config-breakdown mt-3"></div>
+
+                  <div class="burger-config-sidebar-qty">
+                    <div class="burger-config-qty" aria-label="Mennyiség választó">
+                      <button type="button" id="burgerConfigQtyMinus" aria-label="Csökkentés">−</button>
+                      <div class="burger-config-qty-value" id="burgerConfigQtyValueMirror">1</div>
+                      <button type="button" id="burgerConfigQtyPlus" aria-label="Növelés">+</button>
+                    </div>
+                  </div>
+                </div>
+              </aside>
+
+              <section class="burger-config-stage">
+                <div class="burger-config-stage-top">
+                  <div class="burger-config-summary burger-config-summary--top" id="burgerConfigSummary"></div>
+                  <div class="text-muted small fw-semibold burger-config-step-pill" id="burgerConfigStepLabel"></div>
+                </div>
+
+                <div class="burger-config-body">
+                  <div id="burgerConfigContent"></div>
+                </div>
+
+                <div class="burger-config-stage-footer">
+                  <div class="burger-config-stage-price" id="burgerConfigFooterPrice"></div>
+
+                  <div class="burger-config-footer-actions">
+                    <button type="button" class="btn btn-outline-secondary" id="burgerConfigBackBtn">Vissza</button>
+                    <button type="button" class="btn btn-warning" id="burgerConfigNextBtn" disabled>Tovább</button>
+                  </div>
+                </div>
+              </section>
             </div>
           </div>
         </div>
@@ -165,12 +184,163 @@
       .replace(/[\u0300-\u036f]/g, "");
   }
 
+  function normalizeMenuExtraType(value) {
+    return value === "sauce" || value === "coleslaw" ? value : null;
+  }
+
+  function getActiveColeslawProduct() {
+    return (
+      [...productById.values()].find((product) => {
+        return (
+          product &&
+          product.category === "sauce" &&
+          Number(product.is_active ?? 1) === 1 &&
+          normalizeMenuExtraType(product.menu_extra_type) === "coleslaw"
+        );
+      }) || null
+    );
+  }
+
+  function getSelectedSideProduct() {
+    if (!state?.sideProductId) return null;
+    return productById.get(String(state.sideProductId)) || null;
+  }
+
+  function getSelectedSauceProduct() {
+    if (!state?.sauceId || state.extraType !== "sauce") return null;
+    return productById.get(String(state.sauceId)) || null;
+  }
+
+  function getSelectedToppingProducts() {
+    if (!state || !Array.isArray(state.toppings)) {
+      return [];
+    }
+
+    return state.toppings
+      .map((id) =>
+        toppingOptions.find((item) => Number(item.id) === Number(id)),
+      )
+      .filter(Boolean);
+  }
+
+  function getConfiguredUnitPrice() {
+    if (!state) return 0;
+
+    let total = Number(state.productPrice) || 0;
+
+    if (state.baseType === "menu") {
+      const side = getSelectedSideProduct();
+      if (side) {
+        total += Number(side.price || 0);
+      }
+
+      if (state.extraType === "sauce") {
+        const sauce = getSelectedSauceProduct();
+        if (sauce) {
+          total += Number(sauce.price || 0);
+        }
+      } else if (state.extraType === "coleslaw") {
+        const coleslaw = getActiveColeslawProduct();
+        if (coleslaw) {
+          total += Number(coleslaw.price || 0);
+        }
+      }
+    }
+
+    getSelectedToppingProducts().forEach((topping) => {
+      total += Number(topping.price || 0);
+    });
+
+    return total;
+  }
+
+  function getConfiguredTotalPrice() {
+    return getConfiguredUnitPrice() * Number(state?.quantity || 1);
+  }
+
+  function getPriceBreakdownItems() {
+    if (!state) return [];
+
+    const items = [
+      {
+        label: "Burger alapár",
+        amount: Number(state.productPrice || 0),
+      },
+    ];
+
+    if (state.baseType === "menu") {
+      const side = getSelectedSideProduct();
+      if (side) {
+        items.push({
+          label: side.name || "Köret",
+          amount: Number(side.price || 0),
+        });
+      }
+
+      if (state.extraType === "sauce") {
+        const sauce = getSelectedSauceProduct();
+        if (sauce) {
+          items.push({
+            label: sauce.name || "Szósz",
+            amount: Number(sauce.price || 0),
+          });
+        }
+      } else if (state.extraType === "coleslaw") {
+        const coleslaw = getActiveColeslawProduct();
+        if (coleslaw) {
+          items.push({
+            label: coleslaw.name || "Coleslaw saláta",
+            amount: Number(coleslaw.price || 0),
+          });
+        }
+      }
+    }
+
+    getSelectedToppingProducts().forEach((topping) => {
+      items.push({
+        label: topping.name || "Extra feltét",
+        amount: Number(topping.price || 0),
+      });
+    });
+
+    return items;
+  }
+
+  function renderFooterBreakdownHtml() {
+    const items = getPriceBreakdownItems();
+    const totalPrice = getConfiguredTotalPrice();
+    const quantity = Number(state?.quantity || 1);
+
+    return `
+    <div class="border-top pt-2">
+      <div class="fw-semibold mb-1">Ár részletezése</div>
+      ${items
+        .map((item) => {
+          const lineAmount = Number(item.amount || 0) * quantity;
+
+          return `
+            <div class="d-flex justify-content-between">
+              <span>${escapeHtml(item.label)}</span>
+              <span>${formatFt(lineAmount)} Ft</span>
+            </div>
+          `;
+        })
+        .join("")}
+      <div class="d-flex justify-content-between mt-2 pt-1 border-top fw-semibold">
+        <span>Összesen</span>
+        <span>${formatFt(totalPrice)} Ft</span>
+      </div>
+    </div>
+  `;
+  }
+
   function getActiveSauces() {
     return [...productById.values()].filter((product) => {
       return (
         product &&
         product.category === "sauce" &&
-        Number(product.is_active ?? 1) === 1
+        Number(product.is_active ?? 1) === 1 &&
+        normalizeMenuExtraType(product.menu_extra_type) === "sauce"
       );
     });
   }
@@ -317,23 +487,28 @@
         `<span class="burger-config-chip"><i class="bi bi-grid"></i>Menü</span>`,
       );
 
-      if (state.sideProductId) {
-        const side = productById.get(String(state.sideProductId));
-        if (side) {
-          chips.push(
-            `<span class="burger-config-chip"><i class="bi bi-emoji-smile"></i>${escapeHtml(side.name)}</span>`,
-          );
-        }
-      }
-
-      if (state.extraType) {
+      const side = getSelectedSideProduct();
+      if (side) {
         chips.push(
-          `<span class="burger-config-chip"><i class="bi bi-bookmark-heart"></i>${escapeHtml(EXTRA_OPTIONS[state.extraType].label)}</span>`,
+          `<span class="burger-config-chip"><i class="bi bi-emoji-smile"></i>${escapeHtml(side.name)}</span>`,
         );
       }
 
-      if (state.sauceId) {
-        const sauce = productById.get(String(state.sauceId));
+      if (state.extraType === "coleslaw") {
+        const coleslaw = getActiveColeslawProduct();
+        chips.push(
+          `<span class="burger-config-chip"><i class="bi bi-flower1"></i>${escapeHtml(coleslaw?.name || "Coleslaw saláta")}</span>`,
+        );
+      }
+
+      if (state.extraType === "sauce") {
+        chips.push(
+          `<span class="burger-config-chip"><i class="bi bi-bookmark-heart"></i>${escapeHtml(EXTRA_OPTIONS.sauce.label)}</span>`,
+        );
+      }
+
+      if (state.sauceId && state.extraType === "sauce") {
+        const sauce = getSelectedSauceProduct();
         if (sauce) {
           chips.push(
             `<span class="burger-config-chip"><i class="bi bi-droplet-half"></i>${escapeHtml(sauce.name)}</span>`,
@@ -362,33 +537,34 @@
   function renderBaseStep() {
     if (!contentEl || !state) return;
     contentEl.innerHTML = `
-      <div class="burger-config-grid two-cols">
-        <button type="button" class="burger-config-option ${state.baseType === "single" ? "is-selected" : ""}" data-config-select="base" data-config-value="single">
-          <div class="burger-config-option-visual">
-            <img src="${escapeAttr(state.productImage)}" alt="${escapeAttr(state.productName)}">
-            <span class="burger-config-option-badge"><i class="bi bi-bag"></i>Csak burger</span>
-            <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
-          </div>
-          <div class="burger-config-option-body">
-            <div class="burger-config-option-title">Sima burger</div>
-            <p class="burger-config-option-desc">Csak a kiválasztott burger kerül a kosaradba. Gyors rendeléshez ez a legegyszerűbb opció.</p>
-          </div>
-        </button>
+    <div class="burger-config-grid two-cols burger-config-grid--fill">
+      <button type="button" class="burger-config-option ${state.baseType === "single" ? "is-selected" : ""}" data-config-select="base" data-config-value="single">
+        <div class="burger-config-option-visual">
+          <img src="${escapeAttr(state.productImage)}" alt="${escapeAttr(state.productName)}">
+          <span class="burger-config-option-badge"><i class="bi bi-bag"></i>Csak burger</span>
+          <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
+        </div>
+        <div class="burger-config-option-body">
+          <div class="burger-config-option-title">Sima burger</div>
+          <p class="burger-config-option-desc">Csak a kiválasztott burger kerül a kosaradba. Gyors rendeléshez ez a legegyszerűbb opció.</p>
+          <div class="fw-bold text-warning mt-2">${formatOptionPrice(state.productPrice, false)}</div>
+        </div>
+      </button>
 
-        <button type="button" class="burger-config-option ${state.baseType === "menu" ? "is-selected" : ""}" data-config-select="base" data-config-value="menu">
-          <div class="burger-config-option-visual">
-            <img src="${escapeAttr(state.productImage)}" alt="${escapeAttr(state.productName)} menüben">
-            <span class="burger-config-option-badge"><i class="bi bi-stars"></i>Menü</span>
-            <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
-          </div>
-          <div class="burger-config-option-body">
-            <div class="burger-config-option-title">Burger menüben</div>
-            <p class="burger-config-option-desc">Lépésről lépésre összeállíthatod a köretet és a kiegészítőt is. Ez a menüs összeállítás első lépése.</p>
-          </div>
-        </button>
-      </div>
-      <div class="burger-config-note">A sima burger rögtön kosárba rakható, a menüs verziónál még végigvezetünk a választásokon.</div>
-    `;
+      <button type="button" class="burger-config-option ${state.baseType === "menu" ? "is-selected" : ""}" data-config-select="base" data-config-value="menu">
+        <div class="burger-config-option-visual">
+          <img src="${escapeAttr(state.productImage)}" alt="${escapeAttr(state.productName)} menüben">
+          <span class="burger-config-option-badge"><i class="bi bi-stars"></i>Menü</span>
+          <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
+        </div>
+        <div class="burger-config-option-body">
+          <div class="burger-config-option-title">Burger menüben</div>
+          <p class="burger-config-option-desc">Lépésről lépésre összeállíthatod a köretet és a kiegészítőt is. Ez a menüs összeállítás első lépése.</p>
+          <div class="fw-bold text-warning mt-2">${formatOptionPrice(state.productPrice, false)} + választott köret és kiegészítők</div>
+        </div>
+      </button>
+    </div>
+  `;
   }
 
   function renderSideStep() {
@@ -405,8 +581,13 @@
       return;
     }
 
+    const gridClass =
+      sides.length === 2
+        ? "burger-config-grid two-cols burger-config-grid--fill"
+        : "burger-config-grid two-cols";
+
     contentEl.innerHTML = `
-    <div class="burger-config-grid two-cols">
+        <div class="${gridClass}">
       ${sides
         .map(
           (side) => `
@@ -426,6 +607,7 @@
             <div class="burger-config-option-body">
               <div class="burger-config-option-title">${escapeHtml(side.name || "Köret")}</div>
               <p class="burger-config-option-desc">${escapeHtml(side.description || "Válaszd ki a menühöz tartozó köretet.")}</p>
+              <div class="fw-bold text-warning mt-2">${formatOptionPrice(side.price)}</div>
             </div>
           </button>
         `,
@@ -437,12 +619,55 @@
 
   function renderExtraStep() {
     if (!contentEl || !state) return;
+
+    const extraOptions = [];
+    const coleslawProduct = getActiveColeslawProduct();
+    const sauces = getActiveSauces();
+
+    if (coleslawProduct) {
+      extraOptions.push({
+        value: "coleslaw",
+        label: coleslawProduct.name || "Coleslaw saláta",
+        desc:
+          coleslawProduct.description ||
+          "A menühöz egy adag friss coleslaw saláta jár.",
+        icon: "bi bi-flower1",
+        badge: "Coleslaw",
+        priceLabel: formatOptionPrice(coleslawProduct.price),
+      });
+    }
+
+    if (sauces.length > 0) {
+      extraOptions.push({
+        value: "sauce",
+        label: EXTRA_OPTIONS.sauce.label,
+        desc: EXTRA_OPTIONS.sauce.desc,
+        icon: EXTRA_OPTIONS.sauce.icon,
+        badge: EXTRA_OPTIONS.sauce.badge,
+        priceLabel: "A pontos ár a következő lépésben látszik",
+      });
+    }
+
+    if (extraOptions.length === 0) {
+      contentEl.innerHTML = `
+      <div class="alert alert-warning mb-0">
+        Jelenleg nincs aktív menü kiegészítő, ezért ezt az opciót most nem lehet végigvinni.
+      </div>
+    `;
+      return;
+    }
+
+    const gridClass =
+      extraOptions.length === 2
+        ? "burger-config-grid two-cols burger-config-grid--fill"
+        : "burger-config-grid two-cols";
+
     contentEl.innerHTML = `
-      <div class="burger-config-grid two-cols">
-        ${Object.entries(EXTRA_OPTIONS)
-          .map(
-            ([value, item]) => `
-            <button type="button" class="burger-config-option ${state.extraType === value ? "is-selected" : ""}" data-config-select="extra" data-config-value="${escapeAttr(value)}">
+        <div class="${gridClass}">
+      ${extraOptions
+        .map(
+          (item) => `
+            <button type="button" class="burger-config-option ${state.extraType === item.value ? "is-selected" : ""}" data-config-select="extra" data-config-value="${escapeAttr(item.value)}">
               <div class="burger-config-option-visual d-flex align-items-center justify-content-center">
                 <span class="burger-config-option-badge"><i class="${escapeAttr(item.icon)}"></i>${escapeHtml(item.badge)}</span>
                 <span class="burger-config-option-check"><i class="bi bi-check2"></i></span>
@@ -451,13 +676,14 @@
               <div class="burger-config-option-body">
                 <div class="burger-config-option-title">${escapeHtml(item.label)}</div>
                 <p class="burger-config-option-desc">${escapeHtml(item.desc)}</p>
+                <div class="fw-bold text-warning mt-2">${escapeHtml(item.priceLabel)}</div>
               </div>
             </button>
           `,
-          )
-          .join("")}
-      </div>
-    `;
+        )
+        .join("")}
+    </div>
+  `;
   }
 
   function renderSauceStep() {
@@ -466,18 +692,23 @@
 
     if (sauces.length === 0) {
       contentEl.innerHTML = `
-        <div class="alert alert-warning mb-0">
-          Jelenleg nincs aktív szósz a menüben, ezért ezt az opciót most nem lehet végigvinni.
-        </div>
-      `;
+      <div class="alert alert-warning mb-0">
+        Jelenleg nincs aktív szósz a menüben, ezért ezt az opciót most nem lehet végigvinni.
+      </div>
+    `;
       return;
     }
 
+    const gridClass =
+      sauces.length === 2
+        ? "burger-config-grid two-cols burger-config-grid--fill"
+        : "burger-config-grid two-cols";
+
     contentEl.innerHTML = `
-      <div class="burger-config-grid two-cols">
-        ${sauces
-          .map(
-            (sauce) => `
+        <div class="${gridClass}">
+      ${sauces
+        .map(
+          (sauce) => `
             <button type="button" class="burger-config-option ${Number(state.sauceId) === Number(sauce.id) ? "is-selected" : ""}" data-config-select="sauce" data-config-value="${escapeAttr(sauce.id)}">
               <div class="burger-config-option-visual d-flex align-items-center justify-content-center">
                 <span class="burger-config-option-badge"><i class="bi bi-droplet-half"></i>Szósz</span>
@@ -487,13 +718,14 @@
               <div class="burger-config-option-body">
                 <div class="burger-config-option-title">${escapeHtml(sauce.name || "Szósz")}</div>
                 <p class="burger-config-option-desc">${escapeHtml(sauce.description || "Egy darab szósz kerül a menühöz.")}</p>
+                <div class="fw-bold text-warning mt-2">${formatOptionPrice(sauce.price)}</div>
               </div>
             </button>
           `,
-          )
-          .join("")}
-      </div>
-    `;
+        )
+        .join("")}
+    </div>
+  `;
   }
 
   function renderToppingsStep() {
@@ -529,12 +761,9 @@
               <div class="burger-config-option-body">
                 <div class="burger-config-option-title">${escapeHtml(topping.name)}</div>
                 <p class="burger-config-option-desc">
-                  ${
-                    Number(topping.price || 0) > 0
-                      ? `${formatFt(topping.price)} Ft`
-                      : "Jelenleg teszt feltét"
-                  }
+                  ${escapeHtml(topping.description || "Extra feltét a burgeredhez.")}
                 </p>
+                <div class="fw-bold text-warning mt-2">${formatOptionPrice(topping.price)}</div>
               </div>
             </button>
           `,
@@ -576,25 +805,45 @@
 
   function renderFooter() {
     if (!state || !qtyValueEl || !backBtnEl || !nextBtnEl) return;
+
     qtyValueEl.textContent = String(state.quantity);
 
+    const qtyMirrorEl = document.getElementById("burgerConfigQtyValueMirror");
     const nameEl = document.getElementById("burgerConfigFooterName");
+    const stageNameEl = document.getElementById("burgerConfigStageProductName");
     const priceEl = document.getElementById("burgerConfigFooterPrice");
-    if (nameEl) nameEl.textContent = state.productName;
-    if (priceEl) priceEl.textContent = `${formatFt(state.productPrice)} Ft`;
+    const breakdownEl = document.getElementById("burgerConfigFooterBreakdown");
+
+    if (qtyMirrorEl) {
+      qtyMirrorEl.textContent = String(state.quantity);
+    }
+
+    if (nameEl) {
+      nameEl.textContent =
+        state.baseType === "menu"
+          ? `${state.productName} menü`
+          : state.productName;
+    }
+
+    if (stageNameEl) {
+      stageNameEl.textContent = state.productName;
+    }
+
+    if (priceEl) {
+      priceEl.textContent = "";
+    }
+
+    if (breakdownEl) {
+      breakdownEl.innerHTML = renderFooterBreakdownHtml();
+    }
 
     const steps = getStepKeys();
     const currentIndex = getCurrentStepIndex();
     const isLast = currentIndex === steps.length - 1;
+
     backBtnEl.style.visibility = currentIndex === 0 ? "hidden" : "visible";
-
     nextBtnEl.disabled = !isCurrentStepValid();
-
-    if (isLast) {
-      nextBtnEl.textContent = "Kosárba";
-    } else {
-      nextBtnEl.textContent = "Tovább";
-    }
+    nextBtnEl.textContent = isLast ? "Kosárba" : "Tovább";
   }
 
   function renderAll() {
