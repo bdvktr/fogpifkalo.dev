@@ -109,133 +109,19 @@
           >
             <div class="card">
               <div class="card-body">
-                <h2 class="h6 mb-3">Termékek</h2>
-                <div id="productsList" class="small"></div>
-                <hr />
-                <h3 class="h6">Új termék hozzáadása</h3>
-                <form id="newProductForm" class="small">
-                  <div class="mb-2">
-                    <label class="form-label">Név</label>
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      name="name"
-                      required
-                    />
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Leírás</label>
-                    <textarea
-                      class="form-control form-control-sm"
-                      name="description"
-                      rows="2"
-                    ></textarea>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Összetevők</label>
-
-                    <div
-                      id="newIngredientsWrap"
-                      class="d-flex flex-column"
-                    ></div>
-
-                    <button
-                      type="button"
-                      id="newIngredientsAddBtn"
-                      class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
-                      style="border-style: dashed"
-                    >
-                      <i class="bi bi-plus-square"></i>
-                      Összetevő hozzáadása
-                    </button>
-
-                    <div class="form-text">
-                      Egyesével add hozzá (pl. „Bacon”), mentéskor vesszővel
-                      lesz megjelenítve.
-                    </div>
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Ár (Ft)</label>
-                    <input
-                      type="number"
-                      class="form-control form-control-sm"
-                      name="price"
-                      required
-                    />
-                  </div>
-                  <div class="mb-2">
-                    <label class="form-label">Kategória</label>
-                    <select class="form-select form-select-sm" name="category">
-                      <option value="burger">Burger</option>
-                      <option value="side">Köret</option>
-                      <option value="drink">Innivaló</option>
-                      <option value="sauce">Szósz</option>
-                    </select>
-                  </div>
-
-                  <div class="mb-2">
-                    <label class="form-label">Kép URL</label>
-                    <input
-                      type="text"
-                      class="form-control form-control-sm"
-                      name="image_url"
-                      id="editProductImageUrl"
-                      placeholder="https://... vagy használd a feltöltést lentebb"
-                    />
-                  </div>
-
-                  <div class="form-check mb-2">
-                    <input
-                      class="form-check-input"
-                      type="checkbox"
-                      id="newProductIsSpecialOffer"
-                      name="is_special_offer"
-                    />
-                    <label
-                      class="form-check-label"
-                      for="newProductIsSpecialOffer"
-                    >
-                      Hétvégi ajánlat
-                    </label>
-                  </div>
-
-                  <div class="mb-2">
-                    <label class="form-label">Kép feltöltése</label>
-                    <div
-                      id="newImageDropZone"
-                      class="border rounded py-3 px-3 text-center text-muted"
-                      style="cursor: pointer"
-                    >
-                      Húzd ide a képet vagy
-                      <span
-                        id="newImageBrowseTrigger"
-                        class="text-primary text-decoration-underline"
-                        role="button"
-                        >válaszd ki</span
-                      >
-                      <input
-                        type="file"
-                        id="newImageFileInput"
-                        accept="image/*"
-                        class="d-none"
-                      />
-                    </div>
-                    <small
-                      class="text-muted d-block mt-1"
-                      id="newImageUploadStatus"
-                    ></small>
-                    <img
-                      id="newImagePreview"
-                      class="mt-2 img-fluid d-none"
-                      alt="Előnézet"
-                      style="max-height: 200px; object-fit: contain"
-                    />
-                  </div>
-
-                  <button type="submit" class="btn btn-sm btn-primary mt-2">
-                    Hozzáadás
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+                  <h2 class="h6 mb-0">Termékek</h2>
+                  <button
+                    type="button"
+                    id="openNewProductModalBtn"
+                    class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
+                    style="border-style: dashed"
+                  >
+                    <i class="bi bi-plus-square"></i>
+                    Új termék hozzáadása
                   </button>
-                </form>
+                </div>
+                <div id="productsList" class="small"></div>
               </div>
             </div>
           </div>
@@ -351,6 +237,155 @@
       </div>
     </div>
 
+
+    <!-- ÚJ TERMÉK MODAL -->
+    <div
+      class="modal fade"
+      id="newProductModal"
+      tabindex="-1"
+      aria-hidden="true"
+    >
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">Új termék hozzáadása</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Bezárás"
+            ></button>
+          </div>
+          <div class="modal-body">
+<form id="newProductForm" class="small">
+                              <div class="mb-2">
+                                <label class="form-label">Név</label>
+                                <input
+                                  type="text"
+                                  class="form-control form-control-sm"
+                                  name="name"
+                                  required
+                                />
+                              </div>
+                              <div class="mb-2">
+                                <label class="form-label">Leírás</label>
+                                <textarea
+                                  class="form-control form-control-sm"
+                                  name="description"
+                                  rows="2"
+                                ></textarea>
+                              </div>
+                              <div class="mb-2">
+                                <label class="form-label">Összetevők</label>
+            
+                                <div
+                                  id="newIngredientsWrap"
+                                  class="d-flex flex-column"
+                                ></div>
+            
+                                <button
+                                  type="button"
+                                  id="newIngredientsAddBtn"
+                                  class="btn btn-sm btn-outline-secondary d-flex align-items-center justify-content-center gap-2"
+                                  style="border-style: dashed"
+                                >
+                                  <i class="bi bi-plus-square"></i>
+                                  Összetevő hozzáadása
+                                </button>
+            
+                                <div class="form-text">
+                                  Egyesével add hozzá (pl. „Bacon”), mentéskor vesszővel
+                                  lesz megjelenítve.
+                                </div>
+                              </div>
+                              <div class="mb-2">
+                                <label class="form-label">Ár (Ft)</label>
+                                <input
+                                  type="number"
+                                  class="form-control form-control-sm"
+                                  name="price"
+                                  required
+                                />
+                              </div>
+                              <div class="mb-2">
+                                <label class="form-label">Kategória</label>
+                                <select class="form-select form-select-sm" name="category">
+                                  <option value="burger">Burger</option>
+                                  <option value="main">Főétel</option>
+                                  <option value="side">Köret</option>
+                                  <option value="drink">Innivaló</option>
+                                  <option value="sauce">Szósz</option>
+                                </select>
+                              </div>
+            
+                              <div class="mb-2">
+                                <label class="form-label">Kép URL</label>
+                                <input
+                                  type="text"
+                                  class="form-control form-control-sm"
+                                  name="image_url"
+                                  id="newProductImageUrl"
+                                  placeholder="https://... vagy használd a feltöltést lentebb"
+                                />
+                              </div>
+            
+                              <div class="form-check mb-2">
+                                <input
+                                  class="form-check-input"
+                                  type="checkbox"
+                                  id="newProductIsSpecialOffer"
+                                  name="is_special_offer"
+                                />
+                                <label
+                                  class="form-check-label"
+                                  for="newProductIsSpecialOffer"
+                                >
+                                  Hétvégi ajánlat
+                                </label>
+                              </div>
+            
+                              <div class="mb-2">
+                                <label class="form-label">Kép feltöltése</label>
+                                <div
+                                  id="newImageDropZone"
+                                  class="border rounded py-3 px-3 text-center text-muted"
+                                  style="cursor: pointer"
+                                >
+                                  Húzd ide a képet vagy
+                                  <span
+                                    id="newImageBrowseTrigger"
+                                    class="text-primary text-decoration-underline"
+                                    role="button"
+                                    >válaszd ki</span
+                                  >
+                                  <input
+                                    type="file"
+                                    id="newImageFileInput"
+                                    accept="image/*"
+                                    class="d-none"
+                                  />
+                                </div>
+                                <small
+                                  class="text-muted d-block mt-1"
+                                  id="newImageUploadStatus"
+                                ></small>
+                                <img
+                                  id="newImagePreview"
+                                  class="mt-2 img-fluid d-none"
+                                  alt="Előnézet"
+                                  style="max-height: 200px; object-fit: contain"
+                                />
+                              </div>
+            
+                              <button type="submit" class="btn btn-sm btn-primary mt-2">
+                                Hozzáadás
+                              </button>
+                            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- TERMÉK SZERKESZTŐ MODAL -->
     <div
       class="modal fade"
@@ -432,6 +467,7 @@
                   id="editProductCategory"
                 >
                   <option value="burger">Burger</option>
+                  <option value="main">Főétel</option>
                   <option value="side">Köret</option>
                   <option value="drink">Innivaló</option>
                   <option value="sauce">Szósz</option>
@@ -532,7 +568,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="admin.js"></script>
     <script src="api.js"></script>
+    <script src="admin.js?v=new-product-modal-1"></script>
   </body>
 </html>
