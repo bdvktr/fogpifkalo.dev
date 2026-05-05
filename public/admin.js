@@ -4,6 +4,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const productsList = document.getElementById("productsList");
   const ordersAdminList = document.getElementById("ordersAdminList");
   const newProductForm = document.getElementById("newProductForm");
+  const openNewProductModalBtn = document.getElementById(
+    "openNewProductModalBtn",
+  );
+  const newProductModalEl = document.getElementById("newProductModal");
   const editProductModalEl = document.getElementById("editProductModal");
   const editProductForm = document.getElementById("editProductForm");
   const editProductIdInput = document.getElementById("editProductId");
@@ -69,10 +73,16 @@ document.addEventListener("DOMContentLoaded", () => {
     confirmModal = new bootstrap.Modal(confirmModalEl);
   }
 
+  let newProductModal;
+  if (newProductModalEl && typeof bootstrap !== "undefined") {
+    newProductModal = new bootstrap.Modal(newProductModalEl);
+  }
+
   let editProductModal;
   if (editProductModalEl && typeof bootstrap !== "undefined") {
     editProductModal = new bootstrap.Modal(editProductModalEl);
   }
+
 
   const orderDetailsModalEl = document.getElementById("orderDetailsModal");
   const orderDetailsTitle = document.getElementById("orderDetailsTitle");
@@ -99,6 +109,49 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.round(Number(value)).toLocaleString("hu-HU");
   }
 
+  function parsePositivePrice(value) {
+    const normalizedValue = String(value ?? "").trim().replace(",", ".");
+    const parsed = Number(normalizedValue);
+
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed > 99999999.99) {
+      return null;
+    }
+
+    return Number(parsed.toFixed(2));
+  }
+
+  function getCategoryLabel(category) {
+    const labels = {
+      burger: "Burger",
+      main: "Főétel",
+      side: "Köret",
+      drink: "Innivaló",
+      sauce: "Szósz",
+    };
+
+    return labels[category] || "Burger";
+  }
+
+  function getBurgerPackagingLine(config) {
+    if (!config || !config.baseType) {
+      return null;
+    }
+
+    if (config.packagingName && Number(config.packagingPrice || 0) > 0) {
+      return `Dobozolás: ${config.packagingName} (+${formatFt(config.packagingPrice)} Ft)`;
+    }
+
+    if (config.baseType === "menu") {
+      return "Dobozolás: Nagy doboz (+200 Ft)";
+    }
+
+    if (config.baseType === "single") {
+      return "Dobozolás: Kis doboz (+150 Ft)";
+    }
+
+    return null;
+  }
+
   function getBurgerConfigLines(config) {
     if (!config) {
       return [];
@@ -121,6 +174,11 @@ document.addEventListener("DOMContentLoaded", () => {
           lines.push(`Szósz: ${config.sauceName}`);
         }
       }
+    }
+
+    const packagingLine = getBurgerPackagingLine(config);
+    if (packagingLine) {
+      lines.push(packagingLine);
     }
 
     if (Array.isArray(config.toppingNames) && config.toppingNames.length > 0) {
@@ -421,6 +479,26 @@ document.addEventListener("DOMContentLoaded", () => {
     previewImg: editImagePreview,
   });
 
+  function resetNewProductForm() {
+    if (newProductForm) {
+      newProductForm.reset();
+    }
+
+    setIngredientsToWrap(newIngredientsWrap, []);
+
+    if (newImageUpload && newImageUpload.clearSelectedFile) {
+      newImageUpload.clearSelectedFile();
+    }
+  }
+
+  if (openNewProductModalBtn && newProductModal) {
+    openNewProductModalBtn.addEventListener("click", () => {
+      resetNewProductForm();
+      newProductModal.show();
+    });
+  }
+
+
   // 🔹 1. Auth + admin ellenőrzés
   async function checkAdmin() {
     try {
@@ -436,6 +514,7 @@ document.addEventListener("DOMContentLoaded", () => {
         loadReservations(),
         loadAdminLogs(),
       ]);
+
     } catch (err) {
       console.error("Hiba az /api/me/admin ellenőrzésnél:", err);
       showError("Nem sikerült csatlakozni a szerverhez.");
@@ -478,6 +557,7 @@ document.addEventListener("DOMContentLoaded", () => {
           <strong>${escapeHtml(p.name)}</strong>
           <div class="text-muted small clamp-2">${escapeHtml(p.description || "")}</div>
           <div class="small fw-semibold">${formatFt(p.price)} Ft</div>
+          <div class="badge bg-light text-dark border mt-1">${escapeHtml(getCategoryLabel(p.category || "burger"))}</div>
           ${
             !isActive
               ? '<div class="badge bg-secondary mt-1">Inaktív</div>'
@@ -545,13 +625,23 @@ document.addEventListener("DOMContentLoaded", () => {
       e.preventDefault();
 
       const formData = new FormData(newProductForm);
-      const name = formData.get("name");
-      const description = formData.get("description");
-      const price = formData.get("price");
+      const name = String(formData.get("name") ?? "").trim();
+      const description = String(formData.get("description") ?? "").trim();
+      const price = parsePositivePrice(formData.get("price"));
       const ingredients = collectIngredientsFromWrap(newIngredientsWrap);
       let image_url = formData.get("image_url");
       const category = formData.get("category") || "burger";
       const is_special_offer = formData.get("is_special_offer") === "on";
+
+      if (!name) {
+        showToast("A név megadása kötelező.", "warning");
+        return;
+      }
+
+      if (price === null) {
+        showToast("Az árnak pozitív számnak kell lennie.", "warning");
+        return;
+      }
 
       // Ha van feltöltött kép, először azt küldjük fel Multerrel
       const newFile = newImageUpload.getSelectedFile
@@ -573,11 +663,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      if (!name || !price) {
-        showToast("A név és az ár megadása kötelező.", "warning");
-        return;
-      }
-
       try {
         const res = await apiFetch("/api/admin/products", {
           method: "POST",
@@ -588,7 +673,7 @@ document.addEventListener("DOMContentLoaded", () => {
             name,
             description,
             ingredients,
-            price: Number(price),
+            price,
             image_url,
             category,
             is_special_offer,
@@ -599,12 +684,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
         if (data.success) {
           showToast("Termék sikeresen hozzáadva.", "success");
-          newProductForm.reset();
-          setIngredientsToWrap(newIngredientsWrap, []);
-          await loadProducts();
-          if (newImageUpload && newImageUpload.clearSelectedFile) {
-            newImageUpload.clearSelectedFile();
+          resetNewProductForm();
+          if (newProductModal) {
+            newProductModal.hide();
           }
+          await loadProducts();
         } else {
           showToast(
             data.message || "Nem sikerült létrehozni a terméket.",
@@ -738,7 +822,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const id = editProductIdInput.value;
       const name = editProductNameInput.value.trim();
       const description = editProductDescriptionInput.value.trim();
-      const price = editProductPriceInput.value;
+      const price = parsePositivePrice(editProductPriceInput.value);
       const ingredients = collectIngredientsFromWrap(editIngredientsWrap);
       let image_url = editProductImageUrlInput.value.trim();
       const category = editProductCategorySelect
@@ -750,6 +834,16 @@ document.addEventListener("DOMContentLoaded", () => {
       );
 
       console.log("EDIT SUBMIT is_special_offer:", is_special_offer);
+
+      if (!id || !name) {
+        showToast("A név megadása kötelező.", "warning");
+        return;
+      }
+
+      if (price === null) {
+        showToast("Az árnak pozitív számnak kell lennie.", "warning");
+        return;
+      }
 
       // Ha szerkesztéskor új képet választottunk, töltsük fel Multerrel
       const editFile = editImageUpload.getSelectedFile
@@ -770,11 +864,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
 
-      if (!id || !name || !price) {
-        showToast("A név és az ár megadása kötelező.", "warning");
-        return;
-      }
-
       try {
         const res = await apiFetch(`/api/admin/products/${id}`, {
           method: "PUT",
@@ -785,7 +874,7 @@ document.addEventListener("DOMContentLoaded", () => {
             name,
             description,
             ingredients,
-            price: Number(price),
+            price,
             image_url,
             category,
             is_special_offer,
@@ -871,6 +960,12 @@ document.addEventListener("DOMContentLoaded", () => {
             let statusText = "";
             let badgeClass = "";
 
+            const subtotal = Number(o.subtotal || 0);
+            const packageCount = Number(o.package_count || 0);
+            const packagingFee = Number(o.packaging_fee || 0);
+            const deliveryFee = Number(o.delivery_fee || 0);
+            const totalPrice = Number(o.total_price || 0);
+
             switch (o.status) {
               case "pending":
                 statusText = "Folyamatban";
@@ -898,6 +993,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 <strong>Rendelés #${o.id}</strong>
                 <div class="text-muted small">${escapeHtml(formattedDate)}</div>
                 <div class="text-muted small">Vevő: ${escapeHtml(o.user_email)}</div>
+                <div class="text-muted small">
+                  Termékek: ${formatFt(subtotal || (totalPrice - deliveryFee - packagingFee))} Ft •
+                  Csomagolás${packageCount > 0 ? ` (${packageCount} csomag)` : ""}: ${formatFt(packagingFee)} Ft •
+                  Szállítás${o.delivery_city ? ` (${escapeHtml(o.delivery_city)})` : ""}: ${formatFt(deliveryFee)} Ft
+                </div>
               </div>
               <div class="text-end" style="min-width: 190px;">
                 <div class="mb-1">
@@ -920,7 +1020,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </select>
 
                 <div class="d-flex justify-content-between align-items-center mt-1">
-                  <span class="fw-semibold">${formatFt(o.total_price)} Ft</span>
+                  <span class="fw-semibold">${formatFt(totalPrice)} Ft</span>
                   <button 
                     type="button"
                     class="btn btn-sm btn-outline-primary ms-2 admin-order-details-btn"
@@ -1171,6 +1271,14 @@ document.addEventListener("DOMContentLoaded", () => {
       delivered: "kiszállítva",
     };
 
+    const categoryTranslations = {
+      burger: "Burger",
+      main: "Főétel",
+      side: "Köret",
+      drink: "Innivaló",
+      sauce: "Szósz",
+    };
+
     const entityTranslations = {
       product: "termék",
       order: "rendelés",
@@ -1262,9 +1370,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Státusz magyarítása
                 const translatedVal =
-                  typeof val === "string" && statusTranslations[val]
-                    ? statusTranslations[val]
-                    : val;
+                  key === "category" && typeof val === "string"
+                    ? categoryTranslations[val] || val
+                    : typeof val === "string" && statusTranslations[val]
+                      ? statusTranslations[val]
+                      : val;
 
                 // Státusz ikon
                 const icon =
@@ -1512,6 +1622,11 @@ document.addEventListener("DOMContentLoaded", () => {
           <div><strong>Dátum:</strong> ${escapeHtml(formattedDate)}</div>
           <div><strong>Státusz:</strong> ${escapeHtml(statusText)}</div>
           <div><strong>Vevő:</strong> ${escapeHtml(order.user.name || "")} &lt;${escapeHtml(order.user.email)}&gt;</div>
+          ${order.shipping_name ? `<div><strong>Szállítási név:</strong> ${escapeHtml(order.shipping_name)}</div>` : ""}
+          ${order.shipping_phone ? `<div><strong>Telefonszám:</strong> ${escapeHtml(order.shipping_phone)}</div>` : ""}
+          ${order.shipping_address ? `<div><strong>Cím:</strong> ${escapeHtml(order.shipping_address)}</div>` : ""}
+          ${order.payment_method ? `<div><strong>Fizetés:</strong> ${escapeHtml(order.payment_method === "card" ? "Bankkártya a futárnál" : "Készpénz a futárnál")}</div>` : ""}
+          ${order.note ? `<div><strong>Megjegyzés:</strong> ${escapeHtml(order.note)}</div>` : ""}
         </div>
       `;
 
@@ -1550,10 +1665,31 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
+        const subtotal = Number(order.subtotal || 0);
+        const packageCount = Number(order.package_count || 0);
+        const packagingFee = Number(order.packaging_fee || 0);
+        const deliveryFee = Number(order.delivery_fee || 0);
+        const totalPrice = Number(order.total_price || 0);
+
         const footerHtml = `
         <div class="d-flex justify-content-end">
-          <div class="fw-semibold">
-            Végösszeg: ${formatFt(order.total_price)} Ft
+          <div style="min-width: 260px;">
+            <div class="d-flex justify-content-between small">
+              <span>Termékek:</span>
+              <span>${formatFt(subtotal || (totalPrice - deliveryFee - packagingFee))} Ft</span>
+            </div>
+            <div class="d-flex justify-content-between small">
+              <span>Csomagolás${packageCount > 0 ? ` (${packageCount} csomag)` : ""}:</span>
+              <span>${formatFt(packagingFee)} Ft</span>
+            </div>
+            <div class="d-flex justify-content-between small">
+              <span>Szállítás${order.delivery_city ? ` (${escapeHtml(order.delivery_city)})` : ""}:</span>
+              <span>${formatFt(deliveryFee)} Ft</span>
+            </div>
+            <div class="d-flex justify-content-between fw-semibold border-top mt-1 pt-1">
+              <span>Végösszeg:</span>
+              <span>${formatFt(totalPrice)} Ft</span>
+            </div>
           </div>
         </div>
       `;

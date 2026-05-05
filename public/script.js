@@ -53,6 +53,14 @@ document.addEventListener("DOMContentLoaded", () => {
     return escapeHtml(value).replace(/`/g, "&#96;");
   }
 
+  function normalizeEmailInput(value) {
+    return String(value ?? "").trim().toLowerCase();
+  }
+
+  function isValidEmailInput(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+  }
+
   // Home navbar: scrollra váltson "navbar2" kinézetre
   const homeNav = document.querySelector("nav.navbar-glass");
   if (homeNav) {
@@ -288,6 +296,26 @@ document.addEventListener("DOMContentLoaded", () => {
     return Math.round(Number(value)).toLocaleString("hu-HU");
   }
 
+  function getBurgerPackagingLine(config) {
+    if (!config || !config.baseType) {
+      return null;
+    }
+
+    if (config.packagingName && Number(config.packagingPrice || 0) > 0) {
+      return `Dobozolás: ${config.packagingName} (+${formatFt(config.packagingPrice)} Ft)`;
+    }
+
+    if (config.baseType === "menu") {
+      return "Dobozolás: Nagy doboz (+200 Ft)";
+    }
+
+    if (config.baseType === "single") {
+      return "Dobozolás: Kis doboz (+150 Ft)";
+    }
+
+    return null;
+  }
+
   function getBurgerConfigLines(config) {
     if (!config) {
       return [];
@@ -310,6 +338,11 @@ document.addEventListener("DOMContentLoaded", () => {
           lines.push(`Szósz: ${config.sauceName}`);
         }
       }
+    }
+
+    const packagingLine = getBurgerPackagingLine(config);
+    if (packagingLine) {
+      lines.push(packagingLine);
     }
 
     if (Array.isArray(config.toppingNames) && config.toppingNames.length > 0) {
@@ -386,7 +419,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Bootstrap alert megjelenítő
   function showAlert(type, message) {
     const alert = document.createElement("div");
-    alert.className = `alert alert-${type} position-fixed top-0 end-0 m-3 shadow`;
+    alert.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3 shadow`;
     alert.style.zIndex = "9999";
     alert.innerText = message;
 
@@ -421,8 +454,17 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
 
         if (data.success) {
-          showAlert("success", "Jelszó frissítve.");
+          showAlert(
+            "success",
+            data.message || "Jelszó frissítve. Kérlek jelentkezz be újra.",
+          );
           passwordForm.reset();
+
+          if (data.forceLogout) {
+            setTimeout(() => {
+              window.location.href = "fiok.html?login=1";
+            }, 1500);
+          }
         } else {
           showAlert(
             "warning",
@@ -454,6 +496,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const loginError = document.getElementById("loginError");
   const registerForm = document.getElementById("registerForm");
   const registerError = document.getElementById("registerError");
+
+  function normalizeEmailInput(value) {
+    return String(value ?? "").trim().toLowerCase();
+  }
+
+  function isValidEmailInput(email) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+  }
 
   // Toast + modal elemek a foglalásokhoz (csak akkor aktívak, ha az adott HTML-ben léteznek)
   const userToastEl = document.getElementById("userToast");
@@ -507,6 +557,26 @@ document.addEventListener("DOMContentLoaded", () => {
     editReservationTimeModal = new bootstrap.Modal(editReservationTimeModalEl);
   }
 
+  function getBurgerPackagingLine(config) {
+    if (!config || !config.baseType) {
+      return null;
+    }
+
+    if (config.packagingName && Number(config.packagingPrice || 0) > 0) {
+      return `Dobozolás: ${config.packagingName} (+${formatFt(config.packagingPrice)} Ft)`;
+    }
+
+    if (config.baseType === "menu") {
+      return "Dobozolás: Nagy doboz (+200 Ft)";
+    }
+
+    if (config.baseType === "single") {
+      return "Dobozolás: Kis doboz (+150 Ft)";
+    }
+
+    return null;
+  }
+
   function getBurgerConfigLines(config) {
     if (!config) {
       return [];
@@ -529,6 +599,11 @@ document.addEventListener("DOMContentLoaded", () => {
           lines.push(`Szósz: ${config.sauceName}`);
         }
       }
+    }
+
+    const packagingLine = getBurgerPackagingLine(config);
+    if (packagingLine) {
+      lines.push(packagingLine);
     }
 
     if (Array.isArray(config.toppingNames) && config.toppingNames.length > 0) {
@@ -964,6 +1039,13 @@ document.addEventListener("DOMContentLoaded", () => {
             badgeClass = "bg-secondary";
         }
 
+        const subtotal = Number(order.subtotal || 0);
+        const packageCount = Number(order.package_count || 0);
+        const packagingFee = Number(order.packaging_fee || 0);
+        const deliveryFee = Number(order.delivery_fee || 0);
+        const totalPrice = Number(order.total_price || 0);
+        const deliveryCity = order.delivery_city || "";
+
         // tételek listája
         let itemsHtml = "";
         order.items.forEach((item) => {
@@ -993,9 +1075,23 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="mb-2 small">
           ${itemsHtml}
         </div>
-        <div class="d-flex justify-content-between mt-2 pt-2 border-top">
-          <strong>Összesen:</strong>
-          <strong>${formatFt(order.total_price)} Ft</strong>
+        <div class="mt-2 pt-2 border-top">
+          <div class="d-flex justify-content-between small">
+            <span>Termékek:</span>
+            <span>${formatFt(subtotal || (totalPrice - deliveryFee - packagingFee))} Ft</span>
+          </div>
+          <div class="d-flex justify-content-between small">
+            <span>Csomagolás${packageCount > 0 ? ` (${packageCount} csomag)` : ""}:</span>
+            <span>${formatFt(packagingFee)} Ft</span>
+          </div>
+          <div class="d-flex justify-content-between small">
+            <span>Szállítás${deliveryCity ? ` (${escapeHtml(deliveryCity)})` : ""}:</span>
+            <span>${formatFt(deliveryFee)} Ft</span>
+          </div>
+          <div class="d-flex justify-content-between mt-1">
+            <strong>Összesen:</strong>
+            <strong>${formatFt(totalPrice)} Ft</strong>
+          </div>
         </div>
       `;
 
@@ -1381,7 +1477,7 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const formData = new FormData(loginForm);
-      const email = formData.get("email");
+      const email = normalizeEmailInput(formData.get("email"));
       const password = formData.get("password");
 
       if (!email || !password) {
@@ -1390,6 +1486,16 @@ document.addEventListener("DOMContentLoaded", () => {
           loginError.classList.remove("d-none");
         } else {
           alert("Kérlek töltsd ki az emailt és a jelszót.");
+        }
+        return;
+      }
+
+      if (!isValidEmailInput(email)) {
+        if (loginError) {
+          loginError.textContent = "Érvényes email címet adj meg.";
+          loginError.classList.remove("d-none");
+        } else {
+          alert("Érvényes email címet adj meg.");
         }
         return;
       }
@@ -1440,8 +1546,8 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const formData = new FormData(registerForm);
-      const name = formData.get("name");
-      const email = formData.get("email");
+      const name = String(formData.get("name") ?? "").trim();
+      const email = normalizeEmailInput(formData.get("email"));
       const password = formData.get("password");
       const passwordConfirm = formData.get("passwordConfirm");
 
@@ -1451,6 +1557,16 @@ document.addEventListener("DOMContentLoaded", () => {
           registerError.classList.remove("d-none");
         } else {
           alert("Minden mező kitöltése kötelező.");
+        }
+        return;
+      }
+
+      if (!isValidEmailInput(email)) {
+        if (registerError) {
+          registerError.textContent = "Érvényes email címet adj meg.";
+          registerError.classList.remove("d-none");
+        } else {
+          alert("Érvényes email címet adj meg.");
         }
         return;
       }

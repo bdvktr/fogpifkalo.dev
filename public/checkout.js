@@ -1,8 +1,34 @@
 document.addEventListener("DOMContentLoaded", () => {
   const itemsContainer = document.getElementById("checkoutCartItems");
+  const subtotalEl = document.getElementById("checkoutSubtotal");
+  const packageFeeEl = document.getElementById("checkoutPackageFee");
+  const deliveryFeeEl = document.getElementById("checkoutDeliveryFee");
   const totalEl = document.getElementById("checkoutTotal");
+  const shippingCitySelect = document.getElementById("shippingCity");
+  const selectedDeliveryFeeEl = document.getElementById("selectedDeliveryFee");
   const form = document.getElementById("checkoutForm");
   const errorBox = document.getElementById("checkoutError");
+  const submitButton = form?.querySelector('button[type="submit"]');
+  const submitButtonOriginalText = submitButton?.textContent || "Rendelés elküldése";
+  let isCheckoutSubmitting = false;
+  let cartSubtotal = 0;
+  let cartPackageCount = 0;
+  let cartPackagingFee = 0;
+  let deliveryZones = [];
+
+  const ORDER_PACKAGE_SIZE = 4;
+  const ORDER_PACKAGE_FEE = 100;
+
+  const fallbackDeliveryZones = [
+    { city: "Mohács", delivery_fee: 0 },
+    { city: "Lánycsók", delivery_fee: 800 },
+    { city: "Szőlőhegy", delivery_fee: 800 },
+    { city: "Kölked", delivery_fee: 1200 },
+    { city: "Somberek", delivery_fee: 1600 },
+    { city: "Sátorhely", delivery_fee: 1600 },
+    { city: "Bár", delivery_fee: 1600 },
+    { city: "Palotabozsok", delivery_fee: 1800 },
+  ];
 
   // Toast (jobb alsó sarok)
   const checkoutToastEl = document.getElementById("checkoutToast");
@@ -24,6 +50,26 @@ document.addEventListener("DOMContentLoaded", () => {
           "'": "&#39;",
         })[char],
     );
+  }
+
+  function getBurgerPackagingLine(config) {
+    if (!config || !config.baseType) {
+      return null;
+    }
+
+    if (config.packagingName && Number(config.packagingPrice || 0) > 0) {
+      return `Dobozolás: ${config.packagingName} (+${formatFt(config.packagingPrice)})`;
+    }
+
+    if (config.baseType === "menu") {
+      return "Dobozolás: Nagy doboz (+200 Ft)";
+    }
+
+    if (config.baseType === "single") {
+      return "Dobozolás: Kis doboz (+150 Ft)";
+    }
+
+    return null;
   }
 
   function getBurgerConfigLines(config) {
@@ -48,6 +94,11 @@ document.addEventListener("DOMContentLoaded", () => {
           lines.push(`Szósz: ${config.sauceName}`);
         }
       }
+    }
+
+    const packagingLine = getBurgerPackagingLine(config);
+    if (packagingLine) {
+      lines.push(packagingLine);
     }
 
     if (Array.isArray(config.toppingNames) && config.toppingNames.length > 0) {
@@ -87,6 +138,116 @@ document.addEventListener("DOMContentLoaded", () => {
     checkoutToastInstance.show();
   }
 
+  function formatFt(value) {
+    return `${Math.round(Number(value || 0)).toLocaleString("hu-HU")} Ft`;
+  }
+
+  function getSelectedDeliveryZone() {
+    const selectedCity = shippingCitySelect?.value || "";
+    return deliveryZones.find((zone) => zone.city === selectedCity) || null;
+  }
+
+  function isBurgerCartItem(item) {
+    return (
+      item?.category === "burger" ||
+      item?.config?.baseType === "single" ||
+      item?.config?.baseType === "menu"
+    );
+  }
+
+  function calculateCartPackaging(items) {
+    const burgerCount = (items || []).reduce((sum, item) => {
+      if (!isBurgerCartItem(item)) {
+        return sum;
+      }
+
+      return sum + Number(item.quantity || 0);
+    }, 0);
+
+    const packageCount =
+      burgerCount > 0 ? Math.ceil(burgerCount / ORDER_PACKAGE_SIZE) : 0;
+
+    return {
+      packageCount,
+      packagingFee: packageCount * ORDER_PACKAGE_FEE,
+    };
+  }
+
+  function renderCheckoutTotals() {
+    const selectedZone = getSelectedDeliveryZone();
+    const deliveryFee = selectedZone ? Number(selectedZone.delivery_fee || 0) : 0;
+    const total = cartSubtotal + cartPackagingFee + deliveryFee;
+
+    if (subtotalEl) {
+      subtotalEl.textContent = formatFt(cartSubtotal);
+    }
+
+    if (packageFeeEl) {
+      packageFeeEl.textContent =
+        cartPackageCount > 0
+          ? `${formatFt(cartPackagingFee)} (${cartPackageCount} csomag)`
+          : formatFt(0);
+    }
+
+    if (deliveryFeeEl) {
+      deliveryFeeEl.textContent = selectedZone
+        ? formatFt(deliveryFee)
+        : "Válassz települést";
+    }
+
+    if (selectedDeliveryFeeEl) {
+      selectedDeliveryFeeEl.textContent = selectedZone
+        ? formatFt(deliveryFee)
+        : "válassz települést";
+    }
+
+    if (totalEl) {
+      totalEl.textContent = formatFt(total);
+    }
+  }
+
+  function renderDeliveryZoneOptions(zones) {
+    if (!shippingCitySelect || !Array.isArray(zones) || zones.length === 0) {
+      return;
+    }
+
+    const currentValue = shippingCitySelect.value;
+    shippingCitySelect.innerHTML = '<option value="">Válassz települést...</option>';
+
+    zones.forEach((zone) => {
+      const option = document.createElement("option");
+      option.value = zone.city;
+      option.textContent = `${zone.city} (${formatFt(zone.delivery_fee)})`;
+      shippingCitySelect.appendChild(option);
+    });
+
+    if (zones.some((zone) => zone.city === currentValue)) {
+      shippingCitySelect.value = currentValue;
+    }
+  }
+
+  async function loadDeliveryZones() {
+    try {
+      const res = await apiFetch("/api/delivery-zones");
+      const data = await res.json();
+
+      if (!data.success || !Array.isArray(data.zones)) {
+        throw new Error(data.message || "Nem sikerült betölteni a szállítási díjakat.");
+      }
+
+      deliveryZones = data.zones.map((zone) => ({
+        city: zone.city,
+        delivery_fee: Number(zone.delivery_fee || 0),
+      }));
+    } catch (err) {
+      console.error("Hiba a szállítási díjak betöltésekor:", err);
+      deliveryZones = fallbackDeliveryZones;
+    }
+
+    renderDeliveryZoneOptions(deliveryZones);
+    renderCheckoutTotals();
+  }
+
   async function loadCheckoutCart() {
     try {
       const res = await apiFetch("/api/cart");
@@ -100,25 +261,31 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!data.success) {
         itemsContainer.textContent =
           data.message || "Nem sikerült betölteni a kosarat.";
-        totalEl.textContent = "0 Ft";
+        cartSubtotal = 0;
+        cartPackageCount = 0;
+        cartPackagingFee = 0;
+        renderCheckoutTotals();
         return;
       }
 
       const items = data.items || [];
       if (items.length === 0) {
         itemsContainer.textContent = "A kosarad üres.";
-        totalEl.textContent = "0 Ft";
+        cartSubtotal = 0;
+        cartPackageCount = 0;
+        cartPackagingFee = 0;
+        renderCheckoutTotals();
         return;
       }
 
       let html = "";
-      let total = 0;
+      let subtotal = 0;
 
       items.forEach((item) => {
         const lineTotal =
           Number(item.unit_price || item.price || 0) *
           Number(item.quantity || 1);
-        total += lineTotal;
+        subtotal += lineTotal;
 
         html += `
                 <div class="d-flex justify-content-between mb-2">
@@ -132,18 +299,35 @@ document.addEventListener("DOMContentLoaded", () => {
               `;
       });
 
+      const packaging = calculateCartPackaging(items);
+      cartPackageCount = packaging.packageCount;
+      cartPackagingFee = packaging.packagingFee;
+
+      cartSubtotal = subtotal;
       itemsContainer.innerHTML = html;
-      totalEl.textContent = Math.round(total).toLocaleString("hu-HU") + " Ft";
+      renderCheckoutTotals();
     } catch (err) {
       console.error("Hiba a checkout kosár betöltésekor:", err);
       itemsContainer.textContent = "Nem sikerült csatlakozni a szerverhez.";
-      totalEl.textContent = "0 Ft";
+      cartSubtotal = 0;
+      cartPackageCount = 0;
+      cartPackagingFee = 0;
+      renderCheckoutTotals();
     }
+  }
+
+  if (shippingCitySelect) {
+    shippingCitySelect.addEventListener("change", renderCheckoutTotals);
   }
 
   if (form) {
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+
+      if (isCheckoutSubmitting) {
+        return;
+      }
+
       if (errorBox) {
         errorBox.textContent = "";
         errorBox.classList.add("d-none");
@@ -182,6 +366,25 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
+      if (!getSelectedDeliveryZone()) {
+        const msg = "Kérlek válassz érvényes szállítási települést.";
+        if (errorBox) {
+          errorBox.textContent = msg;
+          errorBox.classList.remove("d-none");
+        } else {
+          showCheckoutToast(msg, "danger");
+        }
+        return;
+      }
+
+      isCheckoutSubmitting = true;
+      let keepSubmitLocked = false;
+
+      if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.textContent = "Rendelés küldése...";
+      }
+
       try {
         const res = await apiFetch("/api/checkout", {
           method: "POST",
@@ -202,6 +405,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = await res.json();
 
         if (data.success) {
+          keepSubmitLocked = true;
           showCheckoutToast(
             data.message || "Sikeresen leadta a rendelését!",
             "success",
@@ -228,9 +432,19 @@ document.addEventListener("DOMContentLoaded", () => {
         } else {
           showCheckoutToast(msg, "danger");
         }
+      } finally {
+        if (!keepSubmitLocked) {
+          isCheckoutSubmitting = false;
+
+          if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.textContent = submitButtonOriginalText;
+          }
+        }
       }
     });
   }
 
+  loadDeliveryZones();
   loadCheckoutCart();
 });

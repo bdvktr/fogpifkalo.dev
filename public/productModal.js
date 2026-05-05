@@ -45,7 +45,7 @@
 
   function showMiniToast(type, message) {
     const el = document.createElement("div");
-    el.className = `alert alert-${type} position-fixed top-0 end-0 m-3 shadow`;
+    el.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3 shadow`;
     el.style.zIndex = "9999";
     el.textContent = message;
     document.body.appendChild(el);

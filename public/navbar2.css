@@ -138,3 +138,33 @@
   font-size: 1.15rem;
   line-height: 1;
 }
+/* Desktop navbar layout: középre igazított fő navigáció */
+@media (min-width: 992px) {
+  .navbar-glass > .container {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .navbar-glass .navbar-brand {
+    grid-column: 1;
+    justify-self: start;
+  }
+
+  .navbar-glass .navbar-collapse {
+    display: contents !important;
+  }
+
+  .navbar-glass .navbar-nav {
+    grid-column: 2;
+    justify-self: center;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    transform: translateX(-25px);
+  }
+
+  .navbar-glass .navbar-collapse > .d-flex {
+    grid-column: 3;
+    justify-self: end;
+  }
+}

@@ -1,5 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const burgerList = document.getElementById("burgerList");
+  const mainList = document.getElementById("mainList");
   const sideList = document.getElementById("sideList");
   const drinkList = document.getElementById("drinkList");
   const sauceList = document.getElementById("sauceList");
@@ -79,6 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!data.success) {
         const msg = data.message || "Nem sikerült betölteni a menüt.";
         burgerList.textContent = msg;
+        mainList.textContent = msg;
         sideList.textContent = msg;
         drinkList.textContent = msg;
         sauceList.textContent = msg;
@@ -98,12 +100,14 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       burgerList.innerHTML = "";
+      mainList.innerHTML = "";
       sideList.innerHTML = "";
       drinkList.innerHTML = "";
       sauceList.innerHTML = "";
 
       const grouped = {
         burger: [],
+        main: [],
         side: [],
         drink: [],
         sauce: [],
@@ -130,6 +134,11 @@ document.addEventListener("DOMContentLoaded", () => {
         "Jelenleg nincsenek burgerek a menüben.",
       );
       renderCategory(
+        mainList,
+        grouped.main,
+        "Jelenleg nincsenek főételek a menüben.",
+      );
+      renderCategory(
         sideList,
         grouped.side,
         "Jelenleg nincsenek köretek a menüben.",
@@ -148,6 +157,7 @@ document.addEventListener("DOMContentLoaded", () => {
       console.error("Hiba a /api/menu hívásnál:", err);
       const msg = "Nem sikerült csatlakozni a szerverhez.";
       burgerList.textContent = msg;
+      mainList.textContent = msg;
       sideList.textContent = msg;
       drinkList.textContent = msg;
       sauceList.textContent = msg;

@@ -1,4 +1,6 @@
 (function () {
+  const SMALL_BURGER_BOX_FEE = 150;
+  const MENU_BURGER_BOX_FEE = 200;
   let productById = new Map();
   let toppingOptions = [];
   let modalInstance = null;
@@ -223,10 +225,29 @@
       .filter(Boolean);
   }
 
+  function getPackagingFee() {
+    if (!state?.baseType) {
+      return 0;
+    }
+
+    return state.baseType === "menu"
+      ? MENU_BURGER_BOX_FEE
+      : SMALL_BURGER_BOX_FEE;
+  }
+
+  function getPackagingLabel() {
+    if (!state?.baseType) {
+      return null;
+    }
+
+    return state.baseType === "menu" ? "Nagy doboz" : "Kis doboz";
+  }
+
   function getConfiguredUnitPrice() {
     if (!state) return 0;
 
     let total = Number(state.productPrice) || 0;
+    total += getPackagingFee();
 
     if (state.baseType === "menu") {
       const side = getSelectedSideProduct();
@@ -267,6 +288,14 @@
         amount: Number(state.productPrice || 0),
       },
     ];
+
+    const packagingLabel = getPackagingLabel();
+    if (packagingLabel) {
+      items.push({
+        label: packagingLabel,
+        amount: getPackagingFee(),
+      });
+    }
 
     if (state.baseType === "menu") {
       const side = getSelectedSideProduct();
@@ -479,6 +508,13 @@
     if (state.baseType === "single") {
       chips.push(
         `<span class="burger-config-chip"><i class="bi bi-dot"></i>Sima burger</span>`,
+      );
+    }
+
+    const packagingLabel = getPackagingLabel();
+    if (packagingLabel) {
+      chips.push(
+        `<span class="burger-config-chip"><i class="bi bi-box-seam"></i>${escapeHtml(packagingLabel)}</span>`,
       );
     }
 
@@ -855,7 +891,7 @@
 
   function showToast(type, message) {
     const el = document.createElement("div");
-    el.className = `alert alert-${type} position-fixed top-0 end-0 m-3 shadow`;
+    el.className = `alert alert-${type} position-fixed bottom-0 end-0 m-3 shadow`;
     el.style.zIndex = "2000";
     el.textContent = message;
     document.body.appendChild(el);

@@ -74,7 +74,7 @@
       .hero-content {
         position: relative;
         z-index: 1;
-        padding: 5rem 0;
+        padding: 5rem 0 9rem;
         top: -30px;
         max-width: min(760px, 100%);
         margin-left: clamp(0rem, 6vw, 10rem);
@@ -176,14 +176,182 @@
         background: #111;
         color: #ddd;
       }
+
+      .contact-map-section {
+        background:
+          radial-gradient(
+            760px 280px at 82% 15%,
+            rgba(255, 193, 7, 0.12),
+            rgba(255, 193, 7, 0) 62%
+          ),
+          linear-gradient(180deg, #fff 0%, #fffaf1 100%);
+        margin-bottom: 0 !important;
+        padding: 5rem 0;
+      }
+
+      .contact-info-card,
+      .location-map-card {
+        height: 100%;
+        border-radius: 24px;
+        overflow: hidden;
+        box-shadow: 0 22px 55px rgba(0, 0, 0, 0.1);
+      }
+
+      .contact-info-card {
+        background: rgba(255, 255, 255, 0.92);
+        border: 1px solid rgba(184, 134, 11, 0.24);
+        padding: 2rem;
+      }
+
+      .contact-kicker-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        border-radius: 16px;
+        background: rgba(255, 193, 7, 0.14);
+        color: #b8860b;
+        font-size: 1.45rem;
+        margin-bottom: 0.85rem;
+      }
+
+      .contact-title {
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        margin-bottom: 1.35rem;
+      }
+
+      .contact-detail-row {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid rgba(17, 17, 17, 0.08);
+      }
+
+      .contact-detail-row:last-of-type {
+        border-bottom: 0;
+      }
+
+      .contact-detail-icon {
+        flex: 0 0 auto;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border: 1px solid rgba(184, 134, 11, 0.28);
+        border-radius: 50%;
+        color: #b8860b;
+        background: #fffaf0;
+        font-size: 1.05rem;
+      }
+
+      .contact-detail-text {
+        color: #171717;
+        font-size: 1.02rem;
+        line-height: 1.35;
+      }
+
+      .opening-hours-box {
+        margin-top: 1.4rem;
+        padding-top: 1.35rem;
+        border-top: 1px solid rgba(184, 134, 11, 0.22);
+      }
+
+      .opening-hours-title {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        font-weight: 750;
+        margin-bottom: 0.85rem;
+      }
+
+      .opening-hours-title i,
+      .opening-hours-list li::marker {
+        color: #b8860b;
+      }
+
+      .opening-hours-list {
+        margin-bottom: 0;
+        padding-left: 1.45rem;
+      }
+
+      .opening-hours-list li + li {
+        margin-top: 0.35rem;
+      }
+
+      .location-map-card {
+        background: #111;
+        border: 1px solid rgba(255, 193, 7, 0.24);
+      }
+
+      .location-map-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.35rem 1.45rem;
+        background:
+          radial-gradient(
+            600px 220px at 20% 0%,
+            rgba(246, 178, 58, 0.18),
+            rgba(0, 0, 0, 0) 60%
+          ),
+          linear-gradient(135deg, #241f14 0%, #141414 62%, #111 100%);
+        color: #fff;
+      }
+
+      .location-map-title {
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        margin: 0;
+      }
+
+      .location-map-address {
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 0.94rem;
+        margin: 0.25rem 0 0;
+      }
+
+      .location-map-frame {
+        display: block;
+        width: 100%;
+        height: 390px;
+        border: 0;
+        filter: saturate(0.95) contrast(1.02);
+      }
+
+      @media (max-width: 991.98px) {
+        .contact-map-section {
+          padding: 3.5rem 0 6.5rem;
+        }
+      }
+
+      @media (max-width: 576px) {
+        .contact-info-card {
+          padding: 1.35rem;
+        }
+
+        .location-map-header {
+          align-items: flex-start;
+          flex-direction: column;
+        }
+
+        .location-map-frame {
+          height: 300px;
+        }
+      }
     </style>
     <link rel="stylesheet" href="menucard.css" />
     <link rel="stylesheet" href="burger-configurator.css" />
-    <link rel="stylesheet" href="navbar.css" />
+    <link rel="stylesheet" href="navbar.css?v=nav-left-1" />
     <link rel="stylesheet" href="reservation.css" />
     <link rel="stylesheet" href="scrollbar.css" />
     <link rel="stylesheet" href="style.css" />
-  </head>
+    <link rel="stylesheet" href="footer.css?v=footer-sync-1" />
+</head>
 
   <body>
     <!-- NAVBAR -->
@@ -498,70 +666,176 @@
     </section>
 
     <!-- CONTACT -->
-    <section id="kapcsolat" class="py-5 my-5">
+    <section id="kapcsolat" class="contact-map-section">
       <div class="container">
-        <div class="row g-4">
-          <div class="col-md-6">
-            <h4>Kapcsolat</h4>
-            <p class="mb-1">
-              <i class="bi bi-geo-alt-fill me-2"></i>Mohács, Sétáló utca
-            </p>
-            <p class="mb-1">
-              <i class="bi bi-telephone-fill me-2"></i>+36 30 123 4567
-            </p>
-            <p class="mb-3">
-              <i class="bi bi-envelope-fill me-2"></i>info@Fogpifkáló.hu
-            </p>
-            <p>Nyitvatartás:</p>
-            <ul>
-              <li>H–P: 11:00 — 22:00</li>
-              <li>Szo–V: 12:00 — 23:00</li>
-            </ul>
+        <div class="row g-4 align-items-stretch">
+          <div class="col-lg-5">
+            <div class="contact-info-card">
+              <span class="contact-kicker-icon" aria-hidden="true">
+                <i class="bi bi-shop"></i>
+              </span>
+              <h2 class="contact-title">Kapcsolat</h2>
+
+              <div class="contact-detail-row">
+                <span class="contact-detail-icon" aria-hidden="true">
+                  <i class="bi bi-geo-alt-fill"></i>
+                </span>
+                <span class="contact-detail-text">
+                  7700 Mohács, Szabadság utca 18.
+                </span>
+              </div>
+
+              <div class="contact-detail-row">
+                <span class="contact-detail-icon" aria-hidden="true">
+                  <i class="bi bi-telephone-fill"></i>
+                </span>
+                <span class="contact-detail-text">+36 30 872 0010</span>
+              </div>
+
+              <div class="contact-detail-row">
+                <span class="contact-detail-icon" aria-hidden="true">
+                  <i class="bi bi-envelope-fill"></i>
+                </span>
+                <span class="contact-detail-text">info@Fogpifkáló.hu</span>
+              </div>
+
+              <div class="opening-hours-box">
+                <div class="opening-hours-title">
+                  <i class="bi bi-clock-fill"></i>
+                  <span>Nyitvatartás:</span>
+                </div>
+                <ul class="opening-hours-list">
+                  <li>H–P: 11:00 — 22:00</li>
+                  <li>Szo–V: 12:00 — 23:00</li>
+                </ul>
+              </div>
+            </div>
           </div>
-          <div class="col-md-6">
-            <h4>Üzenet küldése</h4>
-            <form>
-              <div class="mb-3">
-                <label class="form-label">Név</label>
-                <input class="form-control" placeholder="Név" required />
+
+          <div class="col-lg-7">
+            <div class="location-map-card">
+              <div class="location-map-header">
+                <div>
+                  <h2 class="location-map-title">Itt találsz minket</h2>
+                  <p class="location-map-address">
+                    <i class="bi bi-geo-alt-fill me-2"></i>FogPifkáló, Mohács
+                  </p>
+                </div>
+                <a
+                  class="btn btn-warning rounded-pill px-4 fw-semibold"
+                  href="https://www.google.com/maps/dir/?api=1&destination=FogPifk%C3%A1l%C3%B3%2C%207700%20Moh%C3%A1cs%2C%20Szabads%C3%A1g%20utca%2018"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <i class="bi bi-send-fill me-2"></i>Útvonal
+                </a>
               </div>
-              <div class="mb-3">
-                <label class="form-label">E-mail</label>
-                <input
-                  type="email"
-                  class="form-control"
-                  placeholder="email@pelda.hu"
-                  required
-                />
-              </div>
-              <div class="mb-3">
-                <label class="form-label">Üzenet</label>
-                <textarea
-                  class="form-control"
-                  rows="4"
-                  placeholder="Miben segíthetünk?"
-                ></textarea>
-              </div>
-              <button class="btn btn-warning" type="submit">Küldés</button>
-            </form>
+              <iframe
+                class="location-map-frame"
+                title="FogPifkáló térkép"
+                src="https://www.google.com/maps?q=FogPifk%C3%A1l%C3%B3%2C%207700%20Moh%C3%A1cs%2C%20Szabads%C3%A1g%20utca%2018&output=embed"
+                loading="lazy"
+                referrerpolicy="no-referrer-when-downgrade"
+              ></iframe>
+            </div>
           </div>
         </div>
       </div>
     </section>
 
     <!-- FOOTER -->
-    <footer class="footer py-4">
-      <div
-        class="container d-flex flex-column flex-md-row justify-content-between align-items-center"
-      >
-        <div>
-          <strong>Fogpifkáló</strong> &copy; 2025 · Minden jog fenntartva
+    <footer class="site-footer">
+      <div class="container">
+        <div class="site-footer-topline" aria-hidden="true">
+          <span class="site-footer-topicon" aria-label="Burger"
+            ><span class="site-footer-burger-icon" aria-hidden="true"
+              ><span></span></span
+          ></span>
         </div>
-        <div class="mt-2 mt-md-0">
-          <a href="#" class="text-decoration-none text-muted me-3"
-            >Adatvédelem</a
-          >
-          <a href="#" class="text-decoration-none text-muted">Impresszum</a>
+
+        <div class="site-footer-main">
+          <div class="site-footer-col">
+            <h2 class="site-footer-brand">Fog<span>Pifkáló</span></h2>
+            <div class="site-footer-brand-bar">
+              <i class="bi bi-stars"></i>
+            </div>
+            <p class="site-footer-lead">
+              Prémium burgerek minőségi alapanyagokból, szenvedéllyel és
+              odafigyeléssel készítve.
+            </p>
+
+            <div class="site-footer-socials">
+              <a href="#" class="site-footer-social" aria-label="Facebook"
+                ><i class="bi bi-facebook"></i
+              ></a>
+              <a href="#" class="site-footer-social" aria-label="Instagram"
+                ><i class="bi bi-instagram"></i
+              ></a>
+              <a href="#" class="site-footer-social" aria-label="TikTok"
+                ><i class="bi bi-tiktok"></i
+              ></a>
+            </div>
+          </div>
+
+          <div class="site-footer-col">
+            <h3 class="site-footer-heading">Navigáció</h3>
+            <div class="site-footer-links">
+              <a class="site-footer-link" href="index.html"
+                ><i class="bi bi-chevron-right"></i><span>Kezdőlap</span></a
+              >
+              <a class="site-footer-link" href="menu.html"
+                ><i class="bi bi-chevron-right"></i><span>Étlap</span></a
+              >
+              <a class="site-footer-link" href="foglalas.html"
+                ><i class="bi bi-chevron-right"></i><span>Foglalás</span></a
+              >
+              <a class="site-footer-link" href="fiok.html"
+                ><i class="bi bi-chevron-right"></i><span>Fiók</span></a
+              >
+              <a class="site-footer-link" href="index.html#kapcsolat"
+                ><i class="bi bi-chevron-right"></i><span>Kapcsolat</span></a
+              >
+            </div>
+          </div>
+
+          <div class="site-footer-col">
+            <i class="bi bi-credit-card-2-front"></i>
+            <span>Mindhárom SZÉP kártyát elfogadjuk.</span>
+            <div class="site-footer-payment-note"></div>
+
+            <div class="site-footer-payment-grid">
+              <div class="site-footer-payment-card otp">
+                <div class="site-footer-payment-logo">
+                  OTP<small>SZÉP KÁRTYA</small>
+                </div>
+              </div>
+              <div class="site-footer-payment-card kh">
+                <div class="site-footer-payment-logo">
+                  K&amp;H<small>SZÉP KÁRTYA</small>
+                </div>
+              </div>
+              <div class="site-footer-payment-card mbh">
+                <div class="site-footer-payment-logo">
+                  MBH<small>SZÉP KÁRTYA</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="site-footer-bottom">
+          <div class="site-footer-bottom-inner">
+            <div class="site-footer-copyright">
+              &copy; 2025 <strong>FogPifkáló</strong> – Minden jog fenntartva.
+            </div>
+            <div class="site-footer-legal">
+              <a href="#">Adatvédelem</a>
+              <span>|</span>
+              <a href="#">Általános Szerződési Feltételek</a>
+              <span>|</span>
+              <a href="#">Cookie beállítások</a>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
@@ -669,11 +943,11 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="script.js"></script>
-    <script src="productModal.js"></script>
+    <script src="script.js?v=delivery-fee-1"></script>
+    <script src="productModal.js?v=toast-bottom-1"></script>
     <script src="api.js"></script>
     <script src="name.js"></script>
-    <script src="burgerConfigurator.js"></script>
+    <script src="burgerConfigurator.js?v=toast-bottom-1"></script>
     <script>
       document.addEventListener("DOMContentLoaded", () => {
         const menuContainer = document.getElementById("menuItems");

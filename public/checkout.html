@@ -8,8 +8,9 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet" />
-  <link rel="stylesheet" href="navbar2.css" />
+  <link rel="stylesheet" href="navbar2.css?v=nav-left-1" />
   <link rel="stylesheet" href="scrollbar.css">
+  <link rel="stylesheet" href="footer.css?v=footer-sync-1" />
 </head>
 
 <body>
@@ -83,7 +84,7 @@
       </div>
   </nav>
 
-  <main class="py-5 my-5">
+  <main class="py-5 my-5 footer-page-space">
     <div class="container">
       <h1 class="h4 mb-4">Rendelés véglegesítése</h1>
 
@@ -96,9 +97,36 @@
               <div id="checkoutCartItems" class="small text-muted">
                 Kosár betöltése...
               </div>
-              <div class="mt-3 pt-3 border-top d-flex justify-content-between">
-                <strong>Összesen:</strong>
-                <strong id="checkoutTotal">0 Ft</strong>
+              <div class="mt-3 pt-3 border-top">
+                <div class="d-flex justify-content-between small mb-1">
+                  <span>Termékek:</span>
+                  <span id="checkoutSubtotal">0 Ft</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-1">
+                  <span>Csomagolás:</span>
+                  <span id="checkoutPackageFee">0 Ft</span>
+                </div>
+                <div class="d-flex justify-content-between small mb-2">
+                  <span>Szállítás:</span>
+                  <span id="checkoutDeliveryFee">Válassz települést</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                  <strong>Összesen:</strong>
+                  <strong id="checkoutTotal">0 Ft</strong>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-3 p-3 rounded-3 border bg-light bg-opacity-75 small text-muted">
+            <div class="d-flex gap-2 align-items-start">
+              <i class="bi bi-info-circle text-warning flex-shrink-0 mt-1"></i>
+              <div>
+                <div class="fw-semibold text-dark mb-1">Csomagolási díj</div>
+                <div>
+                  A burgerek külön csomagba kerülnek: 4 burgerenként 1 csomagot számolunk.
+                  Egy csomag díja 100 Ft. A menüs burgerek is beleszámítanak a burger darabszámba.
+                </div>
               </div>
             </div>
           </div>
@@ -123,14 +151,17 @@
                   <select class="form-select form-select-sm" id="shippingCity" required>
                     <option value="">Válassz települést...</option>
                     <option value="Mohács">Mohács</option>
-                    <option value="Somberek">Somberek</option>
-                    <option value="Bozsok">Bozsok</option>
-                    <option value="Bár">Bár</option>
-                    <option value="Szőlőhegy">Szőlőhegy</option>
-                    <option value="Sátorhely">Sátorhely</option>
-                    <option value="Kölked">Kölked</option>
                     <option value="Lánycsók">Lánycsók</option>
+                    <option value="Szőlőhegy">Szőlőhegy</option>
+                    <option value="Kölked">Kölked</option>
+                    <option value="Somberek">Somberek</option>
+                    <option value="Sátorhely">Sátorhely</option>
+                    <option value="Bár">Bár</option>
+                    <option value="Palotabozsok">Palotabozsok</option>
                   </select>
+                  <div class="form-text">
+                    Szállítási díj: <span id="selectedDeliveryFee">válassz települést</span>
+                  </div>
                 </div>
 
                 <div class="mb-2">
@@ -181,6 +212,104 @@
     </div>
   </main>
 
+
+<footer class="site-footer">
+      <div class="container">
+        <div class="site-footer-topline" aria-hidden="true">
+          <span class="site-footer-topicon" aria-label="Burger"
+            ><span class="site-footer-burger-icon" aria-hidden="true"
+              ><span></span></span
+          ></span>
+        </div>
+
+        <div class="site-footer-main">
+          <div class="site-footer-col">
+            <h2 class="site-footer-brand">Fog<span>Pifkáló</span></h2>
+            <div class="site-footer-brand-bar">
+              <i class="bi bi-stars"></i>
+            </div>
+            <p class="site-footer-lead">
+              Prémium burgerek minőségi alapanyagokból, szenvedéllyel és
+              odafigyeléssel készítve.
+            </p>
+
+            <div class="site-footer-socials">
+              <a href="#" class="site-footer-social" aria-label="Facebook"
+                ><i class="bi bi-facebook"></i
+              ></a>
+              <a href="#" class="site-footer-social" aria-label="Instagram"
+                ><i class="bi bi-instagram"></i
+              ></a>
+              <a href="#" class="site-footer-social" aria-label="TikTok"
+                ><i class="bi bi-tiktok"></i
+              ></a>
+            </div>
+          </div>
+
+          <div class="site-footer-col">
+            <h3 class="site-footer-heading">Navigáció</h3>
+            <div class="site-footer-links">
+              <a class="site-footer-link" href="index.html"
+                ><i class="bi bi-chevron-right"></i><span>Kezdőlap</span></a
+              >
+              <a class="site-footer-link" href="menu.html"
+                ><i class="bi bi-chevron-right"></i><span>Étlap</span></a
+              >
+              <a class="site-footer-link" href="foglalas.html"
+                ><i class="bi bi-chevron-right"></i><span>Foglalás</span></a
+              >
+              <a class="site-footer-link" href="fiok.html"
+                ><i class="bi bi-chevron-right"></i><span>Fiók</span></a
+              >
+              <a class="site-footer-link" href="index.html#kapcsolat"
+                ><i class="bi bi-chevron-right"></i><span>Kapcsolat</span></a
+              >
+            </div>
+          </div>
+
+          <div class="site-footer-col">
+            <i class="bi bi-credit-card-2-front"></i>
+            <span>Mindhárom SZÉP kártyát elfogadjuk.</span>
+            <div class="site-footer-payment-note"></div>
+
+            <div class="site-footer-payment-grid">
+              <div class="site-footer-payment-card otp">
+                <div class="site-footer-payment-logo">
+                  OTP<small>SZÉP KÁRTYA</small>
+                </div>
+              </div>
+              <div class="site-footer-payment-card kh">
+                <div class="site-footer-payment-logo">
+                  K&amp;H<small>SZÉP KÁRTYA</small>
+                </div>
+              </div>
+              <div class="site-footer-payment-card mbh">
+                <div class="site-footer-payment-logo">
+                  MBH<small>SZÉP KÁRTYA</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="site-footer-bottom">
+          <div class="site-footer-bottom-inner">
+            <div class="site-footer-copyright">
+              &copy; 2025 <strong>FogPifkáló</strong> – Minden jog fenntartva.
+            </div>
+            <div class="site-footer-legal">
+              <a href="#">Adatvédelem</a>
+              <span>|</span>
+              <a href="#">Általános Szerződési Feltételek</a>
+              <span>|</span>
+              <a href="#">Cookie beállítások</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+
   <!-- Toast értesítés (jobb alsó sarok) -->
   <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1100">
     <div id="checkoutToast" class="toast align-items-center text-bg-success border-0" role="alert" aria-live="assertive"
@@ -197,9 +326,9 @@
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <!-- betöltjük a meglévő script.js-t, hogy a session, kosár ikon, stb. működjön -->
-  <script src="script.js"></script>
-  <script src="checkout.js"></script>
+  <script src="script.js?v=package-count-1"></script>
   <script src="api.js"></script>
+  <script src="checkout.js?v=package-count-1"></script>
   <script src="name.js"></script>
 </body>
 
