@@ -134,9 +134,11 @@ export async function adminRefreshMiddleware(req, res, next) {
       ? new Date(decodedNewRefresh.exp * 1000)
       : null;
 
+    const newRefreshTokenHash = hashRefreshToken(newRefreshToken);
+
     await query(
       "UPDATE refresh_tokens SET token = ?, expires_at = ? WHERE id = ?",
-      [newRefreshToken, newExpiresAt, storedToken.id]
+      [newRefreshTokenHash, newExpiresAt, storedToken.id]
     );
 
     // cookie-k frissítése
@@ -157,7 +159,7 @@ export async function adminRefreshMiddleware(req, res, next) {
 
     return next();
   } catch (err) {
-    console.error("adminBootstrapRefreshMiddleware hiba:", err);
+    console.error("adminRefreshMiddleware hiba:", err);
     return next(err);
   }
 }

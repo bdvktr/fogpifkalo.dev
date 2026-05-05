@@ -112,3 +112,32 @@ export function getToppings(req, res) {
     });
   });
 }
+
+
+export function getDeliveryZones(req, res) {
+  const sql = `
+    SELECT city, delivery_fee
+    FROM delivery_zones
+    WHERE is_active = 1
+    ORDER BY sort_order ASC, city ASC
+  `;
+
+  db.query(sql, (err, rows) => {
+    if (err) {
+      console.error("DB hiba (/api/delivery-zones):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba a szállítási díjak lekérdezésekor.",
+      });
+    }
+
+    return res.json({
+      success: true,
+      zones: (rows || []).map((row) => ({
+        city: row.city,
+        delivery_fee: Number(row.delivery_fee || 0),
+      })),
+    });
+  });
+}
+

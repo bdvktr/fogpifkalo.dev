@@ -16,6 +16,36 @@ import {
 } from "../config/websocket.js";
 
 //helper
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeOptionalText(value) {
+  const normalized = normalizeText(value);
+  return normalized || null;
+}
+
+function normalizeOptionalUrl(value) {
+  return normalizeText(value);
+}
+
+function normalizeProductPrice(value) {
+  const normalizedValue =
+    typeof value === "string" ? value.trim().replace(",", ".") : value;
+  const price = Number(normalizedValue);
+
+  if (!Number.isFinite(price) || price <= 0 || price > 99999999.99) {
+    return null;
+  }
+
+  return Number(price.toFixed(2));
+}
+
+function normalizeProductCategory(value) {
+  const allowedCategories = new Set(["burger", "main", "side", "drink", "sauce"]);
+  return allowedCategories.has(value) ? value : "burger";
+}
+
 function parseConfigJson(value) {
   if (!value) return null;
 
@@ -71,20 +101,26 @@ export function createProduct(req, res) {
     menu_extra_type,
   } = req.body;
 
-  if (!name || !price) {
+  const normalizedName = normalizeText(name);
+  const normalizedDescription = normalizeOptionalText(description);
+  const normalizedImageUrl = normalizeOptionalUrl(image_url);
+  const normalizedPrice = normalizeProductPrice(price);
+
+  if (!normalizedName) {
     return res.status(400).json({
       success: false,
-      message: "A név és az ár kötelező.",
+      message: "A név megadása kötelező.",
     });
   }
 
-  const safeCategory =
-    category === "burger" ||
-    category === "side" ||
-    category === "drink" ||
-    category === "sauce"
-      ? category
-      : "burger";
+  if (normalizedPrice === null) {
+    return res.status(400).json({
+      success: false,
+      message: "Az árnak pozitív számnak kell lennie.",
+    });
+  }
+
+  const safeCategory = normalizeProductCategory(category);
 
   let activeFlag = 1;
   if (typeof is_active !== "undefined") {
@@ -111,11 +147,11 @@ export function createProduct(req, res) {
   db.query(
     sql,
     [
-      name,
-      description || null,
+      normalizedName,
+      normalizedDescription,
       toIngredientsJson(ingredients),
-      price,
-      image_url || "",
+      normalizedPrice,
+      normalizedImageUrl,
       activeFlag,
       specialOfferFlag,
       safeCategory,
@@ -136,8 +172,8 @@ export function createProduct(req, res) {
         entityType: "product",
         entityId: result.insertId,
         details: {
-          name,
-          price,
+          name: normalizedName,
+          price: normalizedPrice,
           category: safeCategory,
           is_active: 1,
           is_special_offer: specialOfferFlag === 1,
@@ -166,20 +202,26 @@ export function updateProduct(req, res) {
     menu_extra_type,
   } = req.body;
 
-  if (!name || !price) {
+  const normalizedName = normalizeText(name);
+  const normalizedDescription = normalizeOptionalText(description);
+  const normalizedImageUrl = normalizeOptionalUrl(image_url);
+  const normalizedPrice = normalizeProductPrice(price);
+
+  if (!normalizedName) {
     return res.status(400).json({
       success: false,
-      message: "A név és az ár megadása kötelező.",
+      message: "A név megadása kötelező.",
     });
   }
 
-  const safeCategory =
-    category === "burger" ||
-    category === "side" ||
-    category === "drink" ||
-    category === "sauce"
-      ? category
-      : "burger";
+  if (normalizedPrice === null) {
+    return res.status(400).json({
+      success: false,
+      message: "Az árnak pozitív számnak kell lennie.",
+    });
+  }
+
+  const safeCategory = normalizeProductCategory(category);
 
   let activeFlag = 1;
   if (typeof is_active !== "undefined") {
@@ -215,11 +257,11 @@ export function updateProduct(req, res) {
   db.query(
     sql,
     [
-      name,
-      description || null,
+      normalizedName,
+      normalizedDescription,
       toIngredientsJson(ingredients),
-      price,
-      image_url || "",
+      normalizedPrice,
+      normalizedImageUrl,
       activeFlag,
       specialOfferFlag,
       safeCategory,
@@ -248,8 +290,8 @@ export function updateProduct(req, res) {
         entityType: "product",
         entityId: Number(productId),
         details: {
-          name,
-          price,
+          name: normalizedName,
+          price: normalizedPrice,
           category: safeCategory,
           is_active: activeFlag,
           is_special_offer: specialOfferFlag === 1,
@@ -336,6 +378,11 @@ export function getOrders(req, res) {
       o.id,
       o.created_at,
       o.status,
+      o.subtotal,
+      o.package_count,
+      o.packaging_fee,
+      o.delivery_city,
+      o.delivery_fee,
       o.total_price,
       u.email AS user_email
     FROM orders o
@@ -367,7 +414,17 @@ export function getOrderDetails(req, res) {
       o.id AS order_id,
       o.created_at,
       o.status,
+      o.subtotal,
+      o.package_count,
+      o.packaging_fee,
+      o.delivery_city,
+      o.delivery_fee,
       o.total_price,
+      o.shipping_name,
+      o.shipping_phone,
+      o.shipping_address,
+      o.payment_method,
+      o.note,
       u.email AS user_email,
       u.name AS user_name,
       oi.product_id,
@@ -416,7 +473,17 @@ export function getOrderDetails(req, res) {
       id: first.order_id,
       created_at: first.created_at,
       status: first.status,
+      subtotal: Number(first.subtotal || 0),
+      package_count: Number(first.package_count || 0),
+      packaging_fee: Number(first.packaging_fee || 0),
+      delivery_city: first.delivery_city,
+      delivery_fee: Number(first.delivery_fee || 0),
       total_price: Number(first.total_price),
+      shipping_name: first.shipping_name,
+      shipping_phone: first.shipping_phone,
+      shipping_address: first.shipping_address,
+      payment_method: first.payment_method,
+      note: first.note,
       user: {
         email: first.user_email,
         name: first.user_name,
@@ -534,6 +601,8 @@ export function updateOrderStatus(req, res) {
       });
     }
 
+    emitPendingOrdersUpdated();
+
     // 🔹 Audit log: rendelés státusz módosítás
     logAdminAction(req, {
       action: "Rendelés státusz módosítás",
@@ -555,6 +624,11 @@ export function updateOrderStatus(req, res) {
       const selectSql = `
         SELECT
           o.id,
+          o.subtotal,
+          o.package_count,
+          o.packaging_fee,
+          o.delivery_city,
+          o.delivery_fee,
           o.total_price,
           o.shipping_name,
           o.shipping_address,
@@ -586,6 +660,11 @@ export function updateOrderStatus(req, res) {
           email: row.email,
           name: row.shipping_name || row.name,
           orderId: row.id,
+          subtotal: row.subtotal,
+          packageCount: row.package_count,
+          packagingFee: row.packaging_fee,
+          deliveryCity: row.delivery_city,
+          deliveryFee: row.delivery_fee,
           totalPrice: row.total_price,
           shippingAddress: row.shipping_address,
           paymentMethod: row.payment_method,
@@ -678,6 +757,8 @@ export function updateReservationStatus(req, res) {
         message: "A foglalás nem található.",
       });
     }
+
+    emitReservationsUpdated();
 
     // 🔹 Audit log: foglalás státusz módosítás
     logAdminAction(req, {

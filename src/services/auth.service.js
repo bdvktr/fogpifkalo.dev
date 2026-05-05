@@ -14,6 +14,25 @@ import {
   SALT_ROUNDS,
 } from "../config/auth.js";
 
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeEmail(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function isValidEmail(email) {
+  return (
+    email.length <= 255 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+  );
+}
+
+function getPasswordValue(value) {
+  return typeof value === "string" ? value : "";
+}
+
 function buildUserPayloadFromRow(row) {
   return {
     id: row.id,
@@ -104,12 +123,22 @@ function updateRefreshTokenRow(id, newToken) {
 }
 
 export async function register(req, res) {
-  const { name, email, password, passwordConfirm } = req.body;
+  const name = normalizeText(req.body?.name);
+  const email = normalizeEmail(req.body?.email);
+  const password = getPasswordValue(req.body?.password);
+  const passwordConfirm = getPasswordValue(req.body?.passwordConfirm);
 
   if (!name || !email || !password || !passwordConfirm) {
     return res.status(400).json({
       success: false,
       message: "Minden mező kitöltése kötelező.",
+    });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Érvényes e-mail cím megadása kötelező.",
     });
   }
 
@@ -212,12 +241,20 @@ export async function register(req, res) {
 }
 
 export function login(req, res) {
-  const { email, password } = req.body;
+  const email = normalizeEmail(req.body?.email);
+  const password = getPasswordValue(req.body?.password);
 
   if (!email || !password) {
     return res.status(400).json({
       success: false,
       message: "E-mail és jelszó megadása kötelező.",
+    });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Hibás e-mail vagy jelszó.",
     });
   }
 

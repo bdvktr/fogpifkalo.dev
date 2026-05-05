@@ -5,19 +5,57 @@ import {
   ACCESS_TOKEN_SECRET,
   ACCESS_TOKEN_EXPIRES_IN,
   ACCESS_TOKEN_COOKIE_NAME,
+  REFRESH_TOKEN_COOKIE_NAME,
   ACCESS_TOKEN_COOKIE_OPTIONS,
   SALT_ROUNDS,
 } from "../config/auth.js";
 
+function normalizeText(value) {
+  return String(value ?? "").trim();
+}
+
+function normalizeEmail(value) {
+  return normalizeText(value).toLowerCase();
+}
+
+function isValidEmail(email) {
+  return (
+    email.length <= 255 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)
+  );
+}
+
+function deleteRefreshTokensForUser(userId) {
+  return new Promise((resolve, reject) => {
+    const sql = "DELETE FROM refresh_tokens WHERE user_id = ?";
+
+    db.query(sql, [userId], (err, result) => {
+      if (err) {
+        console.error("DB hiba (refresh tokenek törlése jelszócsere után):", err);
+        return reject(err);
+      }
+
+      resolve(result.affectedRows);
+    });
+  });
+}
+
 export function updateProfile(req, res) {
   const userId = req.user.id;
-  const name = String(req.body?.name || "").trim();
-  const email = String(req.body?.email || "").trim();
+  const name = normalizeText(req.body?.name);
+  const email = normalizeEmail(req.body?.email);
 
   if (!name || !email) {
     return res.status(400).json({
       success: false,
       message: "Név és e-mail megadása kötelező.",
+    });
+  }
+
+  if (!isValidEmail(email)) {
+    return res.status(400).json({
+      success: false,
+      message: "Érvényes e-mail cím megadása kötelező.",
     });
   }
 
@@ -114,7 +152,7 @@ export function changePassword(req, res) {
 
     const updateSql = "UPDATE users SET password_hash = ? WHERE id = ?";
 
-    db.query(updateSql, [newHash, userId], (err2) => {
+    db.query(updateSql, [newHash, userId], async (err2) => {
       if (err2) {
         console.error("DB hiba (jelszó frissítés):", err2);
         return res.status(500).json({
@@ -123,9 +161,22 @@ export function changePassword(req, res) {
         });
       }
 
+      try {
+        await deleteRefreshTokensForUser(userId);
+      } catch (tokenErr) {
+        return res.status(500).json({
+          success: false,
+          message: "A jelszó frissült, de a munkamenetek lezárása nem sikerült. Kérlek jelentkezz ki és be újra.",
+        });
+      }
+
+      res.clearCookie(ACCESS_TOKEN_COOKIE_NAME);
+      res.clearCookie(REFRESH_TOKEN_COOKIE_NAME);
+
       return res.json({
         success: true,
-        message: "Jelszó sikeresen frissítve.",
+        forceLogout: true,
+        message: "Jelszó sikeresen frissítve. Biztonsági okból kérlek jelentkezz be újra.",
       });
     });
   });

@@ -18,6 +18,35 @@ const transporter = nodemailer.createTransport({
 });
 
 // 2) Foglalás visszaigazoló email küldése
+
+function formatMailFt(value) {
+  return `${Math.round(Number(value || 0)).toLocaleString("hu-HU")} Ft`;
+}
+
+function renderDeliveryFeeLines(order) {
+  const subtotal = Number(order.subtotal || 0);
+  const packageCount = Number(order.packageCount || 0);
+  const packagingFee = Number(order.packagingFee || 0);
+  const deliveryFee = Number(order.deliveryFee || 0);
+
+  if (!Number.isFinite(subtotal) || subtotal <= 0) {
+    return `Végösszeg: ${formatMailFt(order.totalPrice)}`;
+  }
+
+  const lines = [`Termékek: ${formatMailFt(subtotal)}`];
+
+  lines.push(
+    `Csomagolás${packageCount > 0 ? ` (${packageCount} csomag)` : ""}: ${formatMailFt(packagingFee)}`,
+  );
+
+  lines.push(
+    `Szállítás${order.deliveryCity ? ` (${order.deliveryCity})` : ""}: ${formatMailFt(deliveryFee)}`,
+  );
+
+  lines.push(`Végösszeg: ${formatMailFt(order.totalPrice)}`);
+
+  return lines.join("\n");
+}
 export async function sendReservationConfirmedEmail(reservation) {
   const { email, name, date, timeFrom, timeTo, tableNumber, peopleCount } =
     reservation;
@@ -154,8 +183,19 @@ Fogpifkáló
 
 // RENDELÉS: leadáskor
 export async function sendOrderPlacedEmail(order) {
-  const { email, name, orderId, totalPrice, shippingAddress, paymentMethod } =
-    order;
+  const {
+    email,
+    name,
+    orderId,
+    subtotal,
+    packageCount,
+    packagingFee,
+    deliveryCity,
+    deliveryFee,
+    totalPrice,
+    shippingAddress,
+    paymentMethod,
+  } = order;
 
   if (!email) {
     console.warn("Nincs email cím a rendeléshez (placed), nem küldök emailt.");
@@ -170,7 +210,7 @@ Kedves ${name || "Vendég"}!
 Köszönjük a rendelésedet, megkaptuk a rendszerünkben.
 
 Rendelésszám: ${orderId}
-Végösszeg: ${Number(totalPrice).toFixed(2)} Ft
+${renderDeliveryFeeLines({ subtotal, packageCount, packagingFee, deliveryCity, deliveryFee, totalPrice })}
 Cím: ${shippingAddress || "nincs megadva"}
 Fizetés módja: ${paymentMethod || "nincs megadva"}
 
@@ -197,8 +237,19 @@ Fogpifkáló
 
 // RENDELÉS: teljesítve
 export async function sendOrderCompletedEmail(order) {
-  const { email, name, orderId, totalPrice, shippingAddress, paymentMethod } =
-    order;
+  const {
+    email,
+    name,
+    orderId,
+    subtotal,
+    packageCount,
+    packagingFee,
+    deliveryCity,
+    deliveryFee,
+    totalPrice,
+    shippingAddress,
+    paymentMethod,
+  } = order;
 
   if (!email) {
     console.warn(
@@ -215,7 +266,7 @@ Kedves ${name || "Vendég"}!
 Örömmel értesítünk, hogy az alábbi rendelésedet teljesítettük.
 
 Rendelésszám: ${orderId}
-Végösszeg: ${Number(totalPrice).toFixed(2)} Ft
+${renderDeliveryFeeLines({ subtotal, packageCount, packagingFee, deliveryCity, deliveryFee, totalPrice })}
 Cím: ${shippingAddress || "nincs megadva"}
 Fizetés módja: ${paymentMethod || "nincs megadva"}
 
@@ -241,8 +292,19 @@ Fogpifkáló
 
 // RENDELÉS: törölve
 export async function sendOrderCancelledEmail(order) {
-  const { email, name, orderId, totalPrice, shippingAddress, paymentMethod } =
-    order;
+  const {
+    email,
+    name,
+    orderId,
+    subtotal,
+    packageCount,
+    packagingFee,
+    deliveryCity,
+    deliveryFee,
+    totalPrice,
+    shippingAddress,
+    paymentMethod,
+  } = order;
 
   if (!email) {
     console.warn(
@@ -259,7 +321,7 @@ Kedves ${name || "Vendég"}!
 Értesítünk, hogy az alábbi rendelésed törlésre került:
 
 Rendelésszám: ${orderId}
-Végösszeg: ${Number(totalPrice).toFixed(2)} Ft
+${renderDeliveryFeeLines({ subtotal, packageCount, packagingFee, deliveryCity, deliveryFee, totalPrice })}
 Cím: ${shippingAddress || "nincs megadva"}
 Fizetés módja: ${paymentMethod || "nincs megadva"}
 

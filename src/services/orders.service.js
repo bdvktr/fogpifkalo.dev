@@ -2,6 +2,28 @@ import { db } from "../repositories/db.repository.js";
 import { sendOrderPlacedEmail } from "./email.service.js";
 import { emitPendingOrdersUpdated } from "../config/websocket.js";
 
+const ORDER_PACKAGE_SIZE = 4;
+const ORDER_PACKAGE_FEE = 100;
+
+function calculateOrderPackaging(rows) {
+  const burgerCount = (rows || []).reduce((sum, row) => {
+    if (row.category !== "burger") {
+      return sum;
+    }
+
+    return sum + Number(row.quantity || 0);
+  }, 0);
+
+  const packageCount =
+    burgerCount > 0 ? Math.ceil(burgerCount / ORDER_PACKAGE_SIZE) : 0;
+
+  return {
+    burgerCount,
+    packageCount,
+    packagingFee: packageCount * ORDER_PACKAGE_FEE,
+  };
+}
+
 function parseConfigJson(value) {
   if (!value) return null;
 
@@ -40,16 +62,6 @@ export function checkout(req, res) {
   const shippingHouseNumber = String(
     req.body?.shippingHouseNumber || "",
   ).trim();
-  const allowedCities = [
-    "Mohács",
-    "Somberek",
-    "Bozsok",
-    "Bár",
-    "Szőlőhegy",
-    "Sátorhely",
-    "Kölked",
-    "Lánycsók",
-  ];
   const note = String(req.body?.note || "").trim();
   const paymentMethod = req.body?.paymentMethod;
 
@@ -66,14 +78,6 @@ export function checkout(req, res) {
         "A szállítási név, telefonszám, város, utca és házszám megadása kötelező.",
     });
   }
-
-  if (!allowedCities.includes(shippingCity)) {
-    return res.status(400).json({
-      success: false,
-      message: "A megadott településre jelenleg nem szállítunk.",
-    });
-  }
-
   const shippingAddress = `${shippingCity}, ${shippingStreet}, ${shippingHouseNumber}`;
 
   const safePayment =
@@ -81,6 +85,8 @@ export function checkout(req, res) {
       ? paymentMethod
       : "cash";
 
+  // Párhuzamos checkout ellen: tranzakción belül zároljuk a felhasználó kosársorait,
+  // így ugyanabból a kosárból nem készülhet két rendelés egyszerre.
   const cartSql = `
     SELECT 
       ci.product_id,
@@ -88,16 +94,26 @@ export function checkout(req, res) {
       ci.unit_price,
       ci.config_json,
       ci.config_key,
-      p.name
+      p.name,
+      p.category
     FROM cart_items ci
     JOIN products p ON p.id = ci.product_id
     WHERE ci.user_id = ?
+    FOR UPDATE
+  `;
+
+  const deliveryZoneSql = `
+    SELECT city, delivery_fee
+    FROM delivery_zones
+    WHERE city = ?
+      AND is_active = 1
+    LIMIT 1
   `;
 
   const orderInsertSql = `
     INSERT INTO orders 
-      (user_id, total_price, status, shipping_name, shipping_phone, shipping_address, payment_method, note)
-    VALUES (?, ?, 'pending', ?, ?, ?, ?, ?)
+      (user_id, subtotal, package_count, packaging_fee, delivery_fee, total_price, status, shipping_name, shipping_phone, shipping_address, delivery_city, payment_method, note)
+    VALUES (?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?)
   `;
 
   const orderItemsSql = `
@@ -156,23 +172,59 @@ export function checkout(req, res) {
           );
         }
 
-        let totalPrice = 0;
-        cartRows.forEach((row) => {
-          totalPrice += Number(row.unit_price || 0) * Number(row.quantity || 0);
-        });
+        const subtotal = cartRows.reduce(
+          (sum, row) =>
+            sum + Number(row.unit_price || 0) * Number(row.quantity || 0),
+          0,
+        );
 
-        connection.query(
-          orderInsertSql,
-          [
-            userId,
-            totalPrice,
-            shippingName,
-            shippingPhone,
-            shippingAddress,
-            safePayment,
-            note || null,
-          ],
-          (orderErr, result) => {
+        connection.query(deliveryZoneSql, [shippingCity], (zoneErr, zoneRows) => {
+          if (zoneErr) {
+            return rollbackAndRelease(
+              500,
+              "Szerver hiba a szállítási díj lekérdezésekor.",
+              zoneErr,
+            );
+          }
+
+          if (!zoneRows || zoneRows.length === 0) {
+            return rollbackAndRelease(
+              400,
+              "A megadott településre jelenleg nem szállítunk.",
+            );
+          }
+
+          const deliveryFee = Number(zoneRows[0].delivery_fee || 0);
+
+          if (!Number.isFinite(deliveryFee) || deliveryFee < 0) {
+            return rollbackAndRelease(
+              500,
+              "Hibás szállítási díj beállítás az adatbázisban.",
+            );
+          }
+
+          const { packageCount, packagingFee } =
+            calculateOrderPackaging(cartRows);
+
+          const totalPrice = subtotal + packagingFee + deliveryFee;
+
+          connection.query(
+            orderInsertSql,
+            [
+              userId,
+              subtotal,
+              packageCount,
+              packagingFee,
+              deliveryFee,
+              totalPrice,
+              shippingName,
+              shippingPhone,
+              shippingAddress,
+              shippingCity,
+              safePayment,
+              note || null,
+            ],
+            (orderErr, result) => {
             if (orderErr) {
               return rollbackAndRelease(
                 500,
@@ -226,8 +278,13 @@ export function checkout(req, res) {
                     email: userEmail,
                     name: shippingName || userName,
                     orderId,
+                    subtotal,
+                    packageCount,
+                    packagingFee,
+                    deliveryFee,
                     totalPrice,
                     shippingAddress,
+                    deliveryCity: shippingCity,
                     paymentMethod: safePayment,
                   }).catch((emailErr) => {
                     console.error(
@@ -246,8 +303,9 @@ export function checkout(req, res) {
                 });
               });
             });
-          },
-        );
+            },
+          );
+        });
       });
     });
   });
@@ -261,6 +319,11 @@ export function getMyOrders(req, res) {
       o.id AS order_id,
       o.created_at,
       o.status,
+      o.subtotal,
+      o.package_count,
+      o.packaging_fee,
+      o.delivery_city,
+      o.delivery_fee,
       o.total_price,
       oi.product_id,
       oi.quantity,
@@ -310,6 +373,11 @@ export function getMyOrders(req, res) {
           id: id,
           created_at: row.created_at,
           status: row.status,
+          subtotal: Number(row.subtotal || 0),
+          package_count: Number(row.package_count || 0),
+          packaging_fee: Number(row.packaging_fee || 0),
+          delivery_city: row.delivery_city,
+          delivery_fee: Number(row.delivery_fee || 0),
           total_price: Number(row.total_price),
           items: [],
         });

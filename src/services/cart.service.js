@@ -1,5 +1,34 @@
 import { db } from "../repositories/db.repository.js";
 
+const SMALL_BURGER_BOX_FEE = 150;
+const MENU_BURGER_BOX_FEE = 200;
+const SMALL_BURGER_BOX_NAME = "Kis doboz";
+const MENU_BURGER_BOX_NAME = "Nagy doboz";
+
+function getPackagingForBaseType(baseType) {
+  if (baseType === "menu") {
+    return {
+      packagingType: "large_box",
+      packagingName: MENU_BURGER_BOX_NAME,
+      packagingPrice: MENU_BURGER_BOX_FEE,
+    };
+  }
+
+  return {
+    packagingType: "small_box",
+    packagingName: SMALL_BURGER_BOX_NAME,
+    packagingPrice: SMALL_BURGER_BOX_FEE,
+  };
+}
+
+function getPackagingFeeForConfig(config) {
+  if (!config || config.baseType !== "menu") {
+    return SMALL_BURGER_BOX_FEE;
+  }
+
+  return MENU_BURGER_BOX_FEE;
+}
+
 function parseConfigJson(value) {
   if (!value) return null;
 
@@ -35,6 +64,11 @@ function toMoneyNumber(value) {
   return Number.isFinite(amount) ? amount : 0;
 }
 
+function parsePositiveInteger(value) {
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
+}
+
 function buildConfigKey(config) {
   if (!config) {
     return "base";
@@ -65,10 +99,16 @@ function buildConfigKey(config) {
 
 function normalizeCartConfig(rawConfig) {
   if (!rawConfig || typeof rawConfig !== "object") {
+    const config = {
+      baseType: "single",
+      toppings: [],
+      ...getPackagingForBaseType("single"),
+    };
+
     return {
       success: true,
-      config: null,
-      configKey: "base",
+      config,
+      configKey: buildConfigKey(config),
     };
   }
 
@@ -76,13 +116,11 @@ function normalizeCartConfig(rawConfig) {
   const toppings = normalizeToppingIds(rawConfig.toppings);
 
   if (baseType === "single") {
-    const config =
-      toppings.length > 0
-        ? {
-            baseType: "single",
-            toppings,
-          }
-        : null;
+    const config = {
+      baseType: "single",
+      toppings,
+      ...getPackagingForBaseType("single"),
+    };
 
     return {
       success: true,
@@ -129,6 +167,7 @@ function normalizeCartConfig(rawConfig) {
     extraType,
     sauceId,
     toppings,
+    ...getPackagingForBaseType("menu"),
   };
 
   return {
@@ -152,7 +191,9 @@ function insertCartItem({
     VALUES (?, ?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
       quantity = quantity + VALUES(quantity),
-      unit_price = VALUES(unit_price)
+      unit_price = VALUES(unit_price),
+      config_json = VALUES(config_json),
+      config_key = VALUES(config_key)
   `;
 
   const configJson = config ? JSON.stringify(config) : null;
@@ -190,6 +231,7 @@ export function getCart(req, res) {
       ci.config_json,
       ci.config_key,
       p.name,
+      p.category,
       s.name AS sauce_name,
       side_p.name AS side_name,
       (ci.quantity * ci.unit_price) AS line_total
@@ -235,6 +277,7 @@ export function getCart(req, res) {
         config_key: row.config_key || "base",
         config,
         name: row.name,
+        category: row.category,
         price: toMoneyNumber(row.unit_price),
         line_total: toMoneyNumber(row.line_total),
       };
@@ -309,20 +352,20 @@ export function addToCart(req, res) {
   const userId = req.user.id;
   const { productId, quantity, config } = req.body;
 
-  const normalizedProductId = Number(productId);
-  const qty = Number(quantity) || 1;
+  const normalizedProductId = parsePositiveInteger(productId);
+  const qty = typeof quantity === "undefined" ? 1 : parsePositiveInteger(quantity);
 
   if (!normalizedProductId) {
     return res.status(400).json({
       success: false,
-      message: "productId megadása kötelező.",
+      message: "Érvényes productId megadása kötelező.",
     });
   }
 
-  if (!Number.isInteger(qty) || qty <= 0) {
+  if (!qty || qty > 99) {
     return res.status(400).json({
       success: false,
-      message: "A mennyiségnek pozitív egész számnak kell lennie.",
+      message: "A mennyiségnek 1 és 99 közötti egész számnak kell lennie.",
     });
   }
 
@@ -598,7 +641,9 @@ export function addToCart(req, res) {
       );
     }
 
-    return validateSideAndContinue(baseUnitPrice);
+    return validateSideAndContinue(
+      baseUnitPrice + getPackagingFeeForConfig(configResult.config),
+    );
   });
 }
 

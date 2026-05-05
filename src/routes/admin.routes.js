@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as adminController from "../controllers/admin.controller.js";
 import { requireAdmin } from "../middleware/auth.middleware.js";
-import { upload } from "../middleware/multer.middleware.js";
+import { handleProductImageUpload } from "../middleware/multer.middleware.js";
 import * as auditController from "../controllers/audit.controller.js";
 
 
@@ -22,7 +22,7 @@ router.put("/orders/:id/status", adminController.updateOrderStatus);
 router.get("/reservations", adminController.getReservations);
 router.put("/reservations/:id/status", adminController.updateReservationStatus);
 
-router.post("/products/upload-image", upload.single("image"), adminController.uploadProductImage);
+router.post("/products/upload-image", handleProductImageUpload, adminController.uploadProductImage);
 
 //csak olvasható
 router.get("/logs", auditController.getAdminLogs);
