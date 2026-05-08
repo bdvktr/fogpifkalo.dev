@@ -1,4 +1,5 @@
 import { db } from "../repositories/db.repository.js";
+import { emitReservationsUpdated } from "../config/websocket.js";
 import {
   sendReservationUserUpdatedEmail,
   sendReservationUserCancelledEmail,
@@ -71,6 +72,8 @@ export function cancelMyReservation(req, res) {
         message: "Nem található ilyen foglalás, vagy már le lett mondva.",
       });
     }
+
+    emitReservationsUpdated();
 
     // 💌 válasz a usernek
     res.json({
@@ -179,6 +182,8 @@ export function updateMyReservationDetails(req, res) {
           message: "Nem található ilyen foglalás, vagy nem módosítható.",
         });
       }
+
+      emitReservationsUpdated();
 
       res.json({
         success: true,
@@ -363,6 +368,8 @@ export function updateMyReservationTime(req, res) {
               message: "Nem sikerült módosítani a foglalást.",
             });
           }
+
+          emitReservationsUpdated();
 
           res.json({
             success: true,

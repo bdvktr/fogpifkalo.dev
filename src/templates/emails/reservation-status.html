@@ -1,0 +1,39 @@
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#ffffff; border-radius:16px; overflow:hidden; box-shadow:0 10px 32px rgba(0,0,0,0.16);">
+  <tr>
+    <td align="center" style="padding:34px 28px 20px;">
+      <div style="display:inline-block; padding:9px 16px; border-radius:999px; border:1px solid {{statusBorderColor}}; background:{{statusBgColor}}; color:{{statusColor}}; font-size:13px; line-height:1; font-weight:700; text-transform:uppercase; letter-spacing:0.8px;">
+        {{statusLabel}}
+      </div>
+
+      <h1 style="margin:22px 0 10px; font-family:Georgia, 'Times New Roman', serif; font-size:36px; line-height:1.12; color:#111111; letter-spacing:-0.5px;">
+        {{title}}
+      </h1>
+
+      <p style="margin:0; color:#666666; font-size:17px; line-height:1.55;">
+        {{intro}}
+      </p>
+    </td>
+  </tr>
+
+  <tr>
+    <td style="padding:0 28px 24px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e8e1d7; border-radius:10px; overflow:hidden;">
+        {{{detailsRows}}}
+      </table>
+    </td>
+  </tr>
+
+  {{{noteBlock}}}
+
+  <tr>
+    <td align="center" style="padding:0 28px 34px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="width:100%;">
+        <tr>
+          <td align="center" bgcolor="#c58a24" style="border-radius:9px; background:#c58a24;">
+            <a href="{{ctaUrl}}" style="display:block; width:100%; box-sizing:border-box; padding:15px 18px; color:#ffffff; text-decoration:none; font-size:16px; font-weight:700; border-radius:9px; outline:none;">{{ctaLabel}}</a>
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>

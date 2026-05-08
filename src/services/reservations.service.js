@@ -1,11 +1,120 @@
 import { db } from "../repositories/db.repository.js";
 import { sendReservationPendingEmail } from "./email.service.js";
+import { emitReservationsUpdated } from "../config/websocket.js";
 import {
   hasReservationOverlap,
   normalizeOptionalText,
   normalizeRequiredText,
   validateReservationInput,
 } from "./reservation-validation.service.js";
+
+function isValidDateString(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const [yearStr, monthStr, dayStr] = value.split("-");
+  const year = Number(yearStr);
+  const month = Number(monthStr);
+  const day = Number(dayStr);
+  const date = new Date(year, month - 1, day);
+
+  return (
+    date.getFullYear() === year &&
+    date.getMonth() === month - 1 &&
+    date.getDate() === day
+  );
+}
+
+function normalizeTimeValue(value) {
+  if (!value) return null;
+
+  if (typeof value === "string") {
+    return value.slice(0, 5);
+  }
+
+  if (value instanceof Date) {
+    return value.toTimeString().slice(0, 5);
+  }
+
+  return null;
+}
+
+function addTwoHours(timeValue) {
+  const time = normalizeTimeValue(timeValue);
+  if (!time) return null;
+
+  const [hourStr, minuteStr] = time.split(":");
+  const hour = Number(hourStr);
+  const minute = Number(minuteStr);
+
+  if (!Number.isInteger(hour) || !Number.isInteger(minute)) {
+    return null;
+  }
+
+  const totalMinutes = hour * 60 + minute + 120;
+  const endHour = Math.floor(totalMinutes / 60);
+  const endMinute = totalMinutes % 60;
+
+  return `${String(endHour).padStart(2, "0")}:${String(endMinute).padStart(2, "0")}`;
+}
+
+export function getReservationAvailability(req, res) {
+  const date = typeof req.query?.date === "string" ? req.query.date.trim() : "";
+
+  if (!date) {
+    return res.status(400).json({
+      success: false,
+      message: "A dátum megadása kötelező.",
+    });
+  }
+
+  if (!isValidDateString(date)) {
+    return res.status(400).json({
+      success: false,
+      message: "Érvénytelen dátum formátum. Használd: ÉÉÉÉ-HH-NN.",
+    });
+  }
+
+  const sql = `
+    SELECT
+      id,
+      table_number,
+      reservation_date,
+      reservation_time,
+      end_time,
+      status
+    FROM reservations
+    WHERE reservation_date = ?
+      AND status IN ('pending', 'confirmed')
+    ORDER BY table_number ASC, reservation_time ASC, id ASC
+  `;
+
+  db.query(sql, [date], (err, rows) => {
+    if (err) {
+      console.error("DB hiba (reservation availability):", err);
+      return res.status(500).json({
+        success: false,
+        message: "Szerver hiba az elérhetőségek lekérésekor.",
+      });
+    }
+
+    const reservations = (rows || []).map((row) => ({
+      id: row.id,
+      tableNumber: Number(row.table_number),
+      date: row.reservation_date,
+      timeFrom: normalizeTimeValue(row.reservation_time),
+      timeTo: normalizeTimeValue(row.end_time) || addTwoHours(row.reservation_time),
+      status: row.status,
+    }));
+
+    return res.json({
+      success: true,
+      date,
+      reservations,
+    });
+  });
+}
 
 export function createReservation(req, res) {
   const {
@@ -143,6 +252,8 @@ export function createReservation(req, res) {
             message: "Szerver hiba a foglalás mentésekor.",
           });
         }
+
+        emitReservationsUpdated();
 
         sendReservationPendingEmail({
           email: normalizedEmail,

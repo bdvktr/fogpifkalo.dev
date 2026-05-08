@@ -384,7 +384,10 @@ export function getOrders(req, res) {
       o.delivery_city,
       o.delivery_fee,
       o.total_price,
-      u.email AS user_email
+      o.shipping_name,
+      o.shipping_address,
+      u.email AS user_email,
+      u.name AS user_name
     FROM orders o
     JOIN users u ON u.id = o.user_id
     ORDER BY o.created_at DESC, o.id DESC

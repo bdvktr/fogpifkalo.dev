@@ -4,6 +4,7 @@ import * as reservationsController from "../controllers/reservations.controller.
 
 const router = Router();
 
+router.get("/reservations/availability", reservationsController.getReservationAvailability);
 router.post("/reservations", requireLogin, reservationsController.createReservation);
 
 export default router;
