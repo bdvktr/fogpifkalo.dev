@@ -2,7 +2,20 @@ document.addEventListener("DOMContentLoaded", () => {
   const adminError = document.getElementById("adminError");
   const adminContent = document.getElementById("adminContent");
   const productsList = document.getElementById("productsList");
+  const adminProductSearchInput =
+    document.getElementById("adminProductSearch");
+  const adminProductSearchClearBtn = document.getElementById(
+    "adminProductSearchClearBtn",
+  );
+  const adminProductSearchMeta = document.getElementById(
+    "adminProductSearchMeta",
+  );
   const ordersAdminList = document.getElementById("ordersAdminList");
+  const adminOrderSearchInput = document.getElementById("adminOrderSearch");
+  const adminOrderSearchClearBtn = document.getElementById(
+    "adminOrderSearchClearBtn",
+  );
+  const adminOrderSearchMeta = document.getElementById("adminOrderSearchMeta");
   const newProductForm = document.getElementById("newProductForm");
   const openNewProductModalBtn = document.getElementById(
     "openNewProductModalBtn",
@@ -31,6 +44,11 @@ document.addEventListener("DOMContentLoaded", () => {
   const editProductIsSpecialOfferInput = document.getElementById(
     "editProductIsSpecialOffer",
   );
+
+  let adminProductsCache = [];
+  let adminProductSearchQuery = "";
+  let adminOrdersCache = [];
+  let adminOrderSearchQuery = "";
 
   // Új termék kép feltöltés (drag & drop)
   const newProductImageUrlInput = document.getElementById("newProductImageUrl");
@@ -521,38 +539,100 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // 🔹 2. Termékek betöltése
-  async function loadProducts() {
+  function normalizeProductSearchText(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function buildProductSearchHaystack(product) {
+    const category = product.category || "burger";
+    const categoryLabel = getCategoryLabel(category);
+    const statusLabel =
+      Number(product.is_active) === 1 ? "aktív aktiv" : "inaktív inaktiv";
+    const specialOfferLabel =
+      Number(product.is_special_offer) === 1 ? "hétvégi ajánlat hetvegi ajanlat" : "";
+
+    return normalizeProductSearchText(
+      [
+        product.name,
+        product.description,
+        category,
+        categoryLabel,
+        statusLabel,
+        specialOfferLabel,
+        product.price,
+      ].join(" "),
+    );
+  }
+
+  function getFilteredAdminProducts() {
+    const query = normalizeProductSearchText(adminProductSearchQuery);
+
+    if (!query) {
+      return adminProductsCache;
+    }
+
+    const queryParts = query.split(/\s+/).filter(Boolean);
+
+    return adminProductsCache.filter((product) => {
+      const haystack = buildProductSearchHaystack(product);
+      return queryParts.every((part) => haystack.includes(part));
+    });
+  }
+
+  function updateProductSearchMeta(visibleCount, totalCount) {
+    if (!adminProductSearchMeta) {
+      return;
+    }
+
+    if (totalCount === 0) {
+      adminProductSearchMeta.textContent = "";
+      return;
+    }
+
+    if (!adminProductSearchQuery) {
+      adminProductSearchMeta.textContent = `${totalCount} termék betöltve.`;
+      return;
+    }
+
+    adminProductSearchMeta.textContent = `${visibleCount} / ${totalCount} termék látható a keresés alapján.`;
+  }
+
+  function renderAdminProducts() {
     if (!productsList) return;
-    productsList.textContent = "Termékek betöltése...";
 
-    try {
-      const res = await apiFetch("/api/admin/products");
-      const data = await res.json();
+    const products = getFilteredAdminProducts();
 
-      if (!data.success) {
-        productsList.textContent =
-          data.message || "Nem sikerült betölteni a termékeket.";
-        return;
-      }
+    if (adminProductsCache.length === 0) {
+      productsList.textContent = "Még nincsenek termékek az adatbázisban.";
+      updateProductSearchMeta(0, 0);
+      return;
+    }
 
-      const products = data.products || [];
+    updateProductSearchMeta(products.length, adminProductsCache.length);
 
-      if (products.length === 0) {
-        productsList.textContent = "Még nincsenek termékek az adatbázisban.";
-        return;
-      }
+    if (products.length === 0) {
+      productsList.innerHTML = `
+        <div class="text-muted border rounded p-3">
+          Nincs találat a megadott keresésre.
+        </div>
+      `;
+      return;
+    }
 
-      productsList.innerHTML = "";
-      products.forEach((p) => {
-        const isActive = Number(p.is_active) === 1;
-        const isSpecialOffer = Number(p.is_special_offer) === 1;
+    productsList.innerHTML = "";
+    products.forEach((p) => {
+      const isActive = Number(p.is_active) === 1;
+      const isSpecialOffer = Number(p.is_special_offer) === 1;
 
-        const wrapper = document.createElement("div");
-        wrapper.className =
-          "d-flex justify-content-between align-items-center border rounded p-2 mb-2";
+      const wrapper = document.createElement("div");
+      wrapper.className =
+        "d-flex justify-content-between align-items-center border rounded p-2 mb-2";
 
-        wrapper.innerHTML = `
+      wrapper.innerHTML = `
         <div>
           <strong>${escapeHtml(p.name)}</strong>
           <div class="text-muted small clamp-2">${escapeHtml(p.description || "")}</div>
@@ -610,12 +690,56 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
       `;
 
-        productsList.appendChild(wrapper);
-      });
+      productsList.appendChild(wrapper);
+    });
+  }
+
+  if (adminProductSearchInput) {
+    adminProductSearchInput.addEventListener("input", () => {
+      adminProductSearchQuery = adminProductSearchInput.value || "";
+      renderAdminProducts();
+    });
+  }
+
+  if (adminProductSearchClearBtn) {
+    adminProductSearchClearBtn.addEventListener("click", () => {
+      adminProductSearchQuery = "";
+      if (adminProductSearchInput) {
+        adminProductSearchInput.value = "";
+        adminProductSearchInput.focus();
+      }
+      renderAdminProducts();
+    });
+  }
+
+  // 🔹 2. Termékek betöltése
+  async function loadProducts() {
+    if (!productsList) return;
+    productsList.textContent = "Termékek betöltése...";
+    if (adminProductSearchMeta) {
+      adminProductSearchMeta.textContent = "";
+    }
+
+    try {
+      const res = await apiFetch("/api/admin/products");
+      const data = await res.json();
+
+      if (!data.success) {
+        productsList.textContent =
+          data.message || "Nem sikerült betölteni a termékeket.";
+        adminProductsCache = [];
+        updateProductSearchMeta(0, 0);
+        return;
+      }
+
+      adminProductsCache = data.products || [];
+      renderAdminProducts();
     } catch (err) {
       console.error("Hiba a /api/admin/products hívásnál:", err);
       productsList.textContent =
         "Nem sikerült csatlakozni a szerverhez (termékek).";
+      adminProductsCache = [];
+      updateProductSearchMeta(0, 0);
     }
   }
 
@@ -903,96 +1027,182 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // 🔹 5. Rendelések betöltése
-  async function loadOrders() {
+  function normalizeOrderSearchText(value) {
+    return String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function formatOrderSearchDate(value) {
+    if (!value) {
+      return "";
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+
+    return [
+      date.toLocaleString("hu-HU"),
+      date.toLocaleDateString("hu-HU"),
+      date.toISOString().slice(0, 10),
+    ].join(" ");
+  }
+
+  function buildOrderSearchHaystack(order) {
+    return normalizeOrderSearchText(
+      [
+        formatOrderSearchDate(order.created_at),
+        order.shipping_name,
+        order.user_name,
+        order.user_email,
+        order.shipping_address,
+        order.delivery_city,
+      ].join(" "),
+    );
+  }
+
+  function doesOrderMatchSearchPart(order, part) {
+    if (part.startsWith("#")) {
+      const searchedId = part.slice(1).trim();
+      return searchedId !== "" && String(order.id) === searchedId;
+    }
+
+    return buildOrderSearchHaystack(order).includes(part);
+  }
+
+  function getFilteredAdminOrders() {
+    const query = normalizeOrderSearchText(adminOrderSearchQuery);
+
+    if (!query) {
+      return adminOrdersCache;
+    }
+
+    const queryParts = query.split(/\s+/).filter(Boolean);
+
+    return adminOrdersCache.filter((order) =>
+      queryParts.every((part) => doesOrderMatchSearchPart(order, part)),
+    );
+  }
+
+  function updateOrderSearchMeta(visibleCount, totalCount) {
+    if (!adminOrderSearchMeta) {
+      return;
+    }
+
+    if (totalCount === 0) {
+      adminOrderSearchMeta.textContent = "";
+      return;
+    }
+
+    if (!adminOrderSearchQuery) {
+      adminOrderSearchMeta.textContent = `${totalCount} rendelés betöltve.`;
+      return;
+    }
+
+    adminOrderSearchMeta.textContent = `${visibleCount} / ${totalCount} rendelés látható a keresés alapján.`;
+  }
+
+  function renderAdminOrders() {
     if (!ordersAdminList) return;
 
-    ordersAdminList.textContent = "Rendelések betöltése...";
+    if (adminOrdersCache.length === 0) {
+      ordersAdminList.textContent = "Még nincsenek leadott rendelések.";
+      updateOrderSearchMeta(0, 0);
+      return;
+    }
 
-    try {
-      const res = await apiFetch("/api/admin/orders");
-      const data = await res.json();
+    const orders = getFilteredAdminOrders();
+    updateOrderSearchMeta(orders.length, adminOrdersCache.length);
 
-      if (!data.success) {
-        ordersAdminList.textContent =
-          data.message || "Nem sikerült betölteni a rendeléseket.";
-        return;
-      }
+    ordersAdminList.innerHTML = "";
 
-      const orders = data.orders || [];
+    if (orders.length === 0) {
+      ordersAdminList.innerHTML = `
+        <div class="text-muted border rounded p-3">
+          Nincs találat a megadott keresésre.
+        </div>
+      `;
+      return;
+    }
 
-      if (orders.length === 0) {
-        ordersAdminList.textContent = "Még nincsenek leadott rendelések.";
-        return;
-      }
+    const pendingOrders = orders.filter((o) => o.status === "pending");
+    const completedOrders = orders.filter((o) => o.status === "completed");
+    const cancelledOrders = orders.filter((o) => o.status === "cancelled");
 
-      // 🔹 Szétválogatjuk státusz szerint
-      const pendingOrders = orders.filter((o) => o.status === "pending");
-      const completedOrders = orders.filter((o) => o.status === "completed");
-      const cancelledOrders = orders.filter((o) => o.status === "cancelled");
+    function renderSection(title, list, emptyText) {
+      const section = document.createElement("div");
+      section.className = "mb-4";
 
-      // 🔹 Konténer kiürítése
-      ordersAdminList.innerHTML = "";
+      const heading = document.createElement("h3");
+      heading.className = "h6 mb-2";
+      heading.textContent = title;
+      section.appendChild(heading);
 
-      function renderSection(title, list, emptyText) {
-        const section = document.createElement("div");
-        section.className = "mb-4";
+      const container = document.createElement("div");
+      container.className = "small";
+      section.appendChild(container);
 
-        const heading = document.createElement("h3");
-        heading.className = "h6 mb-2";
-        heading.textContent = title;
-        section.appendChild(heading);
+      if (!list || list.length === 0) {
+        container.textContent = emptyText;
+      } else {
+        list.forEach((o) => {
+          const wrapper = document.createElement("div");
+          wrapper.className = "border rounded p-2 mb-2";
 
-        const container = document.createElement("div");
-        container.className = "small";
-        section.appendChild(container);
+          const createdAt = new Date(o.created_at);
+          const formattedDate = createdAt.toLocaleString("hu-HU");
 
-        if (!list || list.length === 0) {
-          container.textContent = emptyText;
-        } else {
-          list.forEach((o) => {
-            const wrapper = document.createElement("div");
-            wrapper.className = "border rounded p-2 mb-2";
+          let statusText = "";
+          let badgeClass = "";
 
-            const createdAt = new Date(o.created_at);
-            const formattedDate = createdAt.toLocaleString("hu-HU");
+          const subtotal = Number(o.subtotal || 0);
+          const packageCount = Number(o.package_count || 0);
+          const packagingFee = Number(o.packaging_fee || 0);
+          const deliveryFee = Number(o.delivery_fee || 0);
+          const totalPrice = Number(o.total_price || 0);
+          const customerName = o.shipping_name || o.user_name || "";
+          const customerEmail = o.user_email || "";
+          const shippingAddress = o.shipping_address || "";
 
-            let statusText = "";
-            let badgeClass = "";
+          switch (o.status) {
+            case "pending":
+              statusText = "Folyamatban";
+              badgeClass = "bg-warning text-dark";
+              break;
 
-            const subtotal = Number(o.subtotal || 0);
-            const packageCount = Number(o.package_count || 0);
-            const packagingFee = Number(o.packaging_fee || 0);
-            const deliveryFee = Number(o.delivery_fee || 0);
-            const totalPrice = Number(o.total_price || 0);
+            case "completed":
+              statusText = "Teljesítve";
+              badgeClass = "bg-success";
+              break;
 
-            switch (o.status) {
-              case "pending":
-                statusText = "Folyamatban";
-                badgeClass = "bg-warning text-dark";
-                break;
+            case "cancelled":
+              statusText = "Törölve";
+              badgeClass = "bg-danger";
+              break;
 
-              case "completed":
-                statusText = "Teljesítve";
-                badgeClass = "bg-success";
-                break;
+            default:
+              statusText = o.status;
+              badgeClass = "bg-secondary";
+          }
 
-              case "cancelled":
-                statusText = "Törölve";
-                badgeClass = "bg-danger";
-                break;
-
-              default:
-                statusText = o.status;
-                badgeClass = "bg-secondary";
-            }
-
-            wrapper.innerHTML = `
+          wrapper.innerHTML = `
             <div class="d-flex justify-content-between mb-1">
               <div>
                 <strong>Rendelés #${o.id}</strong>
                 <div class="text-muted small">${escapeHtml(formattedDate)}</div>
-                <div class="text-muted small">Vevő: ${escapeHtml(o.user_email)}</div>
+                <div class="text-muted small">
+                  Vevő: ${customerName ? `${escapeHtml(customerName)} • ` : ""}${escapeHtml(customerEmail)}
+                </div>
+                ${
+                  shippingAddress
+                    ? `<div class="text-muted small">Cím: ${escapeHtml(shippingAddress)}</div>`
+                    : ""
+                }
                 <div class="text-muted small">
                   Termékek: ${formatFt(subtotal || (totalPrice - deliveryFee - packagingFee))} Ft •
                   Csomagolás${packageCount > 0 ? ` (${packageCount} csomag)` : ""}: ${formatFt(packagingFee)} Ft •
@@ -1033,29 +1243,73 @@ document.addEventListener("DOMContentLoaded", () => {
             </div>
           `;
 
-            container.appendChild(wrapper);
-          });
-        }
-
-        ordersAdminList.appendChild(section);
+          container.appendChild(wrapper);
+        });
       }
 
-      // 🔹 Három blokk egymás alatt
-      renderSection(
-        "Folyamatban",
-        pendingOrders,
-        "Nincs folyamatban lévő rendelés.",
-      );
-      renderSection(
-        "Teljesítve",
-        completedOrders,
-        "Nincs teljesített rendelés.",
-      );
-      renderSection("Törölve", cancelledOrders, "Nincs törölt rendelés.");
+      ordersAdminList.appendChild(section);
+    }
+
+    renderSection(
+      "Folyamatban",
+      pendingOrders,
+      "Nincs folyamatban lévő rendelés.",
+    );
+    renderSection(
+      "Teljesítve",
+      completedOrders,
+      "Nincs teljesített rendelés.",
+    );
+    renderSection("Törölve", cancelledOrders, "Nincs törölt rendelés.");
+  }
+
+  if (adminOrderSearchInput) {
+    adminOrderSearchInput.addEventListener("input", () => {
+      adminOrderSearchQuery = adminOrderSearchInput.value || "";
+      renderAdminOrders();
+    });
+  }
+
+  if (adminOrderSearchClearBtn) {
+    adminOrderSearchClearBtn.addEventListener("click", () => {
+      adminOrderSearchQuery = "";
+      if (adminOrderSearchInput) {
+        adminOrderSearchInput.value = "";
+        adminOrderSearchInput.focus();
+      }
+      renderAdminOrders();
+    });
+  }
+
+  // 🔹 5. Rendelések betöltése
+  async function loadOrders() {
+    if (!ordersAdminList) return;
+
+    ordersAdminList.textContent = "Rendelések betöltése...";
+    if (adminOrderSearchMeta) {
+      adminOrderSearchMeta.textContent = "";
+    }
+
+    try {
+      const res = await apiFetch("/api/admin/orders");
+      const data = await res.json();
+
+      if (!data.success) {
+        ordersAdminList.textContent =
+          data.message || "Nem sikerült betölteni a rendeléseket.";
+        adminOrdersCache = [];
+        updateOrderSearchMeta(0, 0);
+        return;
+      }
+
+      adminOrdersCache = data.orders || [];
+      renderAdminOrders();
     } catch (err) {
       console.error("Hiba a /api/admin/orders hívásnál:", err);
       ordersAdminList.textContent =
         "Nem sikerült csatlakozni a szerverhez (rendelések).";
+      adminOrdersCache = [];
+      updateOrderSearchMeta(0, 0);
     }
   }
 

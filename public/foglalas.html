@@ -6,56 +6,40 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Asztalfoglalás - Fogpifkáló</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-  <!-- Bootstrap Icons -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet" />
   <link rel="stylesheet" href="navbar2.css?v=nav-left-1" />
-  <link rel="stylesheet" href="scrollbar.css">
+  <link rel="stylesheet" href="scrollbar.css" />
+  <link rel="stylesheet" href="reservation.css?v=reservation-time-range-1" />
   <link rel="stylesheet" href="footer.css?v=footer-sync-1" />
 </head>
 
 <body>
-  <!-- NAVBAR -->
   <nav class="navbar navbar-expand-lg navbar-dark navbar-glass fixed-top">
     <div class="container">
-      <!-- LOGÓ -->
       <a class="navbar-brand d-flex align-items-center" href="index.html">
         <img src="images/fogpifkalo.png" alt="Fogpifkáló" class="navbar-logo me-2" />
         <span class="fw-bold brand-text">Fogpifkáló</span>
       </a>
 
-      <!-- MOBIL TOGGLE -->
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
         <span class="navbar-toggler-icon"></span>
       </button>
 
       <div class="collapse navbar-collapse" id="navMenu">
         <ul class="navbar-nav mx-auto mb-2 mb-lg-0 gap-lg-4">
-          <li class="nav-item">
-            <a class="nav-link" href="index.html">Főoldal</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="menu.html">Menü</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="index.html#rolunk">Rólunk</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a>
-          </li>
+          <li class="nav-item"><a class="nav-link" href="index.html">Főoldal</a></li>
+          <li class="nav-item"><a class="nav-link" href="menu.html">Menü</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#rolunk">Rólunk</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#kapcsolat">Kapcsolat</a></li>
         </ul>
 
-        <!-- JOBB OLDAL: FOGLALÁS + (KOSÁR | FIÓK) pill -->
         <div class="d-flex align-items-center gap-2">
-          <!-- FOGLALÁS (ghost + glow) -->
-          <a class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2"
-            href="foglalas.html">
+          <a class="btn btn-sm rounded-pill px-3 py-2 nav-cta d-inline-flex align-items-center gap-2" href="foglalas.html">
             <i class="bi bi-calendar-event"></i>
             <span>Foglalás</span>
           </a>
 
-          <!-- KÖZÖS PILL: KOSÁR + FIÓK -->
           <div class="nav-utility-pill d-flex align-items-center">
-            <!-- KOSÁR -->
             <div class="dropdown">
               <button class="btn nav-utility-btn position-relative d-inline-flex align-items-center gap-2" type="button"
                 id="cartDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false">
@@ -64,8 +48,7 @@
                 <span class="cart-badge" id="cartCountBadge" style="display: none">0</span>
               </button>
 
-              <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="cartDropdownBtn"
-                style="min-width: 280px">
+              <div class="dropdown-menu dropdown-menu-end p-3" aria-labelledby="cartDropdownBtn" style="min-width: 280px">
                 <div id="cartDropdownContent">
                   <div class="text-muted small">A kosarad jelenleg üres.</div>
                 </div>
@@ -74,7 +57,6 @@
 
             <span class="nav-utility-divider"></span>
 
-            <!-- FIÓK -->
             <a class="btn nav-utility-btn d-inline-flex align-items-center gap-2" href="fiok.html" id="accountLink">
               <i class="bi bi-person-circle account-icon"></i>
               <span class="d-none d-lg-inline"></span>
@@ -82,190 +64,388 @@
           </div>
         </div>
       </div>
+    </div>
   </nav>
 
-  <main class="py-5 my-5 footer-page-space">
-    <div class="container">
-      <h1 class="mb-3">Asztalfoglalás</h1>
-      <p class="text-muted mb-4">
-        Töltsd ki az alábbi űrlapot, és rögzítjük a foglalásod. A foglalás
-        státusza kezdetben <strong>„függőben”</strong>, később az étterem
-        visszaigazolja.
-      </p>
+  <main class="reservation-page footer-page-space">
+    <section class="reservation-hero">
+      <div class="container">
+        <div class="reservation-hero-inner">
+          <h1 class="reservation-page-title">Foglalás</h1>
+          <div class="reservation-page-divider" aria-hidden="true"></div>
+          <p class="reservation-page-lead">
+            Válaszd ki a számodra megfelelő napot, asztalt és időpontot, majd pár lépésben add meg a foglalásod adatait.
+          </p>
+        </div>
+      </div>
+    </section>
 
-      <div id="reservationMessage" class="mb-3"></div>
+    <section class="reservation-section">
+      <div class="container">
+        <div id="reservationMessage" class="mb-3"></div>
 
-      <div class="card">
-        <div class="card-body">
-          <form id="reservationForm" class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label">Név</label>
-              <input type="text" name="name" class="form-control" required />
+        <div class="reservation-shell">
+          <div class="reservation-steps" id="reservationSteps" aria-label="Foglalási lépések">
+            <div class="reservation-step is-active" data-step="1">
+              <span class="reservation-step-number">1</span>
+              <span class="reservation-step-label">Dátum és asztal</span>
             </div>
-
-            <div class="col-md-6">
-              <label class="form-label">Telefonszám</label>
-              <input type="text" name="phone" class="form-control" required />
+            <div class="reservation-step" data-step="2">
+              <span class="reservation-step-number">2</span>
+              <span class="reservation-step-label">Időpont választása</span>
             </div>
-
-            <div class="col-md-6">
-              <label class="form-label">Email cím</label>
-              <input type="email" name="email" class="form-control" required />
+            <div class="reservation-step" data-step="3">
+              <span class="reservation-step-number">3</span>
+              <span class="reservation-step-label">Adatok megadása</span>
             </div>
-
-            <div class="col-md-4">
-              <label class="form-label">Dátum</label>
-              <input type="date" name="date" class="form-control" required />
+            <div class="reservation-step" data-step="4">
+              <span class="reservation-step-number">4</span>
+              <span class="reservation-step-label">Foglalás megerősítése</span>
             </div>
+          </div>
 
-            <div class="col-md-4">
-              <label class="form-label">Időpont - mettől</label>
-              <input type="time" name="timeFrom" class="form-control" required />
-            </div>
+          <form id="reservationForm" novalidate>
+            <input type="hidden" name="date" />
+            <input type="hidden" name="timeFrom" />
+            <input type="hidden" name="timeTo" />
+            <input type="hidden" name="tableNumber" />
 
-            <div class="col-md-4">
-              <label class="form-label">Időpont - meddig</label>
-              <input type="time" name="timeTo" class="form-control" required />
-            </div>
+            <section class="reservation-step-panel is-active" data-step-panel="1">
+              <div class="reservation-grid reservation-grid-step1">
+                <div class="reservation-card-panel reservation-calendar-panel">
+                  <div class="reservation-panel-header">
+                    <div>
+                      <div class="reservation-panel-eyebrow">1. lépés</div>
+                      <h2>Dátum kiválasztása</h2>
+                    </div>
+                    <div class="reservation-panel-icon"><i class="bi bi-calendar3"></i></div>
+                  </div>
 
-            <div class="col-md-4">
-              <label class="form-label">Asztal száma</label>
-              <select name="tableNumber" class="form-select" required>
-                <option value="">Válassz...</option>
-                <option value="1">1. asztal</option>
-                <option value="2">2. asztal</option>
-                <option value="3">3. asztal</option>
-                <option value="4">4. asztal</option>
-                <option value="5">5. asztal</option>
-                <option value="6">6. asztal</option>
-              </select>
-            </div>
+                  <div class="reservation-calendar-header">
+                    <button type="button" class="reservation-icon-btn" id="calendarPrevBtn" aria-label="Előző hónap">
+                      <i class="bi bi-chevron-left"></i>
+                    </button>
+                    <div class="reservation-calendar-month" id="calendarMonthLabel">-</div>
+                    <button type="button" class="reservation-icon-btn" id="calendarNextBtn" aria-label="Következő hónap">
+                      <i class="bi bi-chevron-right"></i>
+                    </button>
+                  </div>
 
-            <div class="col-md-4">
-              <label class="form-label">Létszám</label>
-              <input type="number" name="peopleCount" class="form-control" min="1" max="12" required />
-            </div>
+                  <div class="reservation-calendar-weekdays">
+                    <span>H</span>
+                    <span>K</span>
+                    <span>Sze</span>
+                    <span>Cs</span>
+                    <span>P</span>
+                    <span>Szo</span>
+                    <span>V</span>
+                  </div>
 
-            <div class="col-12">
-              <label class="form-label">Megjegyzés (opcionális)</label>
-              <textarea name="note" class="form-control" rows="3"></textarea>
-            </div>
+                  <div class="reservation-calendar-grid" id="calendarGrid"></div>
 
-            <div class="col-12">
-              <button type="submit" class="btn btn-primary">
-                Foglalás elküldése
-              </button>
-            </div>
+                  <div class="reservation-help-text" id="selectedDateHint">
+                    Válassz egy napot a foglaláshoz.
+                  </div>
+                </div>
+
+                <div class="reservation-card-panel reservation-table-panel">
+                  <div class="reservation-panel-header">
+                    <div>
+                      <div class="reservation-panel-eyebrow">1. lépés</div>
+                      <h2>Asztal kiválasztása</h2>
+                    </div>
+                    <div class="reservation-panel-icon"><i class="bi bi-grid-1x2"></i></div>
+                  </div>
+
+                  <div class="reservation-table-groups-legend">
+                    <span><i class="bi bi-door-open"></i> Benti asztalok</span>
+                    <span><i class="bi bi-tree"></i> Kinti asztalok</span>
+                  </div>
+
+                  <div class="reservation-table-grid" id="reservationTableList"></div>
+
+                  <div class="reservation-help-text" id="selectedTableHint">
+                    Először válassz dátumot, utána asztalt.
+                  </div>
+                </div>
+              </div>
+
+              <div class="reservation-panel-actions">
+                <div class="reservation-inline-note">
+                  <i class="bi bi-info-circle"></i>
+                  <span>Első lépésben válassz napot és benti vagy kinti asztalt.</span>
+                </div>
+                <button type="button" class="btn reservation-primary-btn" id="step1NextBtn">
+                  Tovább az időpontokhoz
+                  <i class="bi bi-arrow-right"></i>
+                </button>
+              </div>
+            </section>
+
+            <section class="reservation-step-panel" data-step-panel="2" hidden>
+              <div class="reservation-grid reservation-grid-step2">
+                <div class="reservation-card-panel">
+                  <div class="reservation-panel-header">
+                    <div>
+                      <div class="reservation-panel-eyebrow">2. lépés</div>
+                      <h2>Időpont választása</h2>
+                    </div>
+                    <div class="reservation-panel-icon"><i class="bi bi-clock"></i></div>
+                  </div>
+
+                  <div class="reservation-selection-strip">
+                    <div class="reservation-selection-pill">
+                      <i class="bi bi-calendar-date"></i>
+                      <div>
+                        <small>Dátum</small>
+                        <strong id="selectedDateDisplay">-</strong>
+                      </div>
+                    </div>
+                    <div class="reservation-selection-pill">
+                      <i class="bi bi-grid-1x2"></i>
+                      <div>
+                        <small>Asztal</small>
+                        <strong id="selectedTableDisplay">-</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="reservation-help-text mb-3">
+                    Első kattintással válaszd ki, mettől, majd második kattintással, meddig tartson a foglalás. A szürke időpontok nem választhatók.
+                  </div>
+
+                  <div class="reservation-slot-grid" id="reservationSlotGrid"></div>
+
+                  <div class="reservation-slot-legend">
+                    <span><i class="bi bi-circle-fill available"></i> Elérhető</span>
+                    <span><i class="bi bi-circle-fill selected"></i> Kiválasztott</span>
+                    <span><i class="bi bi-circle-fill booked"></i> Foglalt</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="reservation-panel-actions">
+                <button type="button" class="btn reservation-secondary-btn" id="step2PrevBtn">
+                  <i class="bi bi-arrow-left"></i>
+                  Vissza
+                </button>
+                <button type="button" class="btn reservation-primary-btn" id="step2NextBtn">
+                  Tovább az adatokhoz
+                  <i class="bi bi-arrow-right"></i>
+                </button>
+              </div>
+            </section>
+
+            <section class="reservation-step-panel" data-step-panel="3" hidden>
+              <div class="reservation-grid reservation-grid-step3">
+                <div class="reservation-card-panel">
+                  <div class="reservation-panel-header">
+                    <div>
+                      <div class="reservation-panel-eyebrow">3. lépés</div>
+                      <h2>Adatok megadása</h2>
+                    </div>
+                    <div class="reservation-panel-icon"><i class="bi bi-person-lines-fill"></i></div>
+                  </div>
+
+                  <div class="reservation-form-grid">
+                    <div class="reservation-field">
+                      <label for="reservationName">Név</label>
+                      <input id="reservationName" type="text" name="name" class="form-control" required />
+                    </div>
+                    <div class="reservation-field">
+                      <label for="reservationPhone">Telefonszám</label>
+                      <input id="reservationPhone" type="text" name="phone" class="form-control" required />
+                    </div>
+                    <div class="reservation-field">
+                      <label for="reservationEmail">Email cím</label>
+                      <input id="reservationEmail" type="email" name="email" class="form-control" required />
+                    </div>
+                    <div class="reservation-field">
+                      <label for="reservationPeopleCount">Létszám</label>
+                      <select id="reservationPeopleCount" name="peopleCount" class="form-select" required>
+                        <option value="">Válassz...</option>
+                        <option value="1">1 fő</option>
+                        <option value="2">2 fő</option>
+                        <option value="3">3 fő</option>
+                        <option value="4">4 fő</option>
+                        <option value="5">5 fő</option>
+                        <option value="6">6 fő</option>
+                        <option value="7">7 fő</option>
+                        <option value="8">8 fő</option>
+                        <option value="9">9 fő</option>
+                        <option value="10">10 fő</option>
+                        <option value="11">11 fő</option>
+                        <option value="12">12 fő</option>
+                      </select>
+                    </div>
+                    <div class="reservation-field reservation-field-full">
+                      <label for="reservationNote">Megjegyzés (opcionális)</label>
+                      <textarea id="reservationNote" name="note" class="form-control" rows="4" placeholder="Pl. gyerekszék, kinti asztal preferencia, egyéb kérés..."></textarea>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="reservation-panel-actions">
+                <button type="button" class="btn reservation-secondary-btn" id="step3PrevBtn">
+                  <i class="bi bi-arrow-left"></i>
+                  Vissza
+                </button>
+                <button type="button" class="btn reservation-primary-btn" id="step3NextBtn">
+                  Tovább az összegzéshez
+                  <i class="bi bi-arrow-right"></i>
+                </button>
+              </div>
+            </section>
+
+            <section class="reservation-step-panel" data-step-panel="4" hidden>
+              <div class="reservation-grid reservation-grid-step4">
+                <div class="reservation-card-panel">
+                  <div class="reservation-panel-header">
+                    <div>
+                      <div class="reservation-panel-eyebrow">4. lépés</div>
+                      <h2>Foglalás megerősítése</h2>
+                    </div>
+                    <div class="reservation-panel-icon"><i class="bi bi-check2-circle"></i></div>
+                  </div>
+
+                  <div class="reservation-summary-grid">
+                    <div class="reservation-summary-card">
+                      <span>Dátum</span>
+                      <strong id="summaryDate">-</strong>
+                    </div>
+                    <div class="reservation-summary-card">
+                      <span>Asztal</span>
+                      <strong id="summaryTable">-</strong>
+                    </div>
+                    <div class="reservation-summary-card">
+                      <span>Időpont</span>
+                      <strong id="summaryTime">-</strong>
+                    </div>
+                    <div class="reservation-summary-card">
+                      <span>Létszám</span>
+                      <strong id="summaryPeople">-</strong>
+                    </div>
+                    <div class="reservation-summary-card reservation-summary-card-wide">
+                      <span>Kapcsolattartó</span>
+                      <strong id="summaryGuest">-</strong>
+                    </div>
+                    <div class="reservation-summary-card reservation-summary-card-wide">
+                      <span>Megjegyzés</span>
+                      <strong id="summaryNote">Nincs megadva.</strong>
+                    </div>
+                  </div>
+
+                  <div class="reservation-inline-note reservation-inline-note-soft">
+                    <i class="bi bi-info-circle"></i>
+                    <span>A foglalásod kezdetben függőben lesz, az étterem ezután visszaigazolja.</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="reservation-panel-actions">
+                <button type="button" class="btn reservation-secondary-btn" id="step4PrevBtn">
+                  <i class="bi bi-arrow-left"></i>
+                  Vissza
+                </button>
+                <button type="submit" class="btn reservation-primary-btn" id="reservationSubmitBtn">
+                  Foglalás elküldése
+                  <i class="bi bi-check2"></i>
+                </button>
+              </div>
+            </section>
           </form>
+        </div>
+
+        <div class="reservation-bottom-info">
+          <div class="reservation-bottom-card">
+            <i class="bi bi-clock-history"></i>
+            <div>
+              <strong>Nyitvatartás</strong>
+              <span>H–P: 11:00 – 22:00 • Szo–V: 12:00 – 23:00</span>
+            </div>
+          </div>
+          <div class="reservation-bottom-card">
+            <i class="bi bi-calendar2-check"></i>
+            <div>
+              <strong>Foglalási időtartam</strong>
+              <span>A foglalás kezdési és befejezési időpontját is te választod ki, legalább 1 órás időtartammal.</span>
+            </div>
+          </div>
+          <div class="reservation-bottom-card">
+            <i class="bi bi-info-circle"></i>
+            <div>
+              <strong>Hasznos tudnivaló</strong>
+              <span>Ha szürke egy időpont, az adott asztalnál nem választható arra az idősávra.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <div class="site-footer-topline" aria-hidden="true">
+        <span class="site-footer-topicon" aria-label="Burger"><span class="site-footer-burger-icon" aria-hidden="true"><span></span></span></span>
+      </div>
+
+      <div class="site-footer-main">
+        <div class="site-footer-col">
+          <h2 class="site-footer-brand">Fog<span>Pifkáló</span></h2>
+          <div class="site-footer-brand-bar"><i class="bi bi-stars"></i></div>
+          <p class="site-footer-lead">Prémium burgerek minőségi alapanyagokból, szenvedéllyel és odafigyeléssel készítve.</p>
+
+          <div class="site-footer-socials">
+            <a href="#" class="site-footer-social" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+            <a href="#" class="site-footer-social" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+            <a href="#" class="site-footer-social" aria-label="TikTok"><i class="bi bi-tiktok"></i></a>
+          </div>
+        </div>
+
+        <div class="site-footer-col">
+          <h3 class="site-footer-heading">Navigáció</h3>
+          <div class="site-footer-links">
+            <a class="site-footer-link" href="index.html"><i class="bi bi-chevron-right"></i><span>Kezdőlap</span></a>
+            <a class="site-footer-link" href="menu.html"><i class="bi bi-chevron-right"></i><span>Étlap</span></a>
+            <a class="site-footer-link" href="foglalas.html"><i class="bi bi-chevron-right"></i><span>Foglalás</span></a>
+            <a class="site-footer-link" href="fiok.html"><i class="bi bi-chevron-right"></i><span>Fiók</span></a>
+            <a class="site-footer-link" href="index.html#kapcsolat"><i class="bi bi-chevron-right"></i><span>Kapcsolat</span></a>
+          </div>
+        </div>
+
+        <div class="site-footer-col">
+          <i class="bi bi-credit-card-2-front"></i>
+          <span>Mindhárom SZÉP kártyát elfogadjuk.</span>
+          <div class="site-footer-payment-note"></div>
+
+          <div class="site-footer-payment-grid">
+            <div class="site-footer-payment-card otp"><div class="site-footer-payment-logo">OTP<small>SZÉP KÁRTYA</small></div></div>
+            <div class="site-footer-payment-card kh"><div class="site-footer-payment-logo">K&amp;H<small>SZÉP KÁRTYA</small></div></div>
+            <div class="site-footer-payment-card mbh"><div class="site-footer-payment-logo">MBH<small>SZÉP KÁRTYA</small></div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="site-footer-bottom">
+        <div class="site-footer-bottom-inner">
+          <div class="site-footer-copyright">&copy; 2025 <strong>FogPifkáló</strong> – Minden jog fenntartva.</div>
+          <div class="site-footer-legal">
+            <a href="#">Adatvédelem</a>
+            <span>|</span>
+            <a href="#">Általános Szerződési Feltételek</a>
+            <span>|</span>
+            <a href="#">Cookie beállítások</a>
+          </div>
         </div>
       </div>
     </div>
-  </main>
+  </footer>
 
-
-<footer class="site-footer">
-      <div class="container">
-        <div class="site-footer-topline" aria-hidden="true">
-          <span class="site-footer-topicon" aria-label="Burger"
-            ><span class="site-footer-burger-icon" aria-hidden="true"
-              ><span></span></span
-          ></span>
-        </div>
-
-        <div class="site-footer-main">
-          <div class="site-footer-col">
-            <h2 class="site-footer-brand">Fog<span>Pifkáló</span></h2>
-            <div class="site-footer-brand-bar">
-              <i class="bi bi-stars"></i>
-            </div>
-            <p class="site-footer-lead">
-              Prémium burgerek minőségi alapanyagokból, szenvedéllyel és
-              odafigyeléssel készítve.
-            </p>
-
-            <div class="site-footer-socials">
-              <a href="#" class="site-footer-social" aria-label="Facebook"
-                ><i class="bi bi-facebook"></i
-              ></a>
-              <a href="#" class="site-footer-social" aria-label="Instagram"
-                ><i class="bi bi-instagram"></i
-              ></a>
-              <a href="#" class="site-footer-social" aria-label="TikTok"
-                ><i class="bi bi-tiktok"></i
-              ></a>
-            </div>
-          </div>
-
-          <div class="site-footer-col">
-            <h3 class="site-footer-heading">Navigáció</h3>
-            <div class="site-footer-links">
-              <a class="site-footer-link" href="index.html"
-                ><i class="bi bi-chevron-right"></i><span>Kezdőlap</span></a
-              >
-              <a class="site-footer-link" href="menu.html"
-                ><i class="bi bi-chevron-right"></i><span>Étlap</span></a
-              >
-              <a class="site-footer-link" href="foglalas.html"
-                ><i class="bi bi-chevron-right"></i><span>Foglalás</span></a
-              >
-              <a class="site-footer-link" href="fiok.html"
-                ><i class="bi bi-chevron-right"></i><span>Fiók</span></a
-              >
-              <a class="site-footer-link" href="index.html#kapcsolat"
-                ><i class="bi bi-chevron-right"></i><span>Kapcsolat</span></a
-              >
-            </div>
-          </div>
-
-          <div class="site-footer-col">
-            <i class="bi bi-credit-card-2-front"></i>
-            <span>Mindhárom SZÉP kártyát elfogadjuk.</span>
-            <div class="site-footer-payment-note"></div>
-
-            <div class="site-footer-payment-grid">
-              <div class="site-footer-payment-card otp">
-                <div class="site-footer-payment-logo">
-                  OTP<small>SZÉP KÁRTYA</small>
-                </div>
-              </div>
-              <div class="site-footer-payment-card kh">
-                <div class="site-footer-payment-logo">
-                  K&amp;H<small>SZÉP KÁRTYA</small>
-                </div>
-              </div>
-              <div class="site-footer-payment-card mbh">
-                <div class="site-footer-payment-logo">
-                  MBH<small>SZÉP KÁRTYA</small>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="site-footer-bottom">
-          <div class="site-footer-bottom-inner">
-            <div class="site-footer-copyright">
-              &copy; 2025 <strong>FogPifkáló</strong> – Minden jog fenntartva.
-            </div>
-            <div class="site-footer-legal">
-              <a href="#">Adatvédelem</a>
-              <span>|</span>
-              <a href="#">Általános Szerződési Feltételek</a>
-              <span>|</span>
-              <a href="#">Cookie beállítások</a>
-            </div>
-          </div>
-        </div>
-      </div>
-    </footer>
-
-
-  <!-- Bootstrap JS (ha használod a navbarhoz, modálokhoz stb.) -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-
-  <!-- Saját JS a foglaláshoz -->
-  <script src="foglalas.js"></script>
   <script src="api.js"></script>
+  <script src="script.js?v=cart-navbar-1"></script>
+  <script src="foglalas.js?v=reservation-time-range-1"></script>
   <script src="name.js"></script>
 </body>
 

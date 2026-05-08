@@ -4,6 +4,27 @@ document.addEventListener("DOMContentLoaded", () => {
   const sideList = document.getElementById("sideList");
   const drinkList = document.getElementById("drinkList");
   const sauceList = document.getElementById("sauceList");
+  const filterWrap = document.getElementById("menuCategoryFilters");
+  const filterMeta = document.getElementById("menuFilterMeta");
+  const menuSections = document.querySelectorAll("[data-menu-category]");
+
+  const categoryLabels = {
+    all: "Összes",
+    burger: "Burgerek",
+    main: "Főételek",
+    side: "Köretek",
+    drink: "Innivalók",
+    sauce: "Szószok",
+  };
+
+  let currentCategoryFilter = "all";
+  let menuProductCounts = {
+    burger: 0,
+    main: 0,
+    side: 0,
+    drink: 0,
+    sauce: 0,
+  };
 
   function formatFt(value) {
     return Math.round(Number(value)).toLocaleString("hu-HU");
@@ -25,6 +46,41 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function escapeAttr(value) {
     return escapeHtml(value).replace(/`/g, "&#96;");
+  }
+
+  function updateCategoryFilterUi() {
+    if (filterWrap) {
+      filterWrap.querySelectorAll("[data-category-filter]").forEach((btn) => {
+        const isActive = btn.dataset.categoryFilter === currentCategoryFilter;
+        btn.classList.toggle("is-active", isActive);
+        btn.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
+    }
+
+    menuSections.forEach((section) => {
+      const category = section.dataset.menuCategory;
+      section.classList.toggle(
+        "is-hidden",
+        currentCategoryFilter !== "all" && category !== currentCategoryFilter,
+      );
+    });
+
+    if (filterMeta) {
+      if (currentCategoryFilter === "all") {
+        const total = Object.values(menuProductCounts).reduce(
+          (sum, count) => sum + count,
+          0,
+        );
+        filterMeta.innerHTML =
+          total > 0
+            ? `Minden kategória megjelenítve • <span class="text-warning">${total} termék.</span>`
+            : "Minden kategória megjelenítve.";
+      } else {
+        const label = categoryLabels[currentCategoryFilter] || "Kategória";
+        const count = menuProductCounts[currentCategoryFilter] || 0;
+        filterMeta.innerHTML = `<span class="text-warning">${escapeHtml(label)}</span> megjelenítve • ${count} termék.`;
+      }
+    }
   }
 
   function createProductCard(product) {
@@ -119,6 +175,14 @@ document.addEventListener("DOMContentLoaded", () => {
         else grouped.burger.push(p);
       });
 
+      menuProductCounts = {
+        burger: grouped.burger.length,
+        main: grouped.main.length,
+        side: grouped.side.length,
+        drink: grouped.drink.length,
+        sauce: grouped.sauce.length,
+      };
+
       function renderCategory(listEl, items, emptyText) {
         if (!listEl) return;
         if (!items || items.length === 0) {
@@ -153,6 +217,8 @@ document.addEventListener("DOMContentLoaded", () => {
         grouped.sauce,
         "Jelenleg nincsenek szószok a menüben.",
       );
+
+      updateCategoryFilterUi();
     } catch (err) {
       console.error("Hiba a /api/menu hívásnál:", err);
       const msg = "Nem sikerült csatlakozni a szerverhez.";
@@ -162,6 +228,21 @@ document.addEventListener("DOMContentLoaded", () => {
       drinkList.textContent = msg;
       sauceList.textContent = msg;
     }
+  }
+
+  if (filterWrap) {
+    filterWrap.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-category-filter]");
+      if (!btn) return;
+
+      currentCategoryFilter = btn.dataset.categoryFilter || "all";
+      updateCategoryFilterUi();
+
+      const main = document.querySelector("main");
+      if (main) {
+        main.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    });
   }
 
   document.addEventListener("click", (e) => {
